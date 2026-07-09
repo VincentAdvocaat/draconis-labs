@@ -67,3 +67,16 @@ andere clients kunnen gebruiken.
 
 Code staat op **GitHub**; backlog en pipelines in **Azure DevOps**. Zie
 `docs/azure/ado-github-integration.md` voor de workflow (`AB#` in commits, enz.).
+
+## Worktree & pull requests
+
+Werk nooit direct op `main`. Gebruik worktrees en PR's (ook voor agents):
+
+```powershell
+./scripts/start-development.ps1 -Branch feature/mijn-onderwerp
+# ... wijzigingen ...
+./scripts/new-pr.ps1 -WorkItem 120 -Message "Planner: beschrijving van de wijziging"
+./scripts/stop-development.ps1 -Branch feature/mijn-onderwerp
+```
+
+Policy: `.cursor/rules/worktrees-and-branches.mdc`
