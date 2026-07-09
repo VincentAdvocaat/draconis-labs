@@ -5,3 +5,6 @@ dist/
 .env.local
 server/api/data/
 .DS_Store
+
+# Git worktrees (local checkouts)
+.worktrees/

@@ -34,13 +34,27 @@ corepack pnpm dev
 
 ## Work items koppelen aan commits en PR's
 
-Gebruik `AB#<id>` in commit-berichten of PR-titels:
+Gebruik `AB#<id>` in commit-berichten, PR-titels of `-WorkItem` in `new-pr.ps1`:
 
 ```text
 Planner drag-and-drop fix AB#120
 ```
 
+```powershell
+./scripts/new-pr.ps1 -WorkItem 120 -Message "Planner: drag-and-drop feedback"
+```
+
 Azure DevOps koppelt commits en pull requests automatisch aan het work item.
+
+## Pull-request workflow
+
+1. `./scripts/start-development.ps1 -Branch feature/<topic>`
+2. Werk in `.worktrees/feature/<topic>`
+3. `./scripts/new-pr.ps1` (opent PR naar `main`; CI draait op de PR)
+4. Merge na groene build (squash merge aanbevolen)
+5. `./scripts/stop-development.ps1 -Branch feature/<topic>`
+
+`main` is branch-protected: geen directe pushes, alleen via PR.
 
 ## CI/CD
 

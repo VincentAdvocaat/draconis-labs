@@ -1,0 +1,43 @@
+---
+alwaysApply: true
+---
+
+## Worktrees & branches policy (verplicht)
+
+Iedere agent werkt **altijd** in een eigen **git worktree** én een eigen **git branch**. Werk nooit direct op `main`.
+
+### Branch conventie
+
+- Gebruik **altijd** één van deze prefixes:
+  - `feature/<topic>` voor features/infra/refactor/docs
+  - `bugfix/<topic>` alleen voor bugfixes
+- Gebruik **korte, duidelijke** topics (bij voorkeur lowercase met `-`).
+
+### Worktree pad conventie
+
+- Het worktree pad is **exact** de branchnaam onder `.worktrees/`.
+- `/` in de branchnaam wordt dus een **submap**.
+
+Voorbeeld:
+
+- Branch `feature/planner-quick-add`
+- Worktree `.worktrees/feature/planner-quick-add`
+
+### Uitvoeringsregel
+
+Als je een nieuwe workstream start:
+
+1. Maak eerst de branch volgens de conventie.
+2. Maak daarna de worktree aan op `.worktrees/<branch>`.
+3. Werk en commit alleen binnen je eigen worktree/branch.
+4. Open een PR naar `main`; merge pas na groene CI.
+
+### Verplicht scripts gebruiken
+
+- Start workstream / worktree aanmaken: gebruik `scripts/start-development.ps1` (geen handmatige `git worktree add`).
+- Stop workstream / worktree opruimen: gebruik `scripts/stop-development.ps1`.
+- Commit + Pull Request aanmaken: gebruik `scripts/new-pr.ps1` (geen handmatige PR in de UI).
+
+### Azure DevOps
+
+- Zet `AB#<work-item-id>` in de PR-titel of beschrijving (`-WorkItem` in `new-pr.ps1`).
