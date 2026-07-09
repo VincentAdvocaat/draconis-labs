@@ -13,10 +13,14 @@ wordt gebruikt voor backlog/boards en CI/CD — zonder handmatige repo-sync.
 
 De Azure DevOps Git-repo onder Repos is **uitgeschakeld**. Clone en push altijd naar GitHub.
 
-> **Eenmalige stap (private repo):** geef de GitHub-apps **Azure Pipelines** en
-> **Azure Boards** toegang tot `draconis-labs` via
-> [GitHub → Settings → Applications](https://github.com/settings/installations).
-> Zonder deze stap kan ADO de `main`-branch niet lezen en werkt `AB#`-koppeling niet.
+## Wat is geconfigureerd
+
+- GitHub repo: `VincentAdvocaat/draconis-labs` (public)
+- Gedeelde GitHub service connection `VincentAdvocaat` (vanuit RecipeLibrary)
+- Pipeline `VincentAdvocaat.draconis-labs` gekoppeld aan GitHub `main`
+- Azure DevOps Git-repo uitgeschakeld
+- GitHub Boards-koppeling: eenmalig in ADO autoriseren indien nog niet gedaan
+  (Project settings → GitHub connections → repo toevoegen)
 
 ## Lokaal werken
 
@@ -46,15 +50,6 @@ De pipeline leest `azure-pipelines.yml` uit GitHub (branch `main`):
 - PR-validatie bij pull requests naar `main`
 
 Stappen: `pnpm install`, `typecheck`, `lint`, `build`.
-
-## Wat is geconfigureerd
-
-- GitHub repo: `VincentAdvocaat/draconis-labs` (private)
-- Gedeelde GitHub service connection `VincentAdvocaat` (vanuit RecipeLibrary)
-- Pipeline `VincentAdvocaat.draconis-labs` gekoppeld aan GitHub `main`
-- Azure DevOps Git-repo uitgeschakeld
-- GitHub Boards-koppeling: nog **eenmalig** autoriseren in ADO
-  (Project settings → GitHub connections → repo toevoegen), na app-toegang op GitHub
 
 ## Handige links
 
