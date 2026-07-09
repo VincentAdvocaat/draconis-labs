@@ -1,0 +1,69 @@
+# Draconis Labs
+
+Een uitbreidbaar app-platform. De eerste app is Planner: een dagelijks
+kanban-board dat mensen en AI-agents via dezelfde HTTP-API kunnen gebruiken.
+
+## Projectindeling
+
+```text
+apps/planner      React + Vite planner
+server/api        Fastify API en SQLite-database
+packages/shared   Gedeelde TypeScript-contracten
+```
+
+De onderdelen zijn onafhankelijk bouwbaar en deploybaar, maar delen één
+workspace voor consistente contracten en eenvoudige lokale ontwikkeling.
+
+## Lokaal starten
+
+Vereisten: Node.js 22+ en Corepack.
+
+```powershell
+corepack enable
+corepack pnpm install
+corepack pnpm dev
+```
+
+- Planner: http://localhost:5173
+- API: http://localhost:3001
+- Healthcheck: http://localhost:3001/health
+
+De ontwikkelomgeving maakt automatisch een lokale API-key
+`dev-agent-key` aan met agentnaam `local-agent`. Stel voor ander gebruik
+`DRACONIS_API_KEYS` in, bijvoorbeeld:
+
+```powershell
+$env:DRACONIS_API_KEYS="cursor-agent:een-lange-willekeurige-sleutel"
+corepack pnpm dev
+```
+
+SQLite-data staat standaard in `server/api/data/planner.db` en wordt niet
+ingecheckt.
+
+## Handige opdrachten
+
+```powershell
+corepack pnpm build
+corepack pnpm typecheck
+corepack pnpm lint
+corepack pnpm dev:api
+corepack pnpm dev:planner
+```
+
+## Planner
+
+- Sleep kaarten tussen Te doen, Bezig en Klaar.
+- Sleep kaarten naar Morgen, Volgende week of Volgende maand.
+- Typ bijvoorbeeld `Rapport schrijven morgen` in Quick Add.
+- Alleen vandaag afgeronde kaarten staan in Klaar; oudere kaarten blijven in
+  Geschiedenis.
+- Druk `N` om Quick Add te focussen.
+- Gebruik `Alt` + `←`/`→` om een gefocuste kaart tussen lanes te verplaatsen.
+
+Zie [AGENTS.md](AGENTS.md) voor de REST-API die Cursor, Claude Code, Codex en
+andere clients kunnen gebruiken.
+
+## Azure DevOps (boards & CI)
+
+Code staat op **GitHub**; backlog en pipelines in **Azure DevOps**. Zie
+`docs/azure/ado-github-integration.md` voor de workflow (`AB#` in commits, enz.).

@@ -1,0 +1,14 @@
+{
+  "name": "draconis-labs",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.10.0",
+  "scripts": {
+    "dev": "corepack pnpm --parallel --filter @draconis/api --filter @draconis/planner dev",
+    "dev:api": "corepack pnpm --filter @draconis/api dev",
+    "dev:planner": "corepack pnpm --filter @draconis/planner dev",
+    "build": "corepack pnpm -r build",
+    "lint": "corepack pnpm -r lint",
+    "typecheck": "corepack pnpm -r typecheck"
+  }
+}
