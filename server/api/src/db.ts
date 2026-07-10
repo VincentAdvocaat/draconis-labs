@@ -3,7 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 const defaultPath = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -25,7 +25,13 @@ sqlite.exec(`
     description TEXT,
     lane TEXT NOT NULL DEFAULT 'todo',
     planned_date TEXT,
+    due_date TEXT,
+    due_time TEXT,
+    timezone TEXT,
+    recurrence TEXT,
+    recurrence_parent_id TEXT,
     position REAL NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
     created_by TEXT NOT NULL DEFAULT 'user',
     priority TEXT NOT NULL DEFAULT 'normal',
     labels TEXT NOT NULL DEFAULT '[]',
@@ -46,13 +52,44 @@ sqlite.exec(`
   );
 `);
 
+const taskColumns = sqlite.pragma('table_info(tasks)') as Array<{ name: string }>;
+const ensureColumn = (name: string, ddl: string) => {
+  if (!taskColumns.some((column) => column.name === name)) {
+    sqlite.exec(ddl);
+  }
+};
+ensureColumn('version', 'ALTER TABLE tasks ADD COLUMN version INTEGER NOT NULL DEFAULT 1');
+ensureColumn('due_date', 'ALTER TABLE tasks ADD COLUMN due_date TEXT');
+ensureColumn('due_time', 'ALTER TABLE tasks ADD COLUMN due_time TEXT');
+ensureColumn('timezone', 'ALTER TABLE tasks ADD COLUMN timezone TEXT');
+ensureColumn('recurrence', 'ALTER TABLE tasks ADD COLUMN recurrence TEXT');
+ensureColumn('recurrence_parent_id', 'ALTER TABLE tasks ADD COLUMN recurrence_parent_id TEXT');
+
+sqlite.exec(`
+  CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
+  CREATE INDEX IF NOT EXISTS idx_tasks_created_by ON tasks(created_by);
+  CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
+
+  CREATE TABLE IF NOT EXISTS user_preferences (
+    id TEXT PRIMARY KEY,
+    preferences TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+`);
+
 export const tasks = sqliteTable('tasks', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
   description: text('description'),
   lane: text('lane', { enum: ['todo', 'doing', 'done'] }).notNull(),
   plannedDate: text('planned_date'),
+  dueDate: text('due_date'),
+  dueTime: text('due_time'),
+  timezone: text('timezone'),
+  recurrence: text('recurrence'),
+  recurrenceParentId: text('recurrence_parent_id'),
   position: real('position').notNull(),
+  version: integer('version').notNull().default(1),
   createdBy: text('created_by').notNull(),
   priority: text('priority', {
     enum: ['low', 'normal', 'high', 'urgent'],
@@ -68,6 +105,12 @@ export const apiKeys = sqliteTable('api_keys', {
   name: text('name').notNull().unique(),
   keyHash: text('key_hash').notNull().unique(),
   createdAt: text('created_at').notNull(),
+});
+
+export const userPreferences = sqliteTable('user_preferences', {
+  id: text('id').primaryKey(),
+  preferences: text('preferences').notNull(),
+  updatedAt: text('updated_at').notNull(),
 });
 
 export const db = drizzle(sqlite);
