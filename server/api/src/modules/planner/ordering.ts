@@ -1,6 +1,7 @@
 import type { Lane } from '@draconis/shared';
 import { asc, eq } from 'drizzle-orm';
-import { db, tasks } from './db.js';
+import { db } from '../../core/db.js';
+import { tasks } from './schema.js';
 
 const MIN_GAP = 1;
 const POSITION_STEP = 1000;

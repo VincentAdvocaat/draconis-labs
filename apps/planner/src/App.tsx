@@ -33,6 +33,7 @@ import {
   isTaskOverdue,
   todayInTimezone,
 } from '@draconis/shared';
+import { Button, Modal, Topbar, TopbarBrand, TopbarNavItem } from '@draconis/ui';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiConflictError, isPaginatedTasks, plannerApi } from './api';
 import { FilterPanel, PreferencesModal } from './components';
@@ -168,7 +169,7 @@ function TaskCard({
       <h3>{task.title}</h3>
       {task.description && <p>{task.description}</p>}
       <footer>
-        <div className="labels">{task.labels.map((label) => <span key={label}>#{label}</span>)}</div>
+        <div className="labels">{(task.labels ?? []).map((label) => <span key={label}>#{label}</span>)}</div>
         <div className="task-dates">
           {task.plannedDate && <time dateTime={task.plannedDate}>{task.plannedDate}</time>}
           {task.dueDate && <time className="due-date" dateTime={task.dueDate}>{task.dueDate}{task.dueTime ? ` ${task.dueTime}` : ''}</time>}
@@ -282,25 +283,37 @@ function TaskEditor({
   };
 
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={requestClose}>
-      <div className="modal task-editor-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
-        <div className="modal-heading">
-          <div><span className="eyebrow">{t.editCard}</span><h2>{t.details}</h2></div>
-          <button className="icon-button" onClick={requestClose} aria-label={t.close} disabled={mutating}>×</button>
-        </div>
-        {saveError && (
-          <div className="editor-error">
-            <span>{saveError}</span>
-            <div className="editor-error-actions">
-              {serverTask && (
-                <button type="button" className="secondary-button" disabled={mutating} onClick={() => { setDraft(serverTask); setServerTask(null); setSaveError(null); }}>
-                  {t.loadServer}
-                </button>
-              )}
-              <button type="button" className="primary-button" disabled={mutating} onClick={() => void handleSave()}>{t.retry}</button>
-            </div>
+    <Modal
+      open
+      onClose={requestClose}
+      eyebrow={t.editCard}
+      title={t.details}
+      closeLabel={t.close}
+      size="lg"
+      closeOnBackdrop={!mutating}
+      footer={confirmingDelete ? undefined : (
+        <div className="modal-actions">
+          <Button variant="danger" disabled={mutating} onClick={() => setConfirmingDelete(true)}>{t.delete}</Button>
+          <div>
+            <Button variant="secondary" disabled={mutating} onClick={requestClose}>{t.cancel}</Button>
+            <Button variant="primary" disabled={mutating || !draft.title.trim()} onClick={() => void handleSave()}>{mutating ? t.saving : t.save}</Button>
           </div>
-        )}
+        </div>
+      )}
+    >
+      {saveError && (
+        <div className="editor-error">
+          <span>{saveError}</span>
+          <div className="editor-error-actions">
+            {serverTask && (
+              <Button variant="secondary" disabled={mutating} onClick={() => { setDraft(serverTask); setServerTask(null); setSaveError(null); }}>
+                {t.loadServer}
+              </Button>
+            )}
+            <Button variant="primary" disabled={mutating} onClick={() => void handleSave()}>{t.retry}</Button>
+          </div>
+        </div>
+      )}
         <label>{t.title}<input value={draft.title} disabled={mutating} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
         <label>{t.description}<textarea rows={4} disabled={mutating} value={draft.description ?? ''} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></label>
         <div className="form-row">
@@ -345,21 +358,12 @@ function TaskEditor({
           <div className="delete-confirm">
             <p>{t.confirmDelete(task.title)}</p>
             <div className="delete-confirm-actions">
-              <button type="button" className="secondary-button" disabled={mutating} onClick={() => setConfirmingDelete(false)}>{t.cancel}</button>
-              <button type="button" className="danger-button" disabled={mutating} onClick={() => void handleDelete()}>{t.confirmDeleteBtn}</button>
+              <Button variant="secondary" disabled={mutating} onClick={() => setConfirmingDelete(false)}>{t.cancel}</Button>
+              <Button variant="danger" disabled={mutating} onClick={() => void handleDelete()}>{t.confirmDeleteBtn}</Button>
             </div>
           </div>
-        ) : (
-          <div className="modal-actions">
-            <button type="button" className="danger-button" disabled={mutating} onClick={() => setConfirmingDelete(true)}>{t.delete}</button>
-            <div>
-              <button type="button" className="secondary-button" disabled={mutating} onClick={requestClose}>{t.cancel}</button>
-              <button type="button" className="primary-button" disabled={mutating || !draft.title.trim()} onClick={() => void handleSave()}>{mutating ? t.saving : t.save}</button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+        ) : null}
+    </Modal>
   );
 }
 
@@ -554,29 +558,29 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <div className="brand"><div className="brand-mark">D</div><div><strong>{t.brand}</strong><span>{t.appName}</span></div></div>
-        <nav>
-          {(['board', 'scheduled', 'history'] as const).map((item) => (
-            <button key={item} className={view === item ? 'active' : ''} onClick={() => setView(item)}>
-              {i18n.viewLabel(item)}{item === 'scheduled' ? <span>{futureTasks.length}</span> : null}
-            </button>
-          ))}
-        </nav>
-        <div className="top-actions">
-          <input
-            className="search"
-            value={taskFilter.q ?? ''}
-            onChange={(event) => {
-              setTaskFilter((current) => ({ ...current, q: event.target.value || undefined }));
-              setPage(1);
-            }}
-            placeholder={t.search}
-          />
-          <button className="secondary-button prefs-button" onClick={() => setShowPreferences(true)} aria-label={t.preferences}>⚙</button>
-          <button className="avatar">VA</button>
-        </div>
-      </header>
+      <Topbar
+        brand={<TopbarBrand mark="D" title={t.brand} subtitle={t.appName} />}
+        nav={(['board', 'scheduled', 'history'] as const).map((item) => (
+          <TopbarNavItem key={item} active={view === item} onClick={() => setView(item)}>
+            {i18n.viewLabel(item)}{item === 'scheduled' ? <span>{futureTasks.length}</span> : null}
+          </TopbarNavItem>
+        ))}
+        actions={(
+          <>
+            <input
+              className="search"
+              value={taskFilter.q ?? ''}
+              onChange={(event) => {
+                setTaskFilter((current) => ({ ...current, q: event.target.value || undefined }));
+                setPage(1);
+              }}
+              placeholder={t.search}
+            />
+            <Button className="prefs-button" variant="secondary" onClick={() => setShowPreferences(true)} aria-label={t.preferences}>⚙</Button>
+            <button type="button" className="avatar">VA</button>
+          </>
+        )}
+      />
 
       <main>
         <section className="page-heading">
@@ -585,7 +589,7 @@ export default function App() {
             <h1>{i18n.viewLabel(view)}</h1>
             <p>{t.viewCopy[view]}</p>
           </div>
-          <button className="primary-button" onClick={() => quickInput.current?.focus()}>＋ {t.newTask} <kbd>N</kbd></button>
+          <Button variant="primary" className="page-new-task" onClick={() => quickInput.current?.focus()}>＋ {t.newTask} <kbd>N</kbd></Button>
         </section>
 
         <FilterPanel

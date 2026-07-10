@@ -7,8 +7,10 @@ kanban-board dat mensen en AI-agents via dezelfde HTTP-API kunnen gebruiken.
 
 ```text
 apps/planner      React + Vite planner
-server/api        Fastify API en SQLite-database
-packages/shared   Gedeelde TypeScript-contracten
+server/api        Fastify API (modular /api/v1) en SQLite-database
+packages/shared   Gedeelde contracten en Zod-schema's
+packages/ui       Design tokens en UI-primitives (Button, Modal, Topbar)
+templates/app     Scaffold voor nieuwe Draconis-apps
 ```
 
 De onderdelen zijn onafhankelijk bouwbaar en deploybaar, maar delen één
@@ -32,6 +34,7 @@ drstart
 - Planner: http://localhost:5173
 - API: http://localhost:3001
 - Healthcheck: http://localhost:3001/health
+- API v1: http://localhost:3001/api/v1/openapi.json
 
 ### Dev CLI (terminal-commando's)
 

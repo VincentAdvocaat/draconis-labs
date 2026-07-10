@@ -1,6 +1,7 @@
 trigger:
-  - main
-
+  branches:
+    include:
+      - main
 pr:
   branches:
     include:
@@ -13,13 +14,19 @@ steps:
   - task: NodeTool@0
     inputs:
       versionSpec: '22.x'
-    displayName: Use Node.js 22
+    displayName: Install Node.js
 
-  - script: |
-      corepack enable
-      corepack prepare pnpm@11.10.0 --activate
-      pnpm install --frozen-lockfile
-      pnpm typecheck
-      pnpm lint
-      pnpm build
-    displayName: Install, typecheck, lint and build
+  - script: corepack enable && corepack pnpm install
+    displayName: Install dependencies
+
+  - script: corepack pnpm typecheck
+    displayName: Typecheck
+
+  - script: corepack pnpm lint
+    displayName: Lint
+
+  - script: corepack pnpm test
+    displayName: Test
+
+  - script: corepack pnpm build
+    displayName: Build

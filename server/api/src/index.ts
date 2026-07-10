@@ -1,8 +1,7 @@
 import cors from '@fastify/cors';
 import Fastify from 'fastify';
 import { ZodError } from 'zod';
-import { registerPlannerRoutes } from './planner.js';
-import { registerPreferencesRoutes } from './preferences.js';
+import { registerPlatformApi } from './core/index.js';
 
 const app = Fastify({ logger: true });
 
@@ -13,6 +12,7 @@ await app.register(cors, {
 app.get('/health', async () => ({
   status: 'ok',
   service: 'draconis-api',
+  apiVersion: 'v1',
   timestamp: new Date().toISOString(),
 }));
 
@@ -42,8 +42,7 @@ app.setErrorHandler((error, _request, reply) => {
   });
 });
 
-await registerPlannerRoutes(app);
-await registerPreferencesRoutes(app);
+await registerPlatformApi(app);
 
 const port = Number(process.env.PORT ?? 3001);
 const host = process.env.HOST ?? '0.0.0.0';
