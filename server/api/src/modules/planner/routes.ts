@@ -11,16 +11,7 @@ import { identifyActor } from '../../core/auth.js';
 import { preferencesService } from './preferences.js';
 import { parseTaskListQuery } from './query.js';
 import { plannerService, TaskConflictError } from './service.js';
-
-const taskResponseSchema = {
-  type: 'object',
-  properties: {
-    id: { type: 'string', format: 'uuid' },
-    title: { type: 'string' },
-    lane: { type: 'string', enum: ['todo', 'doing', 'done'] },
-    version: { type: 'integer' },
-  },
-} as const;
+import { taskResponseSchema } from './schemas.js';
 
 export async function registerPlannerRoutes(app: FastifyInstance) {
   app.get('/tasks', {

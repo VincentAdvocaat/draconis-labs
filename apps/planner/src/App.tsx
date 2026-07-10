@@ -169,7 +169,7 @@ function TaskCard({
       <h3>{task.title}</h3>
       {task.description && <p>{task.description}</p>}
       <footer>
-        <div className="labels">{task.labels.map((label) => <span key={label}>#{label}</span>)}</div>
+        <div className="labels">{(task.labels ?? []).map((label) => <span key={label}>#{label}</span>)}</div>
         <div className="task-dates">
           {task.plannedDate && <time dateTime={task.plannedDate}>{task.plannedDate}</time>}
           {task.dueDate && <time className="due-date" dateTime={task.dueDate}>{task.dueDate}{task.dueTime ? ` ${task.dueTime}` : ''}</time>}
