@@ -16,17 +16,36 @@ workspace voor consistente contracten en eenvoudige lokale ontwikkeling.
 
 ## Lokaal starten
 
-Vereisten: Node.js 22+ en Corepack.
+Vereisten: Node.js 22+ en pnpm (via Corepack of globale installatie).
 
 ```powershell
-corepack enable
 corepack pnpm install
-corepack pnpm dev
+corepack pnpm start
+```
+
+Of via je terminal-alias (zie hieronder):
+
+```powershell
+drstart
 ```
 
 - Planner: http://localhost:5173
 - API: http://localhost:3001
 - Healthcheck: http://localhost:3001/health
+
+### Dev CLI (terminal-commando's)
+
+Je PowerShell-profiel laadt `C:\git\development.ps1`. Dat registreert
+herbruikbare commando's uit `scripts/dev-cli/commands/`.
+
+```powershell
+drstart     # start API + Planner
+sql start   # voorbeeld/template — pas sql.ps1 aan
+devhelp     # toon alle commando's
+```
+
+Nieuw commando toevoegen: maak `scripts/dev-cli/commands/<naam>.ps1` en
+gebruik `Register-DevCommand` of `Register-DevCommandGroup`.
 
 De ontwikkelomgeving maakt automatisch een lokale API-key
 `dev-agent-key` aan met agentnaam `local-agent`. Stel voor ander gebruik
@@ -43,6 +62,7 @@ ingecheckt.
 ## Handige opdrachten
 
 ```powershell
+corepack pnpm start
 corepack pnpm build
 corepack pnpm typecheck
 corepack pnpm lint
