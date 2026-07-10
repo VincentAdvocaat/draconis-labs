@@ -2,6 +2,7 @@ import cors from '@fastify/cors';
 import Fastify from 'fastify';
 import { ZodError } from 'zod';
 import { registerPlannerRoutes } from './planner.js';
+import { registerPreferencesRoutes } from './preferences.js';
 
 const app = Fastify({ logger: true });
 
@@ -42,6 +43,7 @@ app.setErrorHandler((error, _request, reply) => {
 });
 
 await registerPlannerRoutes(app);
+await registerPreferencesRoutes(app);
 
 const port = Number(process.env.PORT ?? 3001);
 const host = process.env.HOST ?? '0.0.0.0';
