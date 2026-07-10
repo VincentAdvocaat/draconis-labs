@@ -9,6 +9,7 @@ import { tasks, userPreferences } from '../modules/planner/schema.js';
 const defaultPath = resolve(
   dirname(fileURLToPath(import.meta.url)),
   '..',
+  '..',
   'data',
   'planner.db',
 );

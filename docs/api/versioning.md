@@ -33,7 +33,8 @@ paths; older unversioned paths remain available during a deprecation window.
 New app modules register through the server composition layer without importing
 Planner internals. See `server/api/src/core/` and `server/api/src/modules/`.
 
-## Contract checks (planned)
+## Contract checks
 
-CI will diff the committed OpenAPI spec against generated output and fail on
-breaking changes unless the major version is bumped. Tracked under E2.F1.S1.
+CI diffs the committed OpenAPI snapshot (`server/api/openapi/v1.snapshot.json`)
+against the generated spec from `buildApp()`. The test fails when the snapshot
+is missing or out of date. Breaking changes require a major version bump.

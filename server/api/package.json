@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "oxlint src tests",
     "test": "vitest run",
-    "openapi:update": "vitest run tests/openapi-contract.test.ts"
+    "openapi:update": "tsx scripts/update-openapi-snapshot.ts"
   },
   "dependencies": {
     "@draconis/shared": "workspace:*",

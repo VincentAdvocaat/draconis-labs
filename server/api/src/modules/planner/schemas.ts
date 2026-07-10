@@ -22,3 +22,21 @@ export const taskResponseSchema = {
     completedAt: { type: ['string', 'null'] },
   },
 } as const;
+
+export const paginatedTaskListSchema = {
+  type: 'object',
+  properties: {
+    items: { type: 'array', items: taskResponseSchema },
+    total: { type: 'integer' },
+    page: { type: 'integer' },
+    pageSize: { type: 'integer' },
+  },
+} as const;
+
+export const conflictResponseSchema = {
+  type: 'object',
+  properties: {
+    message: { type: 'string' },
+    task: taskResponseSchema,
+  },
+} as const;

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { ApiModule } from '../../core/module.js';
+import { moduleCatalog } from '../../core/registry.js';
 
 async function registerSystemRoutes(app: FastifyInstance) {
   app.get(
@@ -33,18 +34,7 @@ async function registerSystemRoutes(app: FastifyInstance) {
     async () => ({
       apiVersion: 'v1',
       service: 'draconis-api',
-      modules: [
-        {
-          name: 'planner',
-          prefix: '/api/v1/planner',
-          description: 'Task planning, scheduling, and user preferences',
-        },
-        {
-          name: 'system',
-          prefix: '/api/v1/system',
-          description: 'Platform metadata and discovery',
-        },
-      ],
+      modules: moduleCatalog(),
     }),
   );
 }

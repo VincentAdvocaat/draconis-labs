@@ -51,10 +51,222 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "type": "array"
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "lane": {
+                            "type": "string",
+                            "enum": [
+                              "todo",
+                              "doing",
+                              "done"
+                            ]
+                          },
+                          "plannedDate": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "dueDate": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "dueTime": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "timezone": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "recurrence": {
+                            "type": [
+                              "null",
+                              "object"
+                            ],
+                            "additionalProperties": true
+                          },
+                          "recurrenceParentId": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "position": {
+                            "type": "number"
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "createdBy": {
+                            "type": "string"
+                          },
+                          "priority": {
+                            "type": "string",
+                            "enum": [
+                              "low",
+                              "normal",
+                              "high",
+                              "urgent"
+                            ]
+                          },
+                          "labels": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          },
+                          "completedAt": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          }
+                        }
+                      }
                     },
                     {
-                      "type": "object"
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "lane": {
+                                "type": "string",
+                                "enum": [
+                                  "todo",
+                                  "doing",
+                                  "done"
+                                ]
+                              },
+                              "plannedDate": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "dueDate": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "dueTime": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "timezone": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "recurrence": {
+                                "type": [
+                                  "null",
+                                  "object"
+                                ],
+                                "additionalProperties": true
+                              },
+                              "recurrenceParentId": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "position": {
+                                "type": "number"
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "createdBy": {
+                                "type": "string"
+                              },
+                              "priority": {
+                                "type": "string",
+                                "enum": [
+                                  "low",
+                                  "normal",
+                                  "high",
+                                  "urgent"
+                                ]
+                              },
+                              "labels": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              },
+                              "updatedAt": {
+                                "type": "string"
+                              },
+                              "completedAt": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        }
+                      }
                     }
                   ]
                 }
@@ -330,7 +542,111 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "task": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "lane": {
+                          "type": "string",
+                          "enum": [
+                            "todo",
+                            "doing",
+                            "done"
+                          ]
+                        },
+                        "plannedDate": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "dueDate": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "dueTime": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "timezone": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "recurrence": {
+                          "type": [
+                            "null",
+                            "object"
+                          ],
+                          "additionalProperties": true
+                        },
+                        "recurrenceParentId": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "position": {
+                          "type": "number"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "createdBy": {
+                          "type": "string"
+                        },
+                        "priority": {
+                          "type": "string",
+                          "enum": [
+                            "low",
+                            "normal",
+                            "high",
+                            "urgent"
+                          ]
+                        },
+                        "labels": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        },
+                        "completedAt": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -379,10 +695,222 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "type": "array"
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "lane": {
+                            "type": "string",
+                            "enum": [
+                              "todo",
+                              "doing",
+                              "done"
+                            ]
+                          },
+                          "plannedDate": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "dueDate": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "dueTime": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "timezone": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "recurrence": {
+                            "type": [
+                              "null",
+                              "object"
+                            ],
+                            "additionalProperties": true
+                          },
+                          "recurrenceParentId": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "position": {
+                            "type": "number"
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "createdBy": {
+                            "type": "string"
+                          },
+                          "priority": {
+                            "type": "string",
+                            "enum": [
+                              "low",
+                              "normal",
+                              "high",
+                              "urgent"
+                            ]
+                          },
+                          "labels": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          },
+                          "completedAt": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          }
+                        }
+                      }
                     },
                     {
-                      "type": "object"
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "lane": {
+                                "type": "string",
+                                "enum": [
+                                  "todo",
+                                  "doing",
+                                  "done"
+                                ]
+                              },
+                              "plannedDate": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "dueDate": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "dueTime": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "timezone": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "recurrence": {
+                                "type": [
+                                  "null",
+                                  "object"
+                                ],
+                                "additionalProperties": true
+                              },
+                              "recurrenceParentId": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "position": {
+                                "type": "number"
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "createdBy": {
+                                "type": "string"
+                              },
+                              "priority": {
+                                "type": "string",
+                                "enum": [
+                                  "low",
+                                  "normal",
+                                  "high",
+                                  "urgent"
+                                ]
+                              },
+                              "labels": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              },
+                              "updatedAt": {
+                                "type": "string"
+                              },
+                              "completedAt": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        }
+                      }
                     }
                   ]
                 }
@@ -497,10 +1025,222 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "type": "array"
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "lane": {
+                            "type": "string",
+                            "enum": [
+                              "todo",
+                              "doing",
+                              "done"
+                            ]
+                          },
+                          "plannedDate": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "dueDate": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "dueTime": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "timezone": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "recurrence": {
+                            "type": [
+                              "null",
+                              "object"
+                            ],
+                            "additionalProperties": true
+                          },
+                          "recurrenceParentId": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "position": {
+                            "type": "number"
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "createdBy": {
+                            "type": "string"
+                          },
+                          "priority": {
+                            "type": "string",
+                            "enum": [
+                              "low",
+                              "normal",
+                              "high",
+                              "urgent"
+                            ]
+                          },
+                          "labels": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          },
+                          "completedAt": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          }
+                        }
+                      }
                     },
                     {
-                      "type": "object"
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "lane": {
+                                "type": "string",
+                                "enum": [
+                                  "todo",
+                                  "doing",
+                                  "done"
+                                ]
+                              },
+                              "plannedDate": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "dueDate": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "dueTime": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "timezone": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "recurrence": {
+                                "type": [
+                                  "null",
+                                  "object"
+                                ],
+                                "additionalProperties": true
+                              },
+                              "recurrenceParentId": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "position": {
+                                "type": "number"
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "createdBy": {
+                                "type": "string"
+                              },
+                              "priority": {
+                                "type": "string",
+                                "enum": [
+                                  "low",
+                                  "normal",
+                                  "high",
+                                  "urgent"
+                                ]
+                              },
+                              "labels": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              },
+                              "updatedAt": {
+                                "type": "string"
+                              },
+                              "completedAt": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        }
+                      }
                     }
                   ]
                 }
@@ -776,7 +1516,111 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "task": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "lane": {
+                          "type": "string",
+                          "enum": [
+                            "todo",
+                            "doing",
+                            "done"
+                          ]
+                        },
+                        "plannedDate": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "dueDate": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "dueTime": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "timezone": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "recurrence": {
+                          "type": [
+                            "null",
+                            "object"
+                          ],
+                          "additionalProperties": true
+                        },
+                        "recurrenceParentId": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "position": {
+                          "type": "number"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "createdBy": {
+                          "type": "string"
+                        },
+                        "priority": {
+                          "type": "string",
+                          "enum": [
+                            "low",
+                            "normal",
+                            "high",
+                            "urgent"
+                          ]
+                        },
+                        "labels": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        },
+                        "completedAt": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -825,10 +1669,222 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "type": "array"
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "lane": {
+                            "type": "string",
+                            "enum": [
+                              "todo",
+                              "doing",
+                              "done"
+                            ]
+                          },
+                          "plannedDate": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "dueDate": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "dueTime": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "timezone": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "recurrence": {
+                            "type": [
+                              "null",
+                              "object"
+                            ],
+                            "additionalProperties": true
+                          },
+                          "recurrenceParentId": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "position": {
+                            "type": "number"
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "createdBy": {
+                            "type": "string"
+                          },
+                          "priority": {
+                            "type": "string",
+                            "enum": [
+                              "low",
+                              "normal",
+                              "high",
+                              "urgent"
+                            ]
+                          },
+                          "labels": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          },
+                          "completedAt": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          }
+                        }
+                      }
                     },
                     {
-                      "type": "object"
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "lane": {
+                                "type": "string",
+                                "enum": [
+                                  "todo",
+                                  "doing",
+                                  "done"
+                                ]
+                              },
+                              "plannedDate": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "dueDate": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "dueTime": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "timezone": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "recurrence": {
+                                "type": [
+                                  "null",
+                                  "object"
+                                ],
+                                "additionalProperties": true
+                              },
+                              "recurrenceParentId": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "position": {
+                                "type": "number"
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "createdBy": {
+                                "type": "string"
+                              },
+                              "priority": {
+                                "type": "string",
+                                "enum": [
+                                  "low",
+                                  "normal",
+                                  "high",
+                                  "urgent"
+                                ]
+                              },
+                              "labels": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              },
+                              "updatedAt": {
+                                "type": "string"
+                              },
+                              "completedAt": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        }
+                      }
                     }
                   ]
                 }

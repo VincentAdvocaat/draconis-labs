@@ -11,7 +11,7 @@ import { identifyActor } from '../../core/auth.js';
 import { preferencesService } from './preferences.js';
 import { parseTaskListQuery } from './query.js';
 import { plannerService, TaskConflictError } from './service.js';
-import { taskResponseSchema } from './schemas.js';
+import { taskResponseSchema, paginatedTaskListSchema, conflictResponseSchema } from './schemas.js';
 
 export async function registerPlannerRoutes(app: FastifyInstance) {
   app.get('/tasks', {
@@ -19,7 +19,14 @@ export async function registerPlannerRoutes(app: FastifyInstance) {
       tags: ['planner'],
       summary: 'List tasks',
       querystring: { type: 'object', additionalProperties: true },
-      response: { 200: { oneOf: [{ type: 'array' }, { type: 'object' }] } },
+      response: {
+        200: {
+          oneOf: [
+            { type: 'array', items: taskResponseSchema },
+            paginatedTaskListSchema,
+          ],
+        },
+      },
     },
   }, async (request) => {
     const query = taskListQuerySchema.parse(request.query);
@@ -47,7 +54,7 @@ export async function registerPlannerRoutes(app: FastifyInstance) {
       summary: 'Update task',
       security: [{ bearerAuth: [] }],
       params: { type: 'object', properties: { id: { type: 'string', format: 'uuid' } } },
-      response: { 200: taskResponseSchema, 409: { type: 'object' } },
+      response: { 200: taskResponseSchema, 409: conflictResponseSchema },
     },
   }, async (request, reply) => {
     identifyActor(request);
@@ -82,7 +89,14 @@ export async function registerPlannerRoutes(app: FastifyInstance) {
     schema: {
       tags: ['planner'],
       summary: 'Completed task history',
-      response: { 200: { oneOf: [{ type: 'array' }, { type: 'object' }] } },
+      response: {
+        200: {
+          oneOf: [
+            { type: 'array', items: taskResponseSchema },
+            paginatedTaskListSchema,
+          ],
+        },
+      },
     },
   }, async (request) => {
     const query = historyQuerySchema.parse(request.query);

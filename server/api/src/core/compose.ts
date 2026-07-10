@@ -1,11 +1,13 @@
 import type { FastifyInstance } from 'fastify';
 import { addLegacyDeprecationHeaders } from './deprecation.js';
 import type { ApiModule } from './module.js';
+import { setRegisteredModules } from './registry.js';
 
 export async function registerApiModules(
   app: FastifyInstance,
   modules: ApiModule[],
 ): Promise<void> {
+  setRegisteredModules(modules);
   await app.register(
     async (v1) => {
       for (const mod of modules) {
