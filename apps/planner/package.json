@@ -15,6 +15,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@draconis/shared": "workspace:*",
+    "@draconis/ui": "workspace:*",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

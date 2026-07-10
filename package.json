@@ -10,6 +10,7 @@
     "dev:planner": "corepack pnpm --filter @draconis/planner dev",
     "build": "corepack pnpm -r build",
     "lint": "corepack pnpm -r lint",
-    "typecheck": "corepack pnpm -r typecheck"
+    "typecheck": "corepack pnpm -r typecheck",
+    "test": "corepack pnpm -r test"
   }
 }

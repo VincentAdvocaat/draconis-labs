@@ -1,0 +1,12 @@
+{
+  "id": "example-app",
+  "name": "Example App",
+  "description": "Reference Draconis application scaffolded from templates/app.",
+  "version": "0.1.0",
+  "owner": "platform-team",
+  "launchUrl": "http://localhost:5174",
+  "permissions": ["catalog.read"],
+  "environments": [
+    { "name": "local", "baseUrl": "http://localhost:5174" }
+  ]
+}

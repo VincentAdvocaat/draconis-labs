@@ -6,6 +6,7 @@ import type {
   UpdateTaskInput,
   UserPreferences,
 } from '@draconis/shared';
+import { PLANNER_API_BASE } from '@draconis/shared';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -66,25 +67,25 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const plannerApi = {
   list: (query?: TaskListQuery) =>
-    request<Task[] | PaginatedTasks>(`/api/planner/tasks${buildQuery(query)}`),
+    request<Task[] | PaginatedTasks>(`${PLANNER_API_BASE}/tasks${buildQuery(query)}`),
   history: (query?: TaskListQuery) =>
-    request<Task[] | PaginatedTasks>(`/api/planner/history${buildQuery(query)}`),
+    request<Task[] | PaginatedTasks>(`${PLANNER_API_BASE}/history${buildQuery(query)}`),
   create: (input: CreateTaskInput) =>
-    request<Task>('/api/planner/tasks', {
+    request<Task>(`${PLANNER_API_BASE}/tasks`, {
       method: 'POST',
       body: JSON.stringify(input),
     }),
   update: (id: string, input: UpdateTaskInput) =>
-    request<Task>(`/api/planner/tasks/${id}`, {
+    request<Task>(`${PLANNER_API_BASE}/tasks/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(input),
     }),
   remove: (id: string) =>
-    request<void>(`/api/planner/tasks/${id}`, { method: 'DELETE' }),
+    request<void>(`${PLANNER_API_BASE}/tasks/${id}`, { method: 'DELETE' }),
   preferences: {
-    get: () => request<UserPreferences>('/api/planner/preferences'),
+    get: () => request<UserPreferences>(`${PLANNER_API_BASE}/preferences`),
     update: (input: Partial<UserPreferences>) =>
-      request<UserPreferences>('/api/planner/preferences', {
+      request<UserPreferences>(`${PLANNER_API_BASE}/preferences`, {
         method: 'PATCH',
         body: JSON.stringify(input),
       }),

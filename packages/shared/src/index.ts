@@ -28,8 +28,36 @@ export {
   PLANNER_VIEWS,
 } from './preferences.js';
 
+export { API_V1_BASE, PLANNER_API_BASE } from './api.js';
+
+export type {
+  ApplicationManifest,
+  CreateTaskInput,
+  ParsedTaskListQuery,
+  UpdateTaskInput,
+} from './schemas/index.js';
+export {
+  applicationManifestSchema,
+  createTaskSchema,
+  historyQuerySchema,
+  taskListQuerySchema,
+  updatePreferencesSchema,
+  updateTaskSchema,
+  userPreferencesSchema,
+  uuidParamSchema,
+} from './schemas/index.js';
+export { ISO_DATE_PATTERN, ISO_TIME_PATTERN } from './schemas/common.js';
+
 import type { RecurrenceRule } from './scheduling.js';
 import type { TaskFilter } from './preferences.js';
+
+export interface TaskListQuery extends TaskFilter {
+  date?: string;
+  future?: boolean;
+  timezone?: string;
+  page?: number;
+  pageSize?: number;
+}
 
 export interface Task {
   id: string;
@@ -50,41 +78,6 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
-}
-
-export interface CreateTaskInput {
-  title: string;
-  description?: string;
-  plannedDate?: string | null;
-  dueDate?: string | null;
-  dueTime?: string | null;
-  timezone?: string | null;
-  recurrence?: RecurrenceRule | null;
-  priority?: Priority;
-  labels?: string[];
-}
-
-export interface UpdateTaskInput {
-  title?: string;
-  description?: string | null;
-  lane?: Lane;
-  plannedDate?: string | null;
-  dueDate?: string | null;
-  dueTime?: string | null;
-  timezone?: string | null;
-  recurrence?: RecurrenceRule | null;
-  position?: number;
-  priority?: Priority;
-  labels?: string[];
-  version?: number;
-}
-
-export interface TaskListQuery extends TaskFilter {
-  date?: string;
-  future?: boolean;
-  timezone?: string;
-  page?: number;
-  pageSize?: number;
 }
 
 export interface PaginatedTasks {

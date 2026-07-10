@@ -1,3 +1,4 @@
+import { Button, Modal } from '@draconis/ui';
 import type { SavedView, TaskFilter, UserPreferences } from '@draconis/shared';
 import { LANES, PRIORITIES } from '@draconis/shared';
 import { useState } from 'react';
@@ -34,9 +35,9 @@ export function FilterPanel({
 
   return (
     <section className="filter-panel">
-      <button type="button" className="secondary-button" onClick={() => setOpen((value) => !value)}>
+      <Button variant="secondary" onClick={() => setOpen((value) => !value)}>
         {t.advancedFilters}
-      </button>
+      </Button>
       {open && (
         <div className="filter-sheet">
           <div className="filter-grid">
@@ -87,9 +88,8 @@ export function FilterPanel({
           </label>
           <div className="filter-save">
             <input value={viewName} onChange={(event) => setViewName(event.target.value)} placeholder={t.viewName} />
-            <button
-              type="button"
-              className="primary-button"
+            <Button
+              variant="primary"
               disabled={!viewName.trim()}
               onClick={() => {
                 onSaveView(viewName.trim());
@@ -97,7 +97,7 @@ export function FilterPanel({
               }}
             >
               {t.saveView}
-            </button>
+            </Button>
           </div>
           {!!savedViews.length && (
             <div className="saved-views">
@@ -107,13 +107,13 @@ export function FilterPanel({
                   {renamingId === view.id ? (
                     <>
                       <input value={renameValue} onChange={(event) => setRenameValue(event.target.value)} />
-                      <button type="button" className="secondary-button" onClick={() => { onRenameView(view.id, renameValue.trim()); setRenamingId(null); }}>{t.save}</button>
+                      <Button variant="secondary" onClick={() => { onRenameView(view.id, renameValue.trim()); setRenamingId(null); }}>{t.save}</Button>
                     </>
                   ) : (
                     <>
                       <button type="button" className="saved-view-button" onClick={() => onApplyView(view)}>{view.name}</button>
-                      <button type="button" className="secondary-button" onClick={() => { setRenamingId(view.id); setRenameValue(view.name); }}>{t.renameView}</button>
-                      <button type="button" className="danger-button" onClick={() => onDeleteView(view.id)}>{t.deleteView}</button>
+                      <Button variant="secondary" onClick={() => { setRenamingId(view.id); setRenameValue(view.name); }}>{t.renameView}</Button>
+                      <Button variant="danger" onClick={() => onDeleteView(view.id)}>{t.deleteView}</Button>
                     </>
                   )}
                 </div>
@@ -142,60 +142,59 @@ export function PreferencesModal({
   const [saving, setSaving] = useState(false);
 
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <div className="modal preferences-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
-        <div className="modal-heading">
-          <div><span className="eyebrow">{t.preferences}</span><h2>{t.preferences}</h2></div>
-          <button className="icon-button" onClick={onClose} aria-label={t.close}>×</button>
+    <Modal
+      open
+      onClose={onClose}
+      eyebrow={t.preferences}
+      title={t.preferences}
+      closeLabel={t.close}
+      size="lg"
+      footer={(
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, width: '100%' }}>
+          <Button variant="secondary" onClick={onClose}>{t.cancel}</Button>
+          <Button
+            variant="primary"
+            disabled={saving}
+            onClick={() => {
+              setSaving(true);
+              void onSave(draft).finally(() => setSaving(false));
+            }}
+          >
+            {saving ? t.saving : t.save}
+          </Button>
         </div>
-        <label>
-          {t.locale}
-          <select value={draft.locale} onChange={(event) => setDraft({ ...draft, locale: event.target.value as UserPreferences['locale'] })}>
-            <option value="nl">Nederlands</option>
-            <option value="en">English</option>
-          </select>
-        </label>
-        <label>
-          {t.timezone}
-          <select value={draft.timezone} onChange={(event) => setDraft({ ...draft, timezone: event.target.value })}>
-            {['Europe/Amsterdam', 'Europe/London', 'Europe/Berlin', 'America/New_York', 'America/Los_Angeles', 'Asia/Tokyo', 'UTC'].map((zone) => (
-              <option key={zone} value={zone}>{zone}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {t.weekStart}
-          <select value={draft.weekStart} onChange={(event) => setDraft({ ...draft, weekStart: Number(event.target.value) as 0 | 1 })}>
-            <option value={1}>{t.weekStartMonday}</option>
-            <option value={0}>{t.weekStartSunday}</option>
-          </select>
-        </label>
-        <label>
-          {t.defaultView}
-          <select value={draft.defaultView} onChange={(event) => setDraft({ ...draft, defaultView: event.target.value as UserPreferences['defaultView'] })}>
-            {(['board', 'scheduled', 'history'] as const).map((view) => (
-              <option key={view} value={view}>{viewLabel(view)}</option>
-            ))}
-          </select>
-        </label>
-        <div className="modal-actions">
-          <div />
-          <div>
-            <button type="button" className="secondary-button" onClick={onClose}>{t.cancel}</button>
-            <button
-              type="button"
-              className="primary-button"
-              disabled={saving}
-              onClick={() => {
-                setSaving(true);
-                void onSave(draft).finally(() => setSaving(false));
-              }}
-            >
-              {saving ? t.saving : t.save}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+      )}
+    >
+      <label>
+        {t.locale}
+        <select value={draft.locale} onChange={(event) => setDraft({ ...draft, locale: event.target.value as UserPreferences['locale'] })}>
+          <option value="nl">Nederlands</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+      <label>
+        {t.timezone}
+        <select value={draft.timezone} onChange={(event) => setDraft({ ...draft, timezone: event.target.value })}>
+          {['Europe/Amsterdam', 'Europe/London', 'Europe/Berlin', 'America/New_York', 'America/Los_Angeles', 'Asia/Tokyo', 'UTC'].map((zone) => (
+            <option key={zone} value={zone}>{zone}</option>
+          ))}
+        </select>
+      </label>
+      <label>
+        {t.weekStart}
+        <select value={draft.weekStart} onChange={(event) => setDraft({ ...draft, weekStart: Number(event.target.value) as 0 | 1 })}>
+          <option value={1}>{t.weekStartMonday}</option>
+          <option value={0}>{t.weekStartSunday}</option>
+        </select>
+      </label>
+      <label>
+        {t.defaultView}
+        <select value={draft.defaultView} onChange={(event) => setDraft({ ...draft, defaultView: event.target.value as UserPreferences['defaultView'] })}>
+          {(['board', 'scheduled', 'history'] as const).map((view) => (
+            <option key={view} value={view}>{viewLabel(view)}</option>
+          ))}
+        </select>
+      </label>
+    </Modal>
   );
 }

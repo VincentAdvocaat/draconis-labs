@@ -2,9 +2,8 @@ import { randomUUID } from 'node:crypto';
 import type { RecurrenceRule, Task } from '@draconis/shared';
 import { addRecurrence } from '@draconis/shared';
 import { eq, max } from 'drizzle-orm';
-import { db, tasks } from './db.js';
-
-type TaskRow = typeof tasks.$inferSelect;
+import { db } from '../../core/db.js';
+import { tasks, type TaskRow } from './schema.js';
 
 function parseRecurrence(value: string | null): RecurrenceRule | null {
   if (!value) return null;

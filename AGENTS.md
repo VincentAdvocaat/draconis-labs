@@ -6,6 +6,8 @@ geschikt om als projectinstructie in Cursor, Claude Code of Codex te gebruiken.
 ## Configuratie
 
 - Basis-URL lokaal: `http://localhost:3001`
+- API-prefix (v1): `/api/v1`
+- OpenAPI: `GET /api/v1/openapi.json`
 - Authenticatie: `Authorization: Bearer <api-key>`
 - Ontwikkelsleutel: `dev-agent-key`
 - Content-Type bij mutaties: `application/json`
@@ -13,6 +15,9 @@ geschikt om als projectinstructie in Cursor, Claude Code of Codex te gebruiken.
 Gebruik in productie een eigen sleutel via `DRACONIS_API_KEYS`. API-keys worden
 alleen gehasht in de database opgeslagen. De naam vóór de dubbele punt wordt
 als maker op de kaart getoond.
+
+Oudere paden onder `/api/planner/*` (zonder `v1`) blijven tijdelijk werken maar
+zijn deprecated. Zie `docs/api/versioning.md`.
 
 ## Taak aanmaken
 
@@ -31,7 +36,7 @@ $body = @{
 
 Invoke-RestMethod `
   -Method Post `
-  -Uri "http://localhost:3001/api/planner/tasks" `
+  -Uri "http://localhost:3001/api/v1/planner/tasks" `
   -Headers $headers `
   -Body $body
 ```
@@ -39,7 +44,7 @@ Invoke-RestMethod `
 Met curl:
 
 ```bash
-curl -X POST http://localhost:3001/api/planner/tasks \
+curl -X POST http://localhost:3001/api/v1/planner/tasks \
   -H "Authorization: Bearer dev-agent-key" \
   -H "Content-Type: application/json" \
   -d '{"title":"Controleer de release notes","priority":"high","labels":["agent"]}'
@@ -49,25 +54,25 @@ curl -X POST http://localhost:3001/api/planner/tasks \
 
 ```bash
 # Alles
-curl http://localhost:3001/api/planner/tasks
+curl http://localhost:3001/api/v1/planner/tasks
 
 # Actief voor vandaag plus vandaag afgerond
-curl "http://localhost:3001/api/planner/tasks?date=today"
+curl "http://localhost:3001/api/v1/planner/tasks?date=today"
 
 # Eén lane
-curl "http://localhost:3001/api/planner/tasks?lane=doing"
+curl "http://localhost:3001/api/v1/planner/tasks?lane=doing"
 
 # Eén geplande datum
-curl "http://localhost:3001/api/planner/tasks?date=2026-07-10"
+curl "http://localhost:3001/api/v1/planner/tasks?date=2026-07-10"
 
 # Geschiedenis vanaf een datum
-curl "http://localhost:3001/api/planner/history?from=2026-07-01"
+curl "http://localhost:3001/api/v1/planner/history?from=2026-07-01"
 ```
 
 ## Taak wijzigen
 
 ```bash
-curl -X PATCH http://localhost:3001/api/planner/tasks/TASK_ID \
+curl -X PATCH http://localhost:3001/api/v1/planner/tasks/TASK_ID \
   -H "Authorization: Bearer dev-agent-key" \
   -H "Content-Type: application/json" \
   -d '{"lane":"done"}'
@@ -80,7 +85,7 @@ prioriteiten zijn `low`, `normal`, `high` en `urgent`.
 ## Taak verwijderen
 
 ```bash
-curl -X DELETE http://localhost:3001/api/planner/tasks/TASK_ID \
+curl -X DELETE http://localhost:3001/api/v1/planner/tasks/TASK_ID \
   -H "Authorization: Bearer dev-agent-key"
 ```
 
