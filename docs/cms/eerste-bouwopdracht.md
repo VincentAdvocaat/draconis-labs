@@ -21,19 +21,23 @@ Voorbeeldfixture website `demo-cms`, pagina `home`, route `index.html`, locale `
 
 | Route onder `/api/v1/cms` | Recht en gedrag |
 | --- | --- |
-| `GET /websites/:websiteId/pages/home` | Editor/Publisher; draftwaarden, revisionId en pageVersion. |
+| `GET /websites/:websiteId/pages/home` | Editor/Publisher; draftwaarden, revisionId, pageVersion, activeReleaseId en activeVersion. Zonder actieve release zijn activeReleaseId `null` en activeVersion `0`. |
 | `PUT /websites/:websiteId/pages/home/draft` | Editor/Publisher; `{expectedVersion, values:{title,intro}}`. Return nieuwe revisionId/version; 409 behoudt oude draft. Ontbrekende expectedVersion geeft 428. |
 | `GET /websites/:websiteId/previews/:revisionId` | Editor/Publisher; scoped revision, `Cache-Control: no-store`, alleen geëncodeerde HTML. |
 | `POST /websites/:websiteId/releases` | Publisher; `{revisionId, expectedActiveVersion}` en verplichte idempotency key. Bouw lokaal en activeer uitsluitend na volledige validatie. Return release-ID, status en publieke URL, of controleerbare fout. |
 | `GET /websites/:websiteId/releases/:releaseId` | Editor/Publisher; status, foutcode en gekozen revisionId; geen token of intern absoluut pad. |
 
+Na browserherlaad leest de client activeVersion via de beheer-GET. Een publicatie-409 bewaart de gekozen revisie, haalt de nieuwe actieve toestand op en vraagt opnieuw een expliciete publicatiekeuze met een nieuwe idempotency key. De client vervangt nooit automatisch de verwachte versie om alsnog te activeren. PageVersion en activeVersion zijn verschillende conflictgrenzen.
+
 Publieke lokale route `GET /sites/:websiteId/*` valt buiten het beheerprefix en gebruikt alleen active releasebestanden. Zonder actieve release geeft zij 404. Site- en routeparameters zijn servermatig gemapt; willekeurige filesystempaden zijn onmogelijk. De builder schrijft via staging naar een nieuwe complete releasemap; daarna activeert één DB-transactie de pointer met CAS. Een crash vóór pointercommit laat de vorige release actief; een crash erna kan alleen naar een al complete map wijzen. Retry met dezelfde key en payload retourneert hetzelfde resultaat, ook na restart. Verkeerde key/payload geeft 409.
+
+De proef gebruikt de pogingstatussen `building`, `published`, `failed` en `conflict`. Een retry tijdens `building` geeft dezelfde poging terug zonder een tweede builder te starten. Bij opstart wordt een niet-geactiveerde `building` poging `failed` met code `interrupted`; herhalen met dezelfde key retourneert die eindstatus. Een nieuwe bewuste poging krijgt een nieuwe key. Activatie en overgang naar `published` staan in dezelfde DB-transactie. Er is in de proef geen externe deploystatus.
 
 ## Acceptatie en controles
 
 1. Start lokaal op een lege fixturedatabase. Zonder token zijn draft/preview/writes ontoegankelijk; Editor kan niet publiceren. Toets website-isolatie met beide fixtures en geconfigureerde scoped tokens.
 2. Bewaar tekst A en preview A. Vóór eerste publish is de publieke route 404. Publiceer A; bewaar daarna B. Publiek blijft A en preview toont B. Herstart behoudt deze situatie.
-3. Publiceer B, wijzig tijdens bouwen naar C. Publiek toont B; draft blijft C. Test dit met een gecontroleerde builderbarrière, zonder tijdafhankelijke sleeps. Twee saves op dezelfde versie geven precies één 409, ook via twee DB-connecties.
+3. Publiceer B, wijzig tijdens bouwen naar C. Publiek toont B; draft blijft C. Test dit met een gecontroleerde builderbarrière, zonder tijdafhankelijke sleeps. Twee saves op dezelfde versie geven precies één 409, ook via twee DB-connecties. Publiceer na browserherlaad met de opgehaalde activeVersion. Laat twee clients publiceren tegen dezelfde activeVersion; precies één activeert. De verliezer toont het conflict en publiceert pas opnieuw na ophalen en expliciete keuze.
 4. Forceer een render-/filesystemfout en een crash vóór en na activatie. De publieke site blijft een complete A of B tonen. Een idempotente retry maakt geen dubbele poging; andere payload met dezelfde key faalt.
 5. Voer scriptachtige tekst en traversalpaden in. Preview/publicatie voeren geen script uit en verlaten de runtime-map niet. Output bevat geen token, editorcode, draft-API of bestanden van de tweede website.
 6. Demonstreer de flow in de browser met toetsenbordbediening, zichtbare opslag-/publicatiestatus en herstelde invoer bij 401/409/netwerkfout. Leg de fixtures en commando's vast; schrijf geen echte geheimen in screenshots of rapporten.
