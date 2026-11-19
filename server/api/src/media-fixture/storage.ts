@@ -16,11 +16,15 @@ export class MediaFixtureStore {
   private readonly db: Database.Database;
   private readonly root: string;
   private readonly websites: ReadonlySet<string>;
+  private readonly ownsDatabase: boolean;
 
-  constructor(root: string, websites: string[]) {
+  constructor(root: string, websites: string[], database?: Database.Database) {
     this.root = assertFixtureRoot(root);
     this.websites = new Set(websites);
-    this.db = new Database(resolve(this.root, 'media.sqlite'));
+    if (database && resolve(database.name) !== resolve(this.root, 'media.sqlite'))
+      throw new Error('Injected database must belong to this fixture');
+    this.ownsDatabase = !database;
+    this.db = database ?? new Database(resolve(this.root, 'media.sqlite'));
     this.db.pragma('foreign_keys = ON');
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS assets (
@@ -51,7 +55,7 @@ export class MediaFixtureStore {
     `);
   }
 
-  close() { this.db.close(); }
+  close() { if (this.ownsDatabase) this.db.close(); }
 
   private authorize(website: string) {
     if (!this.websites.has(website)) throw new MediaContractError(403, 'Website access denied');

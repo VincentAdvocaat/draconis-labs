@@ -1,9 +1,13 @@
 import { timingSafeEqual } from 'node:crypto';
 import Fastify from 'fastify';
+import { ZodError } from 'zod';
 import { LocalUploadService } from './service.js';
 import { MAX_BYTES, UploadError } from './processor.js';
 
-export async function buildUploadApp(root: string, token: string) {
+export async function buildUploadApp(root: string, token: string, options: {
+  isPublicRead?: (path: string) => boolean;
+  allowedBrowserOrigin?: () => string | undefined;
+} = {}) {
   if (token.length < 32) throw new Error('Explicit fixture bearer token of at least 32 characters required');
   const service = new LocalUploadService(root);
   await service.recover();
@@ -11,9 +15,12 @@ export async function buildUploadApp(root: string, token: string) {
   let activeUpload = false;
   const admitted = new Set<string>();
   app.addHook('onRequest', async (request, reply) => {
-    // This CLI-only probe accepts no browser origins or ambient cookie authentication.
-    if (request.headers.origin !== undefined ||
-      (request.headers['sec-fetch-site'] !== undefined && request.headers['sec-fetch-site'] !== 'none'))
+    if (request.method === 'GET' && options.isPublicRead?.(request.url.split('?')[0])) return;
+    // CLI default denies browsers; a composed app may explicitly allow its loopback origin.
+    const origin = options.allowedBrowserOrigin?.();
+    if ((request.headers.origin !== undefined && request.headers.origin !== origin) ||
+      (request.headers['sec-fetch-site'] !== undefined && request.headers['sec-fetch-site'] !== 'none' &&
+        !(origin && request.headers['sec-fetch-site'] === 'same-origin')))
       return reply.code(403).send({ message: 'Browser-origin requests are not allowed in this probe' });
     const supplied = Buffer.from(request.headers.authorization ?? '');
     const expected = Buffer.from(`Bearer ${token}`);
@@ -24,7 +31,7 @@ export async function buildUploadApp(root: string, token: string) {
   });
   app.addContentTypeParser(/^image\/(jpeg|png|webp)$/, { parseAs: 'buffer', bodyLimit: MAX_BYTES }, (_request, bytes, done) => done(null, bytes));
   app.setErrorHandler((error, _request, reply) => {
-    const status = error instanceof UploadError ? error.statusCode : (error as { statusCode?: number }).statusCode ?? 500;
+    const status = error instanceof ZodError ? 400 : error instanceof UploadError ? error.statusCode : (error as { statusCode?: number }).statusCode ?? 500;
     reply.code(status >= 400 && status <= 599 ? status : 500).send({ message: status >= 500 ? 'Local upload failed' : (error as Error).message,
       ...(error instanceof UploadError && error.assetId ? { assetId: error.assetId, fileVersion: 1 } : {}) });
   });
