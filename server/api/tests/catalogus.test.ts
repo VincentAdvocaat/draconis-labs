@@ -126,6 +126,59 @@ describe('persisted catalog and portfolio module', () => {
       expect(uploads.status(site, result.assetId).rights).toBe('blocked');
     } finally { uploads.close(); }
   });
+
+  it('withdraws with CAS and explicit confirmation while preserving immutable data, audit and retained references', () => {
+    const item = service.save(site, input);
+    const snapshot = service.publish(site, 1);
+    const ref = { websiteId: site, collectionId: 'portfolio' as const, snapshotId: snapshot.snapshotId };
+    const usages = fixture.store.usages(site, 'photo');
+    const withdrawal = { expectedVersion: 1, employee: 'Test medewerker', reason: 'Lokale testintrekking', confirmed: true };
+    expect(() => service.withdraw(site, snapshot.snapshotId, { ...withdrawal, confirmed: false })).toThrow();
+    expect(() => service.withdraw(site, snapshot.snapshotId, { ...withdrawal, expectedVersion: 99 })).toThrow('version or status conflict');
+    expect(() => service.withdraw('fixture-beta', snapshot.snapshotId, withdrawal)).toThrow('not found for website');
+    expect(service.withdraw(site, snapshot.snapshotId, withdrawal)).toMatchObject({ status: 'withdrawn', version: 2 });
+    expect(() => service.withdraw(site, snapshot.snapshotId, withdrawal)).toThrow('version or status conflict');
+    expect(() => service.resolveSnapshot(ref)).toThrow('snapshot not found');
+    expect(() => service.variant(ref, item.itemId, 0)).toThrow('snapshot not found');
+    expect(fixture.store.usages(site, 'photo')).toEqual(usages);
+    expect(() => fixture.store.purge(site, 'photo', 2, true)).toThrow('retained');
+    const db = new Database(join(fixture.root, 'media.sqlite'));
+    try {
+      const stored = db.prepare('SELECT json FROM catalog_snapshots WHERE id=?').get(snapshot.snapshotId) as { json: string };
+      expect(JSON.parse(stored.json)).toEqual(snapshot);
+      const audit = db.prepare('SELECT action,details FROM catalog_snapshot_audit WHERE snapshot=? ORDER BY version')
+        .all(snapshot.snapshotId) as { action: string; details: string }[];
+      expect(audit.map(a => a.action)).toEqual(['published', 'withdrawn']);
+      expect(JSON.parse(audit[1].details)).toMatchObject(withdrawal);
+    } finally { db.close(); }
+    const replacement = service.publish(site, 1);
+    expect(replacement.snapshotId).not.toBe(snapshot.snapshotId);
+    service.setRights(site, 'photo', { ...decision, expectedVersion: 2, status: 'blocked' });
+    expect(() => service.publish(site, 1)).toThrow('Explicit employee rights approval required');
+    expect(service.resolveSnapshot({ ...ref, snapshotId: replacement.snapshotId })).toEqual(replacement);
+    service.close(); service = new CatalogService(fixture.root);
+    expect(service.listSnapshots(site)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ snapshotId: snapshot.snapshotId, status: 'withdrawn', version: 2 }),
+    ]));
+  });
+
+  it('migrates existing schema 1 snapshots without changing their bytes or refs', () => {
+    service.save(site, input);
+    const snapshot = service.publish(site, 1);
+    const usages = fixture.store.usages(site, 'photo');
+    service.close();
+    const db = new Database(join(fixture.root, 'media.sqlite'));
+    try {
+      db.exec(`DROP TABLE catalog_snapshot_audit;
+        ALTER TABLE catalog_snapshots DROP COLUMN status;
+        ALTER TABLE catalog_snapshots DROP COLUMN version;
+        UPDATE catalog_schema SET version=1;`);
+    } finally { db.close(); }
+    service = new CatalogService(fixture.root);
+    expect(service.listSnapshots(site)[0]).toMatchObject({ snapshotId: snapshot.snapshotId, status: 'published', version: 1 });
+    expect(service.resolveSnapshot({ websiteId: site, collectionId: 'portfolio', snapshotId: snapshot.snapshotId })).toEqual(snapshot);
+    expect(fixture.store.usages(site, 'photo')).toEqual(usages);
+  });
 });
 
 describe('browser-facing catalog HTTP contract', () => {
@@ -164,6 +217,21 @@ describe('browser-facing catalog HTTP contract', () => {
       expect((await fetch(`${base}/items/missing`)).status).toBe(404);
       const invalid = await fetch(`${address}/catalogus/api/${site}/items`, { method: 'POST', headers, body: '{}' });
       expect(invalid.status).toBe(400);
+      expect((await fetch(`${address}/catalogus/api/${site}/snapshots`)).status).toBe(401);
+      const withdrawal = { expectedVersion: 1, employee: 'Test medewerker', reason: 'Browserpublicatie intrekken', confirmed: true };
+      expect((await fetch(`${address}/catalogus/api/fixture-beta/snapshots/${snapshot.snapshotId}/withdraw`, { method: 'POST', headers, body: JSON.stringify(withdrawal) })).status).toBe(404);
+      expect((await fetch(`${address}/catalogus/api/${site}/snapshots/${snapshot.snapshotId}/withdraw`, { method: 'POST', headers, body: JSON.stringify({ ...withdrawal, confirmed: false }) })).status).toBe(400);
+      const concurrent = await Promise.all([1, 2].map(() => fetch(`${address}/catalogus/api/${site}/snapshots/${snapshot.snapshotId}/withdraw`, { method: 'POST', headers, body: JSON.stringify(withdrawal) })));
+      expect(concurrent.map(r => r.status).sort()).toEqual([200, 409]);
+      for (const path of [base, `${base}/items/rood-proefbeeld`, `${base}/media/${item.itemId}/0`]) {
+        const response = await fetch(path);
+        expect(response.status).toBe(404);
+        expect(response.headers.get('cache-control')).toBe('no-store');
+      }
+      const info = await (await fetch(`${address}/catalogus/instance`)).text();
+      expect(info).toContain('catalogus');
+      expect(info).not.toContain(token);
+      expect(info).not.toContain(fixture.root);
     } finally { await app.close(); fixture.cleanup(); }
   });
 });

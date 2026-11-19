@@ -45,3 +45,24 @@ Klaar voor M1 als een schone checkout de proef met gedocumenteerde commando's st
 Deze docs-PR krijgt ook de persoonlijke reviewafspraak: aparte read-only reviewchat met `gpt-6-astra`, `medium`, actuele head-SHA en bronchat. Concrete bevindingen bevatten ernst, bestand/regel, scenario, onderbouwing en oplossing. Terugrapportage en eventuele fixes volgen met `gpt-6.1-sol`, `low`. Geen externe reviewcomments of merge zonder aparte opdracht. Substantiële correcties gaan gericht terug naar dezelfde reviewchat.
 
 Voor deze documentwijziging volstaan diff-/scopecontrole, controle van lokale Markdown-links en inhoudelijke review. Er is geen uitvoerbare code gewijzigd; applicatietests zijn daarom niet als bewijs voor het ontwerp opgevoerd.
+
+## Volgende story: CMS-redactie en taalvarianten
+
+Nieuwe gebruikersrichting van 19 november 2026, nog geen brede implementatie in de snapshotbeheerstap. Stem dit af met de CMS-module. Vertalingen worden handmatig beheerd, zonder betaalde vertaaldiensten of AI-API-calls.
+
+Voorgesteld localecontract:
+
+- De bestaande catalogusproef verklaart Nederlands expliciet als default. Bij echte websites blijft de al vastgelegde CMS-defaulttaal leidend. Leid een taal niet af uit tekst, browser of medewerkersvoorkeur.
+- Item-ID's, categorie-ID's, asset-ID's en fileVersions blijven invariant. Titel, beschrijving en categorie-naam krijgen localevarianten. Ook de publieke koppen, links, jaarlabels en lege-staattekst worden centrale CMS-velden, zodat geen publiek zichtbare tekst alleen als hardcoded rendererstring achterblijft.
+- Slugs kunnen per locale verschillen en zijn uniek per website en locale. De bestaande defaultslug en routes blijven geldig. Leg de route-/redirectpolicy eerst vast met CMS; die policy is nog een ontwerpbesluit.
+- De metadatawaarde jaar blijft invariant. Per schema krijgen alleen tekstvelden en labels een translatable-vlag; vertaal geen getallen of technische IDs.
+- Alt blijft localegebonden per gebruik. Een ontbrekende betekenisvolle alt blokkeert die taalpublicatie, tenzij de release expliciet een toegestane fallback vastlegt. Decorative blijft een bewuste gebruikskeuze.
+- Een nieuwe immutable snapshot bevriest defaultLocale en de ingesloten localevarianten. CMS kiest locale en expliciete fallback in de release en pint CatalogRef plus checksum. Bestaande snapshots worden niet achteraf veranderd.
+
+Acceptatiecriteria voor die volgende story:
+
+1. Een medewerker bewerkt titel, beschrijving, categorie-naam en de publieke portfolio-/detailteksten in CMS voor defaulttaal en één extra taal. Een nieuwe tekstvariant verandert de andere taal en oude snapshots niet.
+2. Een nieuwe pagina of blok kan een gepinde catalogusselectie en een foto met alt/decorative gebruiken via de gedeelde contracten; er ontstaat geen tweede mediaopslag of rechtenadministratie.
+3. Concept, privé-preview en publicatie blijven gescheiden. Ontbrekende vertalingen/fallbacks en slugconflicten tonen concrete fouten. Rechten en retained refs worden per release opnieuw gecontroleerd.
+4. Migratie van bestaande NL-fixtures behoudt IDs, defaultinhoud, bestaande routes en snapshots. Heropenen behoudt beide taalvarianten. Een oude snapshot en een ingetrokken snapshot houden hun eerdere beschikbaarheidsbeleid.
+5. Lokale browserproef en contracttests bewijzen beide talen zonder hosted vertaling, extra cloudresources of deployment. Publiceer geen fictieve vertalingen als goedgekeurde klanttekst.

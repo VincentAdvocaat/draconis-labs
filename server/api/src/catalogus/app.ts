@@ -1,19 +1,27 @@
 import { z } from 'zod';
+import { randomUUID } from 'node:crypto';
 import { buildUploadApp } from '../media-upload/app.js';
 import { CatalogService } from './service.js';
 import { adminHtml, portfolioHtml } from './html.js';
 
 export async function buildCatalogApp(root: string, token: string) {
   const app = await buildUploadApp(root, token, {
-    isPublicRead: path => path === '/catalogus' || /^\/portfolio\/[^/]+\/[a-f0-9-]{36}(?:\/items\/[a-z0-9-]+|\/media\/[a-f0-9-]{36}\/\d+)?$/.test(path),
+    isPublicRead: path => path === '/catalogus' || path === '/catalogus/instance' || /^\/portfolio\/[^/]+\/[a-f0-9-]{36}(?:\/items\/[a-z0-9-]+|\/media\/[a-f0-9-]{36}\/\d+)?$/.test(path),
     allowedBrowserOrigin: () => {
       const address = app.server.address();
       return address && typeof address !== 'string' ? `http://127.0.0.1:${address.port}` : undefined;
     },
   });
   const catalog = new CatalogService(root);
+  const instanceId = randomUUID();
   const version = z.object({ expectedVersion: z.number().int().nonnegative() }).strict();
+  app.addHook('onSend', async (request, reply, payload) => {
+    if (request.url.startsWith('/portfolio/') || request.url.startsWith('/catalogus/api/') || request.url === '/catalogus/instance')
+      reply.header('Cache-Control', 'no-store');
+    return payload;
+  });
   app.get('/catalogus', async (_request, reply) => reply.type('text/html; charset=utf-8').send(adminHtml));
+  app.get('/catalogus/instance', async () => ({ module: 'catalogus', instanceId }));
   app.get<{ Params: { site: string } }>('/catalogus/api/:site', async request => catalog.list(request.params.site));
   app.get<{ Params: { site: string } }>('/catalogus/api/:site/assets', async request => catalog.assets(request.params.site));
   app.post<{ Params: { site: string } }>('/catalogus/api/:site/items', async request => catalog.save(request.params.site, request.body));
@@ -23,6 +31,9 @@ export async function buildCatalogApp(root: string, token: string) {
     return { archived: true };
   });
   app.post<{ Params: { site: string } }>('/catalogus/api/:site/publish', async request => catalog.publish(request.params.site, version.parse(request.body).expectedVersion));
+  app.get<{ Params: { site: string } }>('/catalogus/api/:site/snapshots', async request => catalog.listSnapshots(request.params.site));
+  app.post<{ Params: { site: string; snapshot: string } }>('/catalogus/api/:site/snapshots/:snapshot/withdraw', async request =>
+    catalog.withdraw(request.params.site, request.params.snapshot, request.body));
   app.get<{ Params: { site: string; id: string; fileVersion: string } }>('/catalogus/api/:site/preview/:id/:fileVersion', async (request, reply) => {
     const image = catalog.preview(request.params.site, request.params.id, Number(request.params.fileVersion));
     return reply.header('Cache-Control', 'no-store').type(image.mime).send(image.bytes);

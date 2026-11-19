@@ -9,6 +9,7 @@ class Element {
   textContent = '';
   checked = false;
   hidden = false;
+  disabled = false;
   files: unknown[] = [];
   children: Element[] = [];
   onclick?: () => Promise<void>;
@@ -31,10 +32,19 @@ function browserHarness() {
   const assets = [{ assetId: 'photo', fileVersion: 1, metadataVersion: 1, rights: 'cleared', state: 'ready' },
     { assetId: 'photo', fileVersion: 2, metadataVersion: 1, rights: 'cleared', state: 'ready' }];
   const sent: Array<Record<string, unknown>> = [];
+  const snapshots = [{ snapshotId: 'snapshot-1', status: 'published', version: 1, checksum: 'fixture-checksum', itemCount: 1 }];
   const response = (json: unknown, ok = true) => ({ ok, json: async () => JSON.parse(JSON.stringify(json)) });
-  const context = vm.createContext({ document: { getElementById: el, createElement: () => new Element() }, Option: Element,
+  const context = vm.createContext({ document: { getElementById: el, createElement: () => new Element(), querySelectorAll: () => [...elements.values()] }, Option: Element,
     fetch: async (path: string, options: { method?: string; body?: string } = {}) => {
       if (path.endsWith('/assets')) return response(assets);
+      if (path.endsWith('/snapshots')) return response(snapshots);
+      if (path.endsWith('/withdraw')) {
+        const body = JSON.parse(options.body!) as { expectedVersion: number; confirmed: boolean };
+        sent.push(body);
+        if (!body.confirmed || body.expectedVersion !== snapshots[0].version) return response({ message: 'Snapshot conflict' }, false);
+        snapshots[0].status = 'withdrawn'; snapshots[0].version++;
+        return response(snapshots[0]);
+      }
       if (path.includes('/rights/')) return response({ metadataVersion: 2 });
       if (path.startsWith('/websites/')) {
         const uploaded = { assetId: 'new-upload', fileVersion: 1, metadataVersion: 1, rights: 'unknown', state: 'ready' };
@@ -83,7 +93,7 @@ describe('actual admin script optimistic form binding', () => {
     expect(browser.el('title').value).toBe('Oude titel');
     await browser.el('save').onclick!();
     expect(browser.sent[0]).toMatchObject({ expectedVersion: 1, title: 'Oude titel' });
-    expect(browser.el('message').textContent).toBe('Item version conflict');
+    expect(browser.el('message').textContent).toContain('Item version conflict');
     expect(browser.stored.title).toBe('Nieuwe titel');
   });
 
@@ -97,7 +107,27 @@ describe('actual admin script optimistic form binding', () => {
     expect(browser.el('title').value).toBe('Oude titel');
     await browser.el('save').onclick!();
     expect(browser.sent[0]).toMatchObject({ expectedVersion: 1, media: { assetId: 'new-upload', fileVersion: 1 } });
-    expect(browser.el('message').textContent).toBe('Item version conflict');
+    expect(browser.el('message').textContent).toContain('Item version conflict');
     expect(browser.stored.title).toBe('Nieuwe titel');
+  });
+
+  it('requires visible withdrawal confirmation and reports the resulting state without leaving controls disabled', async () => {
+    const browser = browserHarness();
+    await browser.el('load').onclick!();
+    expect(browser.el('snapshotStatus').textContent).toContain('published');
+    expect(browser.el('withdrawConfirmed').checked).toBe(false);
+    await browser.el('withdraw').onclick!();
+    expect(browser.sent).toEqual([]);
+    expect(browser.el('message').textContent).toContain('Bevestig de intrekking');
+    expect(browser.el('withdraw').disabled).toBe(false);
+    browser.el('withdrawEmployee').value = 'Test medewerker';
+    browser.el('withdrawReason').value = 'Expliciete lokale testintrekking';
+    browser.el('withdrawConfirmed').checked = true;
+    await browser.el('withdraw').onclick!();
+    expect(browser.sent[0]).toMatchObject({ expectedVersion: 1, confirmed: true });
+    expect(browser.el('snapshotStatus').textContent).toContain('withdrawn');
+    expect(browser.el('message').textContent).toContain('geven nu 404');
+    expect(browser.el('withdrawConfirmed').checked).toBe(false);
+    expect(browser.el('withdraw').disabled).toBe(false);
   });
 });

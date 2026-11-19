@@ -12,6 +12,7 @@ Een beeldbibliotheek bewaart afbeeldingen en hun herkomst. Catalogusitems verwij
 - [Ontwerp en modulecontract](ontwerp.md) beschrijft beheer, publicatie en verwijdergedrag.
 - [Backlog en eerste bouwopdracht](backlog.md) bevat fasen, acceptatiecriteria, migratie en lokale uitvoering.
 - [M0 contractproef](m0-proef.md), [M1 HTTP-upload](m1-upload.md) en [opgeslagen catalogusflow](catalogus-flow.md) beschrijven de daaropvolgende lokale implementaties en hun grenzen.
+- [Snapshotbeheer en normale start](snapshotbeheer.md) beschrijft intrekken, audit en de eigen `catalogus start`-opdracht.
 
 ## Afbakening en besluitvoorstel
 

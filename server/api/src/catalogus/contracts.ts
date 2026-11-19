@@ -26,3 +26,9 @@ export interface CatalogSnapshot {
   items: Array<CatalogItem & { resolvedMedia: ReleaseManifest['references'][number] }>;
 }
 export interface CatalogRef { websiteId: string; collectionId: 'portfolio'; snapshotId: string }
+export const withdrawalSchema = z.object({
+  expectedVersion: z.number().int().positive(),
+  employee: z.string().trim().min(2).max(200),
+  reason: z.string().trim().min(5).max(2000),
+  confirmed: z.literal(true),
+}).strict();

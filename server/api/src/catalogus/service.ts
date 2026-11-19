@@ -6,7 +6,7 @@ import { FIXTURE_WEBSITES } from '../media-fixture/fixture.js';
 import { assertFixtureRoot } from '../media-fixture/safety.js';
 import { checksum, MediaFixtureStore } from '../media-fixture/storage.js';
 import { MediaContractError } from '../media-fixture/contracts.js';
-import { itemInputSchema, type CatalogItem, type CatalogRef, type CatalogSnapshot } from './contracts.js';
+import { itemInputSchema, withdrawalSchema, type CatalogItem, type CatalogRef, type CatalogSnapshot } from './contracts.js';
 import { MediaRightsService } from '../media-upload/rights.js';
 
 export class CatalogService {
@@ -22,7 +22,7 @@ export class CatalogService {
     this.db.transaction(() => {
       this.db.exec('CREATE TABLE IF NOT EXISTS catalog_schema(version INTEGER NOT NULL)');
       const version = this.db.prepare('SELECT version FROM catalog_schema').get() as { version: number } | undefined;
-      if (version && version.version !== 1) throw new Error('Unsupported catalog schema version');
+      if (version && ![1, 2].includes(version.version)) throw new Error('Unsupported catalog schema version');
       if (!version) {
         this.db.exec(`
           CREATE TABLE catalog_collections(website TEXT PRIMARY KEY, version INTEGER NOT NULL DEFAULT 0);
@@ -36,6 +36,17 @@ export class CatalogService {
           INSERT INTO catalog_schema VALUES(1);
         `);
         for (const website of FIXTURE_WEBSITES) this.db.prepare('INSERT INTO catalog_collections(website) VALUES(?)').run(website);
+      }
+      if (!version || version.version === 1) {
+        this.db.exec(`
+          ALTER TABLE catalog_snapshots ADD COLUMN status TEXT NOT NULL DEFAULT 'published';
+          ALTER TABLE catalog_snapshots ADD COLUMN version INTEGER NOT NULL DEFAULT 1;
+          CREATE TABLE catalog_snapshot_audit(website TEXT NOT NULL,snapshot TEXT NOT NULL,version INTEGER NOT NULL,
+            action TEXT NOT NULL,details TEXT NOT NULL,recorded_at TEXT NOT NULL,PRIMARY KEY(website,snapshot,version));
+          INSERT INTO catalog_snapshot_audit SELECT website,id,1,'migrated-published','{}',
+            strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM catalog_snapshots;
+          UPDATE catalog_schema SET version=2;
+        `);
       }
     })();
   }
@@ -111,17 +122,46 @@ export class CatalogService {
       });
       const payload = { schemaVersion: 1 as const, websiteId: website, collectionId: 'portfolio' as const, snapshotId, items };
       const snapshot: CatalogSnapshot = { ...payload, checksum: checksum(Buffer.from(JSON.stringify(payload))) };
-      this.db.prepare('INSERT INTO catalog_snapshots VALUES(?,?,?)').run(website, snapshotId, JSON.stringify(snapshot));
+      this.db.prepare('INSERT INTO catalog_snapshots(website,id,json) VALUES(?,?,?)').run(website, snapshotId, JSON.stringify(snapshot));
+      this.db.prepare('INSERT INTO catalog_snapshot_audit VALUES(?,?,1,?,?,?)')
+        .run(website, snapshotId, 'published', JSON.stringify({ checksum: snapshot.checksum }), new Date().toISOString());
       return snapshot;
     })();
   }
   resolveSnapshot(ref: CatalogRef): CatalogSnapshot {
     this.authorize(ref.websiteId);
     if (ref.collectionId !== 'portfolio') throw new MediaContractError(404, 'Collection not found');
-    const row = this.db.prepare('SELECT json FROM catalog_snapshots WHERE website=? AND id=?')
+    const row = this.db.prepare("SELECT json FROM catalog_snapshots WHERE website=? AND id=? AND status='published'")
       .get(ref.websiteId, ref.snapshotId) as { json: string } | undefined;
     if (!row) throw new MediaContractError(404, 'Published snapshot not found');
     return JSON.parse(row.json) as CatalogSnapshot;
+  }
+  listSnapshots(website: string) {
+    this.authorize(website);
+    const rows = this.db.prepare('SELECT id,status,version,json FROM catalog_snapshots WHERE website=? ORDER BY rowid DESC')
+      .all(website) as { id: string; status: string; version: number; json: string }[];
+    return rows.map(row => {
+      const snapshot = JSON.parse(row.json) as CatalogSnapshot;
+      return { snapshotId: row.id, status: row.status, version: row.version,
+        checksum: snapshot.checksum, itemCount: snapshot.items.length };
+    });
+  }
+  withdraw(website: string, id: string, input: unknown) {
+    this.authorize(website);
+    const decision = withdrawalSchema.parse(input);
+    return this.db.transaction(() => {
+      const row = this.db.prepare('SELECT version,status FROM catalog_snapshots WHERE website=? AND id=?')
+        .get(website, id) as { version: number; status: string } | undefined;
+      if (!row) throw new MediaContractError(404, 'Snapshot not found for website');
+      if (row.version !== decision.expectedVersion || row.status !== 'published')
+        throw new MediaContractError(409, 'Snapshot version or status conflict');
+      const version = row.version + 1;
+      this.db.prepare("UPDATE catalog_snapshots SET status='withdrawn',version=? WHERE website=? AND id=? AND version=?")
+        .run(version, website, id, row.version);
+      this.db.prepare('INSERT INTO catalog_snapshot_audit VALUES(?,?,?,?,?,?)')
+        .run(website, id, version, 'withdrawn', JSON.stringify(decision), new Date().toISOString());
+      return { snapshotId: id, status: 'withdrawn', version };
+    })();
   }
   variant(ref: CatalogRef, itemId: string, variantIndex: number) {
     const item = this.resolveSnapshot(ref).items.find(i => i.itemId === itemId);
