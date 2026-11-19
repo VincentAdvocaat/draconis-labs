@@ -12,7 +12,7 @@ Stand van de lokale werkstroom op 19 november 2026. De PR's zijn gestapeld; merg
 | M4 portfolio | Raster en detailpagina boven dezelfde gepinde media, alt/decorative, behoud na wijziging/archief | Vrije albums/selecties, meerdere beelden per item, reorder/coverbeheer en responsieve bronkeuze/lightbox wanneer nodig |
 | Publicatiebeheer | Normale CLI-start, snapshotlijst, expliciete CAS-intrekking, audit en 404 voor bekende pagina/detail/beeld, PR 16 | CMS-publicaties die CatalogRef consumeren en eigen gekopieerde releases kunnen intrekken |
 | Talen | Eén gereviewd gedeeld puur contract, PR 18; handmatige NL/EN-itemvelden en gepinde taalcontext, PR 19 | Centrale redactie van alle publieke labels/categorietekst en volledige meertalige websitebundel via CMS |
-| M5 CMS-export | Contract afgestemd, media-/rechtenservices en shared-helper beschikbaar voor CMS-hergebruik | Gezamenlijke CatalogRef→CMS-blok→offline static release nog niet gebouwd in deze werkstroom |
+| M5 CMS-export | Contract afgestemd; interne consumer met duurzame pins, clean bytes, finale batchgate en twee-databaseherstel gebouwd, zie [consumer-pins](consumer-pins.md) | CMS-blokintegratie en gezamenlijke CatalogRef→CMS-blok→offline static release nog niet gebouwd in deze werkstroom |
 | M6 migratie | Fixturemigraties en heropenen, behoud IDs/defaultslugs/revisies/snapshots/refs | Read-only klantinventaris, dry-run import, gecontroleerde backup/restore en echte klantomschakeling |
 
 ## Integratie die al aantoonbaar werkt
