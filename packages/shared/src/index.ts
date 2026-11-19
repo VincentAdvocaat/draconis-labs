@@ -86,3 +86,21 @@ export interface PaginatedTasks {
   page: number;
   pageSize: number;
 }
+
+export {
+  CONTENT_LOCALES,
+  CONTENT_PUBLICATION_RULES_V1,
+  contentLocaleSchema,
+  contentLocaleContextSchema,
+  localizedTextValuesSchema,
+  contentFieldRuleSchema,
+  resolveContentField,
+  validateContentField,
+} from './schemas/content-locale.js';
+export type {
+  ContentLocale,
+  ContentLocaleContext,
+  LocalizedTextValues,
+  ContentFieldRule,
+  ResolvedContentField,
+} from './schemas/content-locale.js';
