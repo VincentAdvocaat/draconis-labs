@@ -25,8 +25,21 @@ describe('one local workspace client over HTTP and desktop command transport', (
     const http = createPlannerClient(createPlannerHttpTransport('', fetcher), 'local');
     const ipc = createPlannerClient(async command => executePlannerCommand(service, 'local', actor(), command), 'local');
     try {
+      for (const client of [http, ipc]) {
+        await expect(client.create({ title: 123 } as never)).rejects.toMatchObject({ code: 'INVALID_INPUT', status: 400 });
+        await expect(client.create({ title: 'valid', labels: 'single' } as never)).rejects.toMatchObject({ code: 'INVALID_INPUT', status: 400 });
+        const padded = await client.create({ title: ` ${'x'.repeat(240)} `, labels: [` ${'y'.repeat(40)} `] });
+        expect(padded.title).toBe('x'.repeat(240));
+        expect(padded.labels).toEqual(['y'.repeat(40)]);
+        await client.remove(padded.id);
+        await expect(client.preferences.update({ weekStart: '1' } as never)).rejects.toMatchObject({ code: 'INVALID_INPUT', status: 400 });
+      }
       const task = await http.create({ title: 'Fictieve werkruimtetaak', labels: ['demo'] });
       expect(await ipc.list()).toEqual([task]);
+      for (const client of [http, ipc]) {
+        await expect(client.update(task.id, { title: 123, version: 1 } as never)).rejects.toMatchObject({ code: 'INVALID_INPUT', status: 400 });
+        await expect(client.update(task.id, { labels: 'single', version: 1 } as never)).rejects.toMatchObject({ code: 'INVALID_INPUT', status: 400 });
+      }
       const moved = await ipc.update(task.id, { lane: 'doing', version: 1 });
       expect(await http.list({ lane: 'doing' })).toEqual([moved]);
       for (const client of [http, ipc]) {

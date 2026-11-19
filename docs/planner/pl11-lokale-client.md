@@ -14,8 +14,9 @@ bij constructie vastgelegd en bij elke opdracht meegestuurd. Iedere client
 heeft zijn eigen context. De web-App ontvangt de client als prop; zijn standaard
 is HTTP met ID `local`. Desktop injecteert de beperkte preload-transportfunctie
 en hetzelfde lokale ID. In beide weergaven staat het werkruimte-ID zichtbaar.
-Bij vervanging van de webclient wordt oude schermdata gewist en worden late
-lijst-/voorkeurenresponses en mutatieresultaten van de vorige client genegeerd.
+Bij vervanging van de webclient wordt het volledige clientgebonden binnenscherm
+opnieuw gemount. Daardoor verdwijnen oude formulieren en kunnen late acties
+van de vorige client geen lijst, voorkeuren of editor van de nieuwe client raken.
 Er is nog geen werkruimtekiezer gebouwd.
 
 HTTP gebruikt `/api/v1/workspaces/{workspaceId}` met daaronder `/tasks`,
@@ -68,8 +69,8 @@ Deze import is geen algemene migratie-/herstelvoorziening uit PL-13.
 
 ## Bewijs
 
-Frozen install, typecheck, lint, build en 34 tests slagen op Windows met Node
-24.3.0 en pnpm 11.10.0. Daarvan zijn er 16 API, 7 core, 6 desktop en 5 shared.
+Frozen install, typecheck, lint, build en 37 tests slagen op Windows met Node
+24.3.0 en pnpm 11.10.0. Daarvan zijn er 16 API, 7 core, 6 desktop, 5 shared en 3 web-UI.
 De API-clienttest gebruikt echte Fastify-routes en SQLite en vergelijkt HTTP
 met de desktop-commandotransportfunctie voor create/move/read, historie,
 voorkeuren, verwijderen en gedeelde foutcodes. Verkeerde context kan niet lezen
@@ -105,4 +106,10 @@ herordening. Deze clientstap voegt geen garantie voor meerdere schrijvers toe. D
 optionele taakversie uit het bestaande invoercontract blijft behouden; het verplichten
 van de versie op workspace-writes hoort bij die afzonderlijke PL-13-versiestap.
 PostgreSQL, cloudhosting en hersteldoelen blijven afhankelijk van de fase-0-keuzes.
-De volledige bestaande web-UI is niet met pointer-/toetsenbordautomatisering getest.
+Drie DOM-regressietests controleren een open voorkeurendraft en late save/delete
+bij clientvervanging. Alle drie faalden op de oorspronkelijke PR-head en slagen
+na de fix. HTTP/IPC-paritytests controleren ook numerieke titels, scalaire labels,
+trim vóór lengtegrenzen, update-invoer en voorkeurtypen. JSON-schema's documenteren
+de nieuwe routes; de gedeelde Zod-dispatcher valideert hun oorspronkelijke invoer
+zonder voorafgaande AJV-typeconversie. De volledige bestaande web-UI is niet met
+pointer-/toetsenbordautomatisering getest.

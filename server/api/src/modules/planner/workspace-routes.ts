@@ -23,6 +23,9 @@ const taskList = { oneOf: [{ type: 'array', items: taskRef }, { $ref: 'PlannerWo
 
 export function createWorkspacePlannerRoutes(service: PlannerService, workspaceId: string, identifyActor: (request: FastifyRequest) => Actor) {
   return async (app: FastifyInstance) => {
+    // Schemas document this transport. Shared Zod dispatch validates the raw input,
+    // including trim transformations, without AJV changing its types first.
+    app.setValidatorCompiler(() => data => ({ value: data }));
     app.addSchema({ $id: 'PlannerWorkspaceTask', ...taskResponseSchema });
     app.addSchema({ $id: 'PlannerWorkspacePage', ...paginatedTaskListSchema, properties: { ...paginatedTaskListSchema.properties, items: { type: 'array', items: taskRef } } });
     app.addSchema(errorSchema);

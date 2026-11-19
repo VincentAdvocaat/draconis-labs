@@ -323,6 +323,14 @@ function TaskEditor({
 }
 
 export default function App({ client = plannerApi }: { client?: PlannerClient } = {}) {
+  const [context, setContext] = useState({ client, generation: 0 });
+  if (context.client !== client) {
+    setContext({ client, generation: context.generation + 1 });
+  }
+  return <PlannerWorkspace key={context.generation} client={client} />;
+}
+
+function PlannerWorkspace({ client }: { client: PlannerClient }) {
   const activeClient = useRef(client);
   activeClient.current = client;
   const initialUrl = parseFiltersFromUrl(window.location.search);
