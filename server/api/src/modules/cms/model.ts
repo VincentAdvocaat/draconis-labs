@@ -1,8 +1,10 @@
 import { z } from 'zod';
+import { mediaReferenceSchema } from '../../media-fixture/contracts.js';
 
 export const valuesSchema = z.object({
   title: z.string().max(200),
   intro: z.string().max(4000),
+  image: mediaReferenceSchema.extend({ usage: z.literal('hero') }).nullable().optional(),
 }).strict();
 export const draftSchema = z.object({
   expectedVersion: z.number().int().nonnegative(),
@@ -41,9 +43,11 @@ export function encode(text: string): string {
   })[c]!);
 }
 
-export function render(values: Values): string {
+export function render(values: Values, image?: { src: string; alt: string }): string {
   return '<!doctype html><html lang="nl"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1">' +
     `<title>${encode(values.title)}</title></head><body>` +
-    `<main><h1>${encode(values.title)}</h1><p>${encode(values.intro)}</p></main></body></html>`;
+    `<main><h1>${encode(values.title)}</h1><p>${encode(values.intro)}</p>` +
+    (image ? `<img src="${encode(image.src)}" alt="${encode(image.alt)}" width="160" height="160">` : '') +
+    '</main></body></html>';
 }

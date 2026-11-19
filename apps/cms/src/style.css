@@ -22,3 +22,7 @@ button:disabled { opacity: .5; cursor: default; }
 aside { padding: 1rem; border: 1px solid #cd862a; background: #fff8e9; margin: 1rem 0; }
 iframe { width: 100%; min-height: 220px; border: 1px solid #cddbd3; border-radius: 6px; background: white; }
 a { color: #175b72; }
+fieldset { border: 1px solid #cddbd3; border-radius: 6px; margin: 1rem 0; padding: 1rem; }
+legend { font-weight: 650; }
+label.check { display: flex; gap: .6rem; align-items: center; }
+label.check input { width: auto; margin: 0; }

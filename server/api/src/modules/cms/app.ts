@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { cmsModule } from './index.js';
 import { CmsRepository } from './repository.js';
 import { CmsService, type BuildHooks } from './service.js';
+import { CmsMedia } from './media.js';
 
 const credentialSchema = z.array(z.object({
   name: z.string().min(1).max(80),
@@ -21,6 +22,8 @@ export interface CmsAppOptions {
   seed?: boolean;
   uiRoot?: string;
   hooks?: BuildHooks;
+  enableMedia?: boolean;
+  mediaRoot?: string;
 }
 
 function lockRuntime(root: string): () => void {
@@ -47,13 +50,15 @@ export async function buildCmsApp(options: CmsAppOptions) {
   const root = resolve(options.runtimeRoot);
   const unlock = lockRuntime(root);
   let repository: CmsRepository | undefined;
+  let media: CmsMedia | undefined;
   const app = Fastify({ logger: false, bodyLimit: 16_384 });
   try {
-    repository = new CmsRepository(join(root, 'cms.db'));
+    if (options.enableMedia) media = new CmsMedia(root, options.mediaRoot);
+    repository = new CmsRepository(join(root, 'cms.db'), media);
     repository.reconcile();
     if (options.seed) repository.seed();
-    const service = new CmsService(repository, join(root, 'releases'), options.hooks);
-    app.addHook('onClose', async () => { repository!.close(); unlock(); });
+    const service = new CmsService(repository, join(root, 'releases'), options.hooks, media);
+    app.addHook('onClose', async () => { repository!.close(); media?.close(); unlock(); });
     app.addHook('onSend', async (_request, reply, payload) => {
       reply.header('X-Content-Type-Options', 'nosniff');
       reply.header('Referrer-Policy', 'no-referrer');
@@ -68,14 +73,18 @@ export async function buildCmsApp(options: CmsAppOptions) {
     await app.register(mod.register, { prefix: `/api/v1${mod.prefix}` });
     app.get('/sites/:websiteId/index.html', async (request, reply) => {
       reply.header('Cache-Control', 'no-store');
-      reply.header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'self'; form-action 'none'; base-uri 'none'");
+      reply.header('Content-Security-Policy', "default-src 'none'; img-src 'self'; frame-ancestors 'self'; form-action 'none'; base-uri 'none'");
       return reply.type('text/html; charset=utf-8').send(await service.publicHtml((request.params as { websiteId: string }).websiteId));
+    });
+    app.get('/sites/:websiteId/media/hero.png', async (request, reply) => {
+      reply.header('Cache-Control', 'no-store');
+      return reply.type('image/png').send(await service.publicBytes((request.params as { websiteId: string }).websiteId, 'media/hero.png'));
     });
     if (options.uiRoot) {
       const uiRoot = resolve(options.uiRoot);
       app.get('/', async (_request, reply) => {
         reply.header('Cache-Control', 'no-store');
-        reply.header('Content-Security-Policy', "default-src 'self'; frame-src 'self' about:; object-src 'none'; base-uri 'none'; form-action 'self'");
+        reply.header('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; frame-src 'self' about:; object-src 'none'; base-uri 'none'; form-action 'self'");
         return reply.type('text/html; charset=utf-8').send(await readFile(join(uiRoot, 'index.html')));
       });
       app.get('/assets/:file', async (request, reply) => {
@@ -86,9 +95,10 @@ export async function buildCmsApp(options: CmsAppOptions) {
       });
     }
     await app.ready();
-    return { app, repository, service };
+    return { app, repository, service, media };
   } catch (error) {
     if (repository) repository.close();
+    media?.close();
     unlock();
     throw error;
   }

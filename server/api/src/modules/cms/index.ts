@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { ApiModule } from '../../core/module.js';
-import { CmsError, draftSchema, releaseSchema, render } from './model.js';
+import { CmsError, draftSchema, releaseSchema } from './model.js';
 import { CmsService } from './service.js';
 
 export interface LocalCredential {
@@ -46,8 +46,8 @@ export function cmsModule(service: CmsService, credentials: LocalCredential[]): 
       });
       app.get('/websites/:websiteId/previews/:revisionId', async (request, reply) => {
         const { websiteId, revisionId } = parameters(request);
-        reply.header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'self'; form-action 'none'; base-uri 'none'");
-        return reply.type('text/html; charset=utf-8').send(render(service.repository.revision(websiteId, revisionId!)));
+        reply.header('Content-Security-Policy', "default-src 'none'; img-src data:; frame-ancestors 'self'; form-action 'none'; base-uri 'none'");
+        return reply.type('text/html; charset=utf-8').send(service.preview(websiteId, revisionId!));
       });
       app.post('/websites/:websiteId/releases', async (request, reply) => {
         const actor = authorize(request, true);

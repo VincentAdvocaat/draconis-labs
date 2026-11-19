@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { CmsError, type Attempt, type Page, type ReleaseInput, type Values } from './model.js';
+import type { CmsMedia } from './media.js';
 
 interface PageRow { revision_id: string; version: number; values_json: string }
 interface AttemptRow {
@@ -12,7 +13,7 @@ interface AttemptRow {
 
 export class CmsRepository {
   readonly db: Database.Database;
-  constructor(databasePath: string) {
+  constructor(databasePath: string, private media?: CmsMedia) {
     mkdirSync(dirname(databasePath), { recursive: true });
     this.db = new Database(databasePath);
     this.db.pragma('foreign_keys = ON');
@@ -44,6 +45,11 @@ export class CmsRepository {
       );
       INSERT OR IGNORE INTO cms_migrations VALUES (1);
     `);
+    const columns = this.db.pragma('table_info(cms_revisions)') as Array<{ name: string }>;
+    if (!columns.some((column) => column.name === 'media_revision_id')) {
+      this.db.exec('ALTER TABLE cms_revisions ADD COLUMN media_revision_id TEXT');
+    }
+    this.db.prepare('INSERT OR IGNORE INTO cms_migrations VALUES (2)').run();
   }
 
   seed(): void {
@@ -60,10 +66,15 @@ export class CmsRepository {
     })();
   }
 
-  private insertRevision(websiteId: string, parent: string | null, values: Values, actor: string): string {
+  private insertRevision(websiteId: string, parent: string | null, values: Values, actor: string,
+    previousImage: Values['image'] = null): string {
     const id = randomUUID();
-    this.db.prepare('INSERT INTO cms_revisions VALUES (?, ?, ?, ?, ?, ?)')
-      .run(id, websiteId, parent, JSON.stringify(values), actor, new Date().toISOString());
+    if (values.image && !this.media) throw new CmsError(409, 'Media-adapter niet ingeschakeld');
+    const mediaRevision = this.media?.register(websiteId, id, values.image ?? null, previousImage ?? null,
+      parent ? this.mediaRevision(websiteId, parent) : null) ?? null;
+    this.db.prepare(`INSERT INTO cms_revisions
+      (id, website_id, parent_id, values_json, actor_id, created_at, media_revision_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .run(id, websiteId, parent, JSON.stringify(values), actor, new Date().toISOString(), mediaRevision);
     return id;
   }
 
@@ -89,11 +100,21 @@ export class CmsRepository {
     return JSON.parse(row.values_json) as Values;
   }
 
+  mediaRevision(websiteId: string, revisionId: string): string | null {
+    const row = this.db.prepare('SELECT media_revision_id FROM cms_revisions WHERE id = ? AND website_id = ?')
+      .get(revisionId, websiteId) as { media_revision_id: string | null } | undefined;
+    if (!row) throw new CmsError(404, 'Revisie niet gevonden');
+    return row.media_revision_id;
+  }
+
   save(websiteId: string, expectedVersion: number, values: Values, actor: string): Page {
     return this.db.transaction(() => {
       const current = this.page(websiteId);
       if (current.pageVersion !== expectedVersion) throw new CmsError(409, 'Concept gewijzigd. Vergelijk met de nieuwste versie.');
-      const revisionId = this.insertRevision(websiteId, current.revisionId, values, actor);
+      // Older text-only clients cannot silently remove an existing image by omitting it.
+      const normalized = values.image === undefined && current.values.image !== undefined
+        ? { ...values, image: current.values.image } : values;
+      const revisionId = this.insertRevision(websiteId, current.revisionId, normalized, actor, current.values.image);
       const changed = this.db.prepare(`UPDATE cms_pages SET revision_id = ?, version = version + 1
         WHERE website_id = ? AND version = ?`).run(revisionId, websiteId, expectedVersion);
       if (!changed.changes) throw new CmsError(409, 'Concept gewijzigd');

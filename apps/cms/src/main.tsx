@@ -3,7 +3,10 @@ import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import './style.css';
 
-interface Values { title: string; intro: string }
+interface ImageReference {
+  assetId: string; fileVersion: number; usage: 'hero'; altText: Record<string, string>; decorative: boolean;
+}
+interface Values { title: string; intro: string; image?: ImageReference | null }
 interface Page {
   revisionId: string; pageVersion: number; values: Values;
   activeReleaseId: string | null; activeVersion: number;
@@ -37,7 +40,9 @@ function App() {
       headers: { Authorization: `Bearer ${token}`, ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...init.headers } });
     if (!result.ok) {
       const body = await result.json().catch(() => ({ message: 'Verzoek mislukt' }));
-      throw new ApiError(result.status, body.message ?? body.errorCode ?? `Verzoek mislukt (${result.status})`);
+      throw new ApiError(result.status, body.errorCode === 'media_not_publishable'
+        ? 'Afbeelding is niet publiceerbaar. Controleer alt-tekst, gereedstatus en rechten.'
+        : body.message ?? body.errorCode ?? `Verzoek mislukt (${result.status})`);
     }
     return result.json() as Promise<T>;
   }
@@ -150,6 +155,25 @@ function App() {
       <p>Conceptversie {page.pageVersion} · Actieve publicatieversie {page.activeVersion}{dirty ? ' · Onopgeslagen wijzigingen' : ''}</p>
       <label>Titel<input value={values.title} maxLength={200} disabled={busy} onChange={(event) => setValues({ ...values, title: event.target.value })} /></label>
       <label>Introductie<textarea value={values.intro} maxLength={4000} rows={5} disabled={busy} onChange={(event) => setValues({ ...values, intro: event.target.value })} /></label>
+      <fieldset disabled={busy}><legend>Fictieve afbeelding</legend>
+        <p className="hint">De testafbeelding is één gekleurde pixel, hier vergroot. Kies expliciet een bestandsversie; uploads zijn niet aangesloten.</p>
+        <label>Afbeelding<select value={values.image ? `${values.image.assetId}:${values.image.fileVersion}` : ''} onChange={(event) => {
+          const [assetId, version] = event.target.value.split(':');
+          setValues({ ...values, image: assetId ? { assetId, fileVersion: Number(version), usage: 'hero',
+            altText: values.image?.altText ?? { nl: '' }, decorative: values.image?.decorative ?? false } : null });
+        }}><option value="">Geen afbeelding</option><option value="photo:1">Testafbeelding · versie 1</option><option value="photo:2">Testafbeelding · versie 2</option>
+          <option value="unlicensed:1">Rechten onbekend · blokkeert publicatie</option><option value="pending:1">Nog in verwerking · blokkeert publicatie</option></select></label>
+        {values.image && <>
+          <label className="check"><input type="checkbox" checked={values.image.decorative} onChange={(event) => {
+            setValues({ ...values, image: { ...values.image!, decorative: event.target.checked,
+              altText: event.target.checked ? { nl: '' } : values.image!.altText } });
+          }} />Deze afbeelding is decoratief</label>
+          <label>Alt-tekst Nederlands<input value={values.image.altText.nl ?? ''} maxLength={2000} disabled={values.image.decorative} onChange={(event) => {
+            setValues({ ...values, image: { ...values.image!, altText: { ...values.image!.altText, nl: event.target.value } } });
+          }} /></label>
+          <p className="hint">{values.image.decorative ? 'De export krijgt een leeg alt-attribuut.' : 'Vul een beschrijving in voordat je previewt of publiceert.'}</p>
+        </>}
+      </fieldset>
       {draftConflict && <aside><h3>Nieuwste opgeslagen tekst</h3><p>{draftConflict.values.title}</p><p>{draftConflict.values.intro}</p>
         <button onClick={() => {
           setPage(draftConflict); setValues(draftConflict.values); setDraftConflict(null); setPreview('');
