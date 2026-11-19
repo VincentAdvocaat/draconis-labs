@@ -1,0 +1,722 @@
+[
+  [
+    "uiLanguage",
+    "Bedieningstaal",
+    "Interface language"
+  ],
+  [
+    "brand",
+    "Draconis Labs · lokale proef",
+    "Draconis Labs · local trial"
+  ],
+  [
+    "editPage",
+    "Pagina bewerken",
+    "Edit page"
+  ],
+  [
+    "introHelp",
+    "Fictieve inhoud. Bewaar je concept en publiceer daarna naar de lokale website.",
+    "Fictitious content. Save your draft, then publish to the local website."
+  ],
+  [
+    "openWebsite",
+    "Website openen",
+    "Open website"
+  ],
+  [
+    "website",
+    "Website",
+    "Website"
+  ],
+  [
+    "trialSite",
+    "Proeftuin",
+    "Trial site"
+  ],
+  [
+    "otherSite",
+    "Tweede testwebsite",
+    "Second test site"
+  ],
+  [
+    "testToken",
+    "Lokaal testtoken",
+    "Local test token"
+  ],
+  [
+    "tokenHelp",
+    "Gebruik de editor- of publishergegevens uit het lokale toegangsbestand. Het token blijft alleen in dit tabbladgeheugen.",
+    "Use the editor or publisher credentials from the local access file. The token stays only in this tab's memory."
+  ],
+  [
+    "initialStatus",
+    "Voer een lokaal testtoken in en open de pagina.",
+    "Enter a local test token and open the page."
+  ],
+  [
+    "openWithToken",
+    "Open de pagina met dit token.",
+    "Open the page with this token."
+  ],
+  [
+    "tokenChanged",
+    "Token aangepast. Je invoer blijft bewaard; probeer opslaan opnieuw of open de nieuwste versie.",
+    "Token changed. Your input is preserved; retry saving or open the latest version."
+  ],
+  [
+    "confirmOpen",
+    "Je hebt onopgeslagen tekst. Nieuwste opgeslagen versie openen?",
+    "You have unsaved text. Open the latest saved version?"
+  ],
+  [
+    "confirmSite",
+    "Je hebt onopgeslagen wijzigingen. Wisselen naar de andere website?",
+    "You have unsaved changes. Switch to the other website?"
+  ],
+  [
+    "confirmDiscardEnglish",
+    "Je hebt onopgeslagen EN-tekst. Actuele EN-versie openen en deze invoer vervangen?",
+    "You have unsaved English text. Discard this input and return to the loaded English version?"
+  ],
+  [
+    "loadedDraft",
+    "Conceptversie {version} geladen.",
+    "Draft version {version} loaded."
+  ],
+  [
+    "savedDraft",
+    "Conceptversie {version} opgeslagen. De publieke pagina blijft ongewijzigd.",
+    "Draft version {version} saved. The public page is unchanged."
+  ],
+  [
+    "draftConflict",
+    "Versieconflict. Jouw invoer staat nog in de velden.",
+    "Version conflict. Your input remains in the fields."
+  ],
+  [
+    "previewUnavailable",
+    "Preview niet beschikbaar",
+    "Preview unavailable"
+  ],
+  [
+    "previewHome",
+    "Privépreview van de opgeslagen conceptversie.",
+    "Private preview of the saved draft version."
+  ],
+  [
+    "previewPage",
+    "Privépreview van de opgeslagen paginaversie.",
+    "Private preview of the saved page version."
+  ],
+  [
+    "blockLimit",
+    "Er is geen ruimte voor een extra blok. Het bestand is wel verwerkt.",
+    "There is no room for another block. The file was processed."
+  ],
+  [
+    "rightsLoaded",
+    "Rechtenstatus opgehaald: {rights}.",
+    "Rights status loaded: {rights}."
+  ],
+  [
+    "rightsCleared",
+    "Rechten expliciet vrijgegeven. Sla eventuele conceptwijzigingen op en kies daarna bewust Publiceren.",
+    "Rights explicitly cleared. Save any draft changes, then explicitly choose Publish."
+  ],
+  [
+    "rightsBlocked",
+    "Afbeelding geblokkeerd voor nieuwe publicaties.",
+    "Image blocked from new publications."
+  ],
+  [
+    "uploadFailed",
+    "Upload mislukt",
+    "Upload failed"
+  ],
+  [
+    "uploadSelected",
+    "Upload verwerkt en geselecteerd. Sla het concept op; publicatie blijft geblokkeerd totdat de rechten expliciet zijn vrijgegeven.",
+    "Upload processed and selected. Save the draft; publication stays blocked until rights are explicitly cleared."
+  ],
+  [
+    "uploadStatusMessage",
+    "Uploadstatus: {state}. Rechten: {rights}.",
+    "Upload status: {state}. Rights: {rights}."
+  ],
+  [
+    "buildingPage",
+    "Publicatie wordt gebouwd. Controleer opnieuw met dezelfde knop.",
+    "Publication is building. Check again with the same button."
+  ],
+  [
+    "publishedPage",
+    "Gepubliceerd naar lokale website. Actieve versie {version}.",
+    "Published to the local website. Active version {version}."
+  ],
+  [
+    "publicationConflict",
+    "Publicatieconflict. Actuele publicatiestatus opgehaald; kies opnieuw om deze revisie te publiceren.",
+    "Publication conflict. Current publication status loaded; choose again to publish this revision."
+  ],
+  [
+    "englishSaved",
+    "EN-concept opgeslagen. De actieve publicatie blijft behouden.",
+    "English draft saved. The active publication is preserved."
+  ],
+  [
+    "englishPreviewUnavailable",
+    "EN-preview niet beschikbaar",
+    "English preview unavailable"
+  ],
+  [
+    "englishPreview",
+    "Privépreview van de opgeslagen EN-variant.",
+    "Private preview of the saved English variant."
+  ],
+  [
+    "unseenPage",
+    "Een geopende paginaversie is gewijzigd. Open die pagina opnieuw voordat je publiceert.",
+    "An open page version changed. Open that page again before publishing."
+  ],
+  [
+    "unseenEnglish",
+    "De geopende EN-versie is gewijzigd. Open de actuele EN-versie voordat je publiceert.",
+    "The open English version changed. Open the current English version before publishing."
+  ],
+  [
+    "buildingSite",
+    "Website wordt gebouwd. Controleer opnieuw met dezelfde keuze.",
+    "Website is building. Check again with the same selection."
+  ],
+  [
+    "publishedSite",
+    "Website lokaal gepubliceerd. Actieve versie {version}.",
+    "Website published locally. Active version {version}."
+  ],
+  [
+    "requestFailed",
+    "Verzoek mislukt",
+    "Request failed"
+  ],
+  [
+    "requestStatus",
+    "Verzoek mislukt ({status})",
+    "Request failed ({status})"
+  ],
+  [
+    "mediaNotPublishable",
+    "Afbeelding is niet publiceerbaar. Controleer alt-tekst, gereedstatus en rechten.",
+    "Image cannot be published. Check alt text, readiness and rights."
+  ],
+  [
+    "mediaUnavailable",
+    "Mediaopslag niet beschikbaar. Herstel de mediamap en herstart de proef.",
+    "Media storage unavailable. Restore the media directory and restart the trial."
+  ],
+  [
+    "contentNotPublishable",
+    "Niet alle pagina’s zijn compleet. Vul titel, SEO-titel en tekstblok in.",
+    "Not all pages are complete. Fill in the title, SEO title and text block."
+  ],
+  [
+    "homeDutch",
+    "Home · Nederlands",
+    "Home · Dutch"
+  ],
+  [
+    "versionDraft",
+    "Conceptversie",
+    "Draft version"
+  ],
+  [
+    "versionActive",
+    "· Actieve publicatieversie",
+    "· Active publication version"
+  ],
+  [
+    "unsaved",
+    " · Onopgeslagen wijzigingen",
+    " · Unsaved changes"
+  ],
+  [
+    "homeTitle",
+    "Titel",
+    "Title"
+  ],
+  [
+    "homeIntro",
+    "Introductie",
+    "Introduction"
+  ],
+  [
+    "uploadOwn",
+    "Eigen afbeelding uploaden",
+    "Upload your image"
+  ],
+  [
+    "imageFile",
+    "PNG-, JPEG- of WebP-bestand",
+    "PNG, JPEG or WebP file"
+  ],
+  [
+    "uploadFile",
+    "Bestand uploaden",
+    "Upload file"
+  ],
+  [
+    "uploadHelp",
+    "Maximaal 20 MB. Alleen geschoonde beeldvarianten kunnen naar de website; het origineel blijft privé. Een upload geeft geen publicatierechten.",
+    "Maximum 20 MB. Only cleaned image variants can reach the website; the original stays private. An upload does not grant publication rights."
+  ],
+  [
+    "uploadRecovery",
+    "Uploadstatus controleren of herstellen",
+    "Check or recover upload status"
+  ],
+  [
+    "uploadId",
+    "Uploadnummer",
+    "Upload ID"
+  ],
+  [
+    "loadStatus",
+    "Status ophalen",
+    "Load status"
+  ],
+  [
+    "retryProcessing",
+    "Verwerking opnieuw proberen",
+    "Retry processing"
+  ],
+  [
+    "lastUpload",
+    "Laatste upload:",
+    "Latest upload:"
+  ],
+  [
+    "rightsInline",
+    "· Rechten:",
+    "· Rights:"
+  ],
+  [
+    "useUpload",
+    "Deze upload gebruiken",
+    "Use this upload"
+  ],
+  [
+    "editDutch",
+    "Nederlands bewerken",
+    "Edit Dutch"
+  ],
+  [
+    "editEnglish",
+    "English bewerken",
+    "Edit English"
+  ],
+  [
+    "discardEnglish",
+    "Lokale EN-wijzigingen verwerpen",
+    "Discard local English changes"
+  ],
+  [
+    "englishConflictHelp",
+    "De EN-versie of NL-structuur is gewijzigd. Jouw invoer blijft staan. Kopieer tekst die je wilt behouden voordat je de actuele versie overneemt.",
+    "The English version or Dutch structure changed. Your input is preserved. Copy any text you want to keep before adopting the current version."
+  ],
+  [
+    "adoptEnglish",
+    "Actuele EN-versie overnemen",
+    "Adopt current English version"
+  ],
+  [
+    "imageInDraft",
+    "Afbeelding in concept",
+    "Image in draft"
+  ],
+  [
+    "imageHelpUploads",
+    "Kies je upload of een vaste testafbeelding. De vaste testafbeeldingen zijn vergrote pixels; je eigen upload gebruikt geschoonde beeldvarianten.",
+    "Choose your upload or a fixed test image. Fixed test images are enlarged pixels; your upload uses cleaned image variants."
+  ],
+  [
+    "imageHelpFixture",
+    "De testafbeelding is één gekleurde pixel, hier vergroot. Kies expliciet een bestandsversie; uploads zijn niet aangesloten.",
+    "The test image is one coloured pixel, enlarged here. Explicitly select a file version; uploads are not connected."
+  ],
+  [
+    "imageSelect",
+    "Afbeelding",
+    "Image"
+  ],
+  [
+    "noImage",
+    "Geen afbeelding",
+    "No image"
+  ],
+  [
+    "uploadedVersion",
+    "Geüploade afbeelding · versie",
+    "Uploaded image · version"
+  ],
+  [
+    "fixtureOne",
+    "Testafbeelding · versie 1",
+    "Test image · version 1"
+  ],
+  [
+    "fixtureTwo",
+    "Testafbeelding · versie 2",
+    "Test image · version 2"
+  ],
+  [
+    "fixtureUnlicensed",
+    "Rechten onbekend · blokkeert publicatie",
+    "Rights unknown · blocks publication"
+  ],
+  [
+    "fixturePending",
+    "Nog in verwerking · blokkeert publicatie",
+    "Still processing · blocks publication"
+  ],
+  [
+    "imageDecorative",
+    "Deze afbeelding is decoratief",
+    "This image is decorative"
+  ],
+  [
+    "altDutch",
+    "Alt-tekst Nederlands",
+    "Dutch alt text"
+  ],
+  [
+    "decorativeHelp",
+    "De export krijgt een leeg alt-attribuut.",
+    "The export gets an empty alt attribute."
+  ],
+  [
+    "altHelp",
+    "Vul een beschrijving in voordat je previewt of publiceert.",
+    "Enter a description before previewing or publishing."
+  ],
+  [
+    "reviewRights",
+    "Rechten beoordelen",
+    "Review rights"
+  ],
+  [
+    "rightsHelp",
+    "Een gereed beeld kan privé bekeken worden. Publiceren vereist een expliciete vrijgave; een upload alleen geeft geen toestemming.",
+    "A ready image can be previewed privately. Publishing requires explicit clearance; uploading alone does not grant permission."
+  ],
+  [
+    "loadRights",
+    "Rechtenstatus ophalen",
+    "Load rights status"
+  ],
+  [
+    "currentStatus",
+    "Huidige status:",
+    "Current status:"
+  ],
+  [
+    "versionInline",
+    "· versie",
+    "· version"
+  ],
+  [
+    "rightsOwner",
+    "Rechthebbende",
+    "Rights holder"
+  ],
+  [
+    "rightsSource",
+    "Bron",
+    "Source"
+  ],
+  [
+    "rightsBasis",
+    "Onderbouwing van de rechtenbeslissing",
+    "Reason for the rights decision"
+  ],
+  [
+    "rightsConfirm",
+    "Ik bevestig deze rechtenbeslissing met bovenstaande onderbouwing",
+    "I confirm this rights decision with the reason above"
+  ],
+  [
+    "rightsActorHelp",
+    "Je beslissing wordt met je proefaccount vastgelegd. Alleen een Publisher kan deze stap uitvoeren.",
+    "Your decision is recorded with your trial account. Only a Publisher can perform this step."
+  ],
+  [
+    "clearRights",
+    "Rechten vrijgeven",
+    "Clear rights"
+  ],
+  [
+    "blockPublication",
+    "Nieuwe publicatie blokkeren",
+    "Block new publication"
+  ],
+  [
+    "latestText",
+    "Nieuwste opgeslagen tekst",
+    "Latest saved text"
+  ],
+  [
+    "adoptLatest",
+    "Nieuwste versie overnemen",
+    "Adopt latest version"
+  ],
+  [
+    "adoptedLatest",
+    "Nieuwste versie overgenomen. Kies Lokaal publiceren om deze revisie te publiceren.",
+    "Latest version adopted. Choose Publish locally to publish this revision."
+  ],
+  [
+    "keepInputHelp",
+    "Jouw invoer blijft hierboven staan totdat je deze keuze maakt. Kopieer tekst die je wilt bewaren.",
+    "Your input stays above until you make this choice. Copy any text you want to keep."
+  ],
+  [
+    "saveHome",
+    "Concept opslaan",
+    "Save draft"
+  ],
+  [
+    "previewHomeButton",
+    "Privépreview openen",
+    "Open private preview"
+  ],
+  [
+    "retryPage",
+    "Publicatie opnieuw controleren",
+    "Check publication again"
+  ],
+  [
+    "publishPage",
+    "Lokaal publiceren",
+    "Publish locally"
+  ],
+  [
+    "confirmRevision",
+    "Een andere publicatie is inmiddels actief. Wil je nog steeds deze opgeslagen conceptversie publiceren?",
+    "Another publication is now active. Do you still want to publish this saved draft version?"
+  ],
+  [
+    "revisionConfirmed",
+    "Nieuwe publicatiekeuze bevestigd. Klik Lokaal publiceren.",
+    "New publication choice confirmed. Click Publish locally."
+  ],
+  [
+    "rechooseRevision",
+    "Deze revisie opnieuw kiezen",
+    "Choose this revision again"
+  ],
+  [
+    "explicitLocales",
+    "Expliciete taalpublicatie",
+    "Explicit language publication"
+  ],
+  [
+    "retainedHelp",
+    "Eerder gepubliceerde EN-varianten blijven behouden. Alleen aangevinkte EN-concepten worden bijgewerkt.",
+    "Previously published English variants are retained. Only checked English drafts are updated."
+  ],
+  [
+    "retainedEnglish",
+    "Bestaande EN-publicatie behouden:",
+    "Retain existing English publication:"
+  ],
+  [
+    "publishEnglish",
+    "EN-concept publiceren:",
+    "Publish English draft:"
+  ],
+  [
+    "missingTitle",
+    "Titel ontbreekt",
+    "Title missing"
+  ],
+  [
+    "structureNeeded",
+    " · Structuur bijwerken nodig",
+    " · Structure update needed"
+  ],
+  [
+    "onlyText",
+    " · Alleen tekstblokken ondersteund",
+    " · Only text blocks supported"
+  ],
+  [
+    "openPublic",
+    "Gepubliceerde lokale pagina openen",
+    "Open published local page"
+  ],
+  [
+    "previewHeading",
+    "Privépreview",
+    "Private preview"
+  ],
+  [
+    "previewFrame",
+    "Privépreview opgeslagen concept",
+    "Private preview of saved draft"
+  ],
+  [
+    "portfolio",
+    "Portfolio",
+    "Portfolio"
+  ],
+  [
+    "pageLanguage",
+    "Paginataal:",
+    "Page language:"
+  ],
+  [
+    "blockLanguage",
+    "· Bloktaal:",
+    "· Block language:"
+  ],
+  [
+    "none",
+    "geen",
+    "none"
+  ],
+  [
+    "portfolioHeading",
+    "Portfolio-kop",
+    "Portfolio heading"
+  ],
+  [
+    "portfolioEmpty",
+    "Portfolio lege-staattekst",
+    "Portfolio empty text"
+  ],
+  [
+    "headingWord",
+    "kop",
+    "heading"
+  ],
+  [
+    "emptyWord",
+    "lege-staattekst",
+    "empty text"
+  ],
+  [
+    "missingLabel",
+    "Deze {field} ontbreekt in {locale}",
+    "This {field} is missing in {locale}"
+  ],
+  [
+    "pinnedPortfolio",
+    "Gepinde portfolio-snapshot",
+    "Pinned portfolio snapshot"
+  ],
+  [
+    "loadSnapshots",
+    "Portfolio-snapshots ophalen",
+    "Load portfolio snapshots"
+  ],
+  [
+    "chooseSnapshot",
+    "Snapshot {locale} kiezen",
+    "Choose {locale} snapshot"
+  ],
+  [
+    "englishIdentity",
+    "English · dezelfde pagina-ID",
+    "English · same page ID"
+  ],
+  [
+    "englishHelp",
+    "Standaardtaal: Nederlands. Inhoudstaal: English. Geen automatische vertaling of NL-fallback.",
+    "Default content language: Dutch. Content language: English. No automatic translation or Dutch fallback."
+  ],
+  [
+    "englishUnsupported",
+    "EN ondersteunt in deze stap alleen tekstblokken. Afbeeldingen en portfolio worden niet weggelaten. Bewerk en publiceer deze pagina in NL.",
+    "English supports only text blocks in this step. Images and portfolios are not omitted. Edit and publish this page in Dutch."
+  ],
+  [
+    "englishStructureHelp",
+    "EN moet worden bijgewerkt: de NL-blokstructuur is gewijzigd. Je opgeslagen EN-tekst blijft behouden.",
+    "English needs updating: the Dutch block structure changed. Your saved English text is preserved."
+  ],
+  [
+    "alignEnglish",
+    "EN-blokstructuur bijwerken",
+    "Update English block structure"
+  ],
+  [
+    "englishTitle",
+    "EN-paginatitel",
+    "English page title"
+  ],
+  [
+    "englishSlug",
+    "EN-slug",
+    "English slug"
+  ],
+  [
+    "englishSeoTitle",
+    "EN-SEO-titel",
+    "English SEO title"
+  ],
+  [
+    "englishSeoDescription",
+    "EN-SEO-beschrijving",
+    "English SEO description"
+  ],
+  [
+    "englishTextBlock",
+    "EN-tekstblok",
+    "English text block"
+  ],
+  [
+    "englishHeading",
+    "EN-blokkop {number}",
+    "English block heading {number}"
+  ],
+  [
+    "englishBody",
+    "EN-bloktekst {number}",
+    "English block text {number}"
+  ],
+  [
+    "saveEnglish",
+    "EN-concept opslaan",
+    "Save English draft"
+  ],
+  [
+    "previewEnglishButton",
+    "English privé bekijken",
+    "Preview English privately"
+  ],
+  [
+    "missingField",
+    "{label} ontbreekt",
+    "{label} is missing"
+  ],
+  [
+    "snapshot",
+    "Snapshot",
+    "Snapshot"
+  ],
+  [
+    "fallback",
+    "fallback",
+    "fallback"
+  ],
+  [
+    "checksum",
+    "checksum",
+    "checksum"
+  ],
+  [
+    "items",
+    "items",
+    "items"
+  ]
+]

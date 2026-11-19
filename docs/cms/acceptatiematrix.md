@@ -16,7 +16,7 @@ Stand op 19 november 2026 na onafhankelijke sluiting van PR27 op codecommit `f95
 | Alle publieke tekst centraal redigeerbaar | Nog open: onder meer gedeelde navigatie/footer, bestaande templatebindings en formulier-/linklabels waar aanwezig. Geen claim van volledige dekking. |
 | Minimale CMS22-tekstpagina | PR27 onafhankelijk gereviewd op `f9538988`: dezelfde pagina-/blok-ID's, handmatige EN-titel/slug/SEO/tekst, EN-route/taalnav, expliciete publicatie en structuur-CAS. Legacy `/en.html` blijft bewerkbaar. |
 | Volledige CMS22 contenttalen | Nog open: andere bloktypen en home, meer talen, uitgebreidere fallbackdiagnostiek en localeconfiguratie. Eerste tekstvertical heeft expliciet geen fallback en bewaart leeg/ontbrekend. |
-| CMS-bediening NL/EN | Deels typed keys voor nieuwe pagina-editor; overige huidige appteksten en localekeuze nog open. UI-taal staat los van inhoudstaal. |
+| CMS-bediening NL/EN | Gebouwd in afzonderlijke UI-stap: getypeerde namespace, eigen tabbladkeuze, bestaande schermen/status/foutcodes en statebehoud. Gerichte browserproeven voltooid; onafhankelijke review volgt op de PR. |
 | Bestaande klanten importeren | Open: reproduceerbare bron, fictieve migratievergelijking, dry-run/idempotency, herstelproef en expliciete aansluiting. |
 | Productie-identiteit, back-up/restore en deployment | Open en apart te autoriseren. Lokale testtokens zijn geen productie-identiteit. |
 

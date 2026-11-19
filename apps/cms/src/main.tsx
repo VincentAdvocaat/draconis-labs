@@ -1,9 +1,10 @@
+import {apiErrorMessage, createCmsTranslator, formatUiMessage, message, type UiMessage, type UiLocale} from './i18n';
 import { createRoot } from 'react-dom/client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import './style.css';
 import { EnglishEditor, type EnglishDto, type EnglishContent } from './page-locales';
-import { DocumentEditor, documentCopy } from './documents';
+import { DocumentEditor } from './documents';
 import type { PortfolioSelection, DocumentContent, DocumentDto, SitePlan, DocumentImageReference } from './documents';
 
 interface ImageReference {
@@ -21,16 +22,19 @@ interface RightsMetadata { assetId: string; metadataVersion: number; rights: str
 interface Attempt { releaseId: string; status: string; errorCode: string | null; publicUrl: string | null }
 interface PublishChoice { revisionId: string; expectedActiveVersion: number; key: string }
 class ApiError extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  constructor(public status: number, public uiMessage: UiMessage) { super('literal' in uiMessage ? uiMessage.literal : uiMessage.key); }
 }
 
 function App() {
+  const [uiLocale, setUiLocale] = useState<UiLocale>('nl');
+  const {copy: t, code} = createCmsTranslator(uiLocale);
+  useEffect(() => {document.documentElement.lang = uiLocale; document.title = t.appTitle;}, [uiLocale, t.appTitle]);
   const [token, setToken] = useState('');
   const [website, setWebsite] = useState('demo-cms');
   const [page, setPage] = useState<Page | null>(null);
   const [values, setValues] = useState<Values>({ title: '', intro: '' });
-  const [status, setStatus] = useState('Voer een lokaal testtoken in en open de pagina.');
-  const [error, setError] = useState('');
+  const [status, setStatus] = useState<UiMessage>(message('initialStatus'));
+  const [error, setError] = useState<UiMessage | null>(null);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState('');
   const [attempt, setAttempt] = useState<Attempt | null>(null);
@@ -62,41 +66,37 @@ function App() {
   const dirty = !!page && JSON.stringify(values) !== JSON.stringify(page.values);
   const documentDirty = !!selectedDocument && JSON.stringify(documentDraft) !== JSON.stringify(selectedDocument.content);
   const selectedImage = selectedDocument ? documentDraft?.blocks.find((block) => block.type === 'image')?.reference : values.image;
-  const dc = documentCopy.nl;
+  const dc = t;
   async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const result = await fetch(base + path, { ...init,
       headers: { Authorization: `Bearer ${token}`, ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...init.headers } });
     if (!result.ok) {
-      const body = await result.json().catch(() => ({ message: 'Verzoek mislukt' }));
-      throw new ApiError(result.status, body.errorCode === 'media_not_publishable'
-        ? 'Afbeelding is niet publiceerbaar. Controleer alt-tekst, gereedstatus en rechten.'
-        : body.errorCode === 'media_unavailable' ? 'Mediaopslag niet beschikbaar. Herstel de mediamap en herstart de proef.'
-        : body.errorCode === 'content_not_publishable' ? 'Niet alle pagina’s zijn compleet. Vul titel, SEO-titel en tekstblok in.'
-        : body.message ?? body.errorCode ?? `Verzoek mislukt (${result.status})`);
+      const body: unknown = await result.json().catch(() => null);
+      throw new ApiError(result.status, apiErrorMessage(result.status, body));
     }
     return result.json() as Promise<T>;
   }
   function reset() {
     generation.current++;
     setPage(null); setPreview(''); setAttempt(null); setDraftConflict(null);
-    setPendingChoice(null); setPublicationConflict(false); setError(''); setBusy(false);
+    setPendingChoice(null); setPublicationConflict(false); setError(null); setBusy(false);
     setFile(null); setUploadJobId(''); setUploadStatus(null);
     setPortfolioSelections([]); setEnglishLatest(null); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setOverview(null); setSelectedDocument(null); setDocumentDraft(null); setDocumentConflict(null); invalidateSiteChoice();
     setNewPage({ title: '', slug: '' });
     resetRights();
-    setStatus('Open de pagina met dit token.');
+    setStatus(message('openWithToken'));
     // Keep unsaved text visible until the user explicitly opens another page.
   }
   async function perform(action: (current: () => boolean) => Promise<void>) {
     const epoch = generation.current;
-    setBusy(true); setError('');
+    setBusy(true); setError(null);
     try { await action(() => epoch === generation.current); }
-    catch (err) { if (epoch === generation.current) setError((err as Error).message); }
+    catch (err) { if (epoch === generation.current) setError(err instanceof ApiError ? err.uiMessage : {literal: (err as Error).message}); }
     finally { if (epoch === generation.current) setBusy(false); }
   }
   function open(event?: FormEvent) {
     event?.preventDefault();
-    if ((dirty || documentDirty || englishDirty) && !window.confirm('Je hebt onopgeslagen tekst. Nieuwste opgeslagen versie openen?')) return;
+    if ((dirty || documentDirty || englishDirty) && !window.confirm(t.confirmOpen)) return;
     void perform(async (current) => {
       const result = await request<Page>('/pages/home');
       if (!current()) return;
@@ -104,7 +104,7 @@ function App() {
       setPendingChoice(null); setPublicationConflict(false); setPreview('');
       setEnglishLatest(null); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setSelectedDocument(null); setDocumentDraft(null); setDocumentConflict(null); invalidateSiteChoice();
       resetRights();
-      setStatus(`Conceptversie ${result.pageVersion} geladen.`);
+      setStatus(message('loadedDraft',{version:result.pageVersion}));
     });
   }
   function save() {
@@ -116,11 +116,11 @@ function App() {
         if (!current()) return;
         setPage(result); setValues(result.values); setPreview(''); setPendingChoice(null);
         invalidateSiteChoice();
-        setStatus(`Conceptversie ${result.pageVersion} opgeslagen. De publieke pagina blijft ongewijzigd.`);
+        setStatus(message('savedDraft',{version:result.pageVersion}));
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {
           const latest = await request<Page>('/pages/home');
-          if (current()) { setDraftConflict(latest); setStatus('Versieconflict. Jouw invoer staat nog in de velden.'); }
+          if (current()) { setDraftConflict(latest); setStatus(message('draftConflict')); }
         }
         throw err;
       }
@@ -131,18 +131,18 @@ function App() {
     void perform(async (current) => {
       const response = await fetch(`${base}/previews/${page.revisionId}`, { headers: { Authorization: `Bearer ${token}` } });
       if (!response.ok) {
-        const problem = await response.json().catch(() => ({ message: 'Preview niet beschikbaar' }));
-        throw new ApiError(response.status, problem.message ?? 'Preview niet beschikbaar');
+        const problem: unknown = await response.json().catch(() => null);
+        throw new ApiError(response.status, apiErrorMessage(response.status, problem, 'previewUnavailable'));
       }
       const html = await response.text();
       if (!current()) return;
-      setPreview(html); setStatus('Privépreview van de opgeslagen conceptversie.');
+      setPreview(html); setStatus(message('previewHome'));
     });
   }
   function useUpload(result: UploadStatus) {
     if (selectedDocument && documentDraft) {
       const prior = documentDraft.blocks.find((block) => block.type === 'image');
-      if (!prior && documentDraft.blocks.length >= 16) throw new Error('Er is geen ruimte voor een extra blok. Het bestand is wel verwerkt.');
+      if (!prior && documentDraft.blocks.length >= 16) throw new ApiError(400,message('blockLimit'));
       const blockId = prior?.blockId ?? crypto.randomUUID();
       const image = { blockId, type: 'image' as const, reference: { assetId: result.assetId, fileVersion: result.fileVersion,
         usage: `block-${blockId}`, decorative: prior?.reference.decorative ?? false, altText: prior?.reference.altText ?? { nl: '' } }, caption: prior?.caption ?? '' };
@@ -164,7 +164,7 @@ function App() {
       const metadata = await request<RightsMetadata>(`/media/${encodeURIComponent(assetId)}/rights`);
       if (current()) {
         setRightsTarget(metadata); setRightsDecision((prior) => ({ ...prior, confirmed: false }));
-        setStatus(`Rechtenstatus opgehaald: ${metadata.rights}.`);
+        setStatus(message('rightsLoaded',{rights:metadata.rights}));
       }
     });
   }
@@ -180,7 +180,7 @@ function App() {
       setPendingChoice(null);
       setSiteChoice(null);
       setUploadStatus((prior) => prior?.assetId === target.assetId ? { ...prior, ...result } : prior);
-      setStatus(decision === 'cleared' ? 'Rechten expliciet vrijgegeven. Sla eventuele conceptwijzigingen op en kies daarna bewust Publiceren.' : 'Afbeelding geblokkeerd voor nieuwe publicaties.');
+      setStatus(decision === 'cleared' ? message('rightsCleared') : message('rightsBlocked'));
     });
   }
   function upload() {
@@ -193,11 +193,12 @@ function App() {
       if (!current()) return;
       if (result.assetId) setUploadJobId(result.assetId);
       if (!response.ok) {
-        setUploadStatus(result.assetId ? { assetId: result.assetId, fileVersion: 1, state: 'failed', error: result.message, rights: 'unknown' } : null);
-        throw new ApiError(response.status, result.message ?? 'Upload mislukt');
+        setUploadStatus(result.assetId ? { assetId: result.assetId, fileVersion: 1, state: 'failed',
+          error: typeof result.message === 'string' ? result.message.slice(0, 500) : null, rights: 'unknown' } : null);
+        throw new ApiError(response.status, apiErrorMessage(response.status, result, 'uploadFailed'));
       }
       setUploadStatus(result); useUpload(result);
-      setStatus('Upload verwerkt en geselecteerd. Sla het concept op; publicatie blijft geblokkeerd totdat de rechten expliciet zijn vrijgegeven.');
+      setStatus(message('uploadSelected'));
     });
   }
   function loadUpload(retry = false) {
@@ -205,7 +206,7 @@ function App() {
     void perform(async (current) => {
       const result = await request<UploadStatus>(`/media/${encodeURIComponent(uploadJobId)}${retry ? '/retry' : ''}`, retry ? { method: 'POST' } : {});
       if (!current()) return;
-      setUploadStatus(result); setStatus(`Uploadstatus: ${result.state}. Rechten: ${result.rights}.`);
+      setUploadStatus(result); setStatus(message('uploadStatusMessage',{state:result.state,rights:result.rights}));
     });
   }
   function publish() {
@@ -219,20 +220,20 @@ function App() {
           headers: { 'Idempotency-Key': choice.key }, body: JSON.stringify({ revisionId: choice.revisionId, expectedActiveVersion: choice.expectedActiveVersion }) });
         if (!current()) return;
         setAttempt(result);
-        if (result.status === 'building') { setStatus('Publicatie wordt gebouwd. Controleer opnieuw met dezelfde knop.'); return; }
+        if (result.status === 'building') { setStatus(message('buildingPage')); return; }
         setPendingChoice(null);
         const latest = await request<Page>('/pages/home');
         if (!current()) return;
         // Preserve the selected saved revision, including if another editor saved meanwhile.
         setPage((prior) => prior ? { ...prior, activeReleaseId: latest.activeReleaseId, activeVersion: latest.activeVersion } : prior);
-        setStatus(`Gepubliceerd naar lokale website. Actieve versie ${latest.activeVersion}.`);
+        setStatus(message('publishedPage',{version:latest.activeVersion}));
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {
           const latest = await request<Page>('/pages/home');
           if (current()) {
             setPage((prior) => prior ? { ...prior, activeReleaseId: latest.activeReleaseId, activeVersion: latest.activeVersion } : prior);
             setPendingChoice(null); setPublicationConflict(true);
-            setStatus('Publicatieconflict. Actuele publicatiestatus opgehaald; kies opnieuw om deze revisie te publiceren.');
+            setStatus(message('publicationConflict'));
           }
         } else if (err instanceof ApiError && err.status === 422) {
           if (current()) setPendingChoice(null);
@@ -259,7 +260,7 @@ function App() {
       const result = await request<DocumentDto>(`/documents/${pageId}`);
       if (!current()) return;
       setEnglishLatest(null); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setSelectedDocument(result); setDocumentDraft(result.content); setDocumentConflict(null);
-      setPreview(''); resetRights(); invalidateSiteChoice(); setStatus(dc.selected);
+      setPreview(''); resetRights(); invalidateSiteChoice(); setStatus(message('selected'));
     });
   }
   function createDocument() {
@@ -268,7 +269,7 @@ function App() {
       const result = await request<DocumentDto>('/documents', { method: 'POST', body: JSON.stringify(newPage) });
       if (!current()) return;
       setEnglishLatest(null); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setSelectedDocument(result); setDocumentDraft(result.content); setDocumentConflict(null); setNewPage({ title: '', slug: '' });
-      setPreview(''); resetRights(); invalidateSiteChoice(); setStatus(dc.selected);
+      setPreview(''); resetRights(); invalidateSiteChoice(); setStatus(message('selected'));
       const list = await request<SitePlan>('/site-plan'); if (current()) setOverview(list);
     });
   }
@@ -281,11 +282,11 @@ function App() {
         });
         if (!current()) return;
         setEnglishLatest(null); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setSelectedDocument(result); setDocumentDraft(result.content); setDocumentConflict(null);
-        setPreview(''); invalidateSiteChoice(); setStatus(dc.saved);
+        setPreview(''); invalidateSiteChoice(); setStatus(message('saved'));
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {
           const result = await request<DocumentDto>(`/documents/${selectedDocument.pageId}`);
-          if (current() && result.version !== selectedDocument.version) { setDocumentConflict(result); setStatus(dc.conflict); }
+          if (current() && result.version !== selectedDocument.version) { setDocumentConflict(result); setStatus(message('conflict')); }
         }
         throw err;
       }
@@ -295,8 +296,8 @@ function App() {
     if (busy || !selectedDocument || documentDirty) return;
     void perform(async (current) => {
       const result = await fetch(`${base}/documents/${selectedDocument.pageId}/previews/${selectedDocument.revisionId}`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!result.ok) throw new ApiError(result.status, (await result.json()).message ?? 'Preview niet beschikbaar');
-      const html = await result.text(); if (current()) { setPreview(html); setStatus('Privépreview van de opgeslagen paginaversie.'); }
+      if (!result.ok) throw new ApiError(result.status, apiErrorMessage(result.status, await result.json().catch(() => null), 'previewUnavailable'));
+      const html = await result.text(); if (current()) { setPreview(html); setStatus(message('previewPage')); }
     });
   }
   function openEnglish() {
@@ -313,7 +314,7 @@ function App() {
       try { const result = await request<EnglishDto>(`/documents/${english.pageId}/locales/en`, {method: 'PUT',
         body: JSON.stringify({expectedVersion: english.version, expectedStructure: english.structure, content: englishDraft})});
       if (!current()) return;
-      setEnglishLatest(null); setEnglish(result); setEnglishDraft(result.content); setPreview(''); invalidateSiteChoice(); setStatus('EN-concept opgeslagen. De actieve publicatie blijft behouden.');
+      setEnglishLatest(null); setEnglish(result); setEnglishDraft(result.content); setPreview(''); invalidateSiteChoice(); setStatus(message('englishSaved'));
       } catch (error) { if (error instanceof ApiError && error.status === 409) { const latest = await request<EnglishDto>(`/documents/${english.pageId}/locales/en`); if (current()) setEnglishLatest(latest); } throw error; }
     });
   }
@@ -321,8 +322,8 @@ function App() {
     if (busy || !english?.revisionId || englishDirty) return;
     void perform(async (current) => {
       const response = await fetch(`${base}/documents/${english.pageId}/locales/en/previews/${english.revisionId}`, {headers: {Authorization: `Bearer ${token}`}});
-      if (!response.ok) throw new ApiError(response.status, (await response.json()).message ?? 'EN-preview niet beschikbaar');
-      const html = await response.text(); if (current()) {setPreview(html); setStatus('Privépreview van de opgeslagen EN-variant.');}
+      if (!response.ok) throw new ApiError(response.status, apiErrorMessage(response.status, await response.json().catch(() => null), 'englishPreviewUnavailable'));
+      const html = await response.text(); if (current()) {setPreview(html); setStatus(message('englishPreview'));}
     });
   }
   function prepareSite() {
@@ -334,12 +335,12 @@ function App() {
       const selected = selectedDocument ? plan.pages.find((item) => item.pageId === selectedDocument.pageId) : null;
       if (!page || home?.revisionId !== page.revisionId || home.version !== page.pageVersion ||
           (selectedDocument && (selected?.revisionId !== selectedDocument.revisionId || selected.version !== selectedDocument.version))) {
-        invalidateSiteChoice(); setStatus(dc.planConflict);
-        throw new ApiError(409, 'Een geopende paginaversie is gewijzigd. Open die pagina opnieuw voordat je publiceert.');
+        invalidateSiteChoice(); setStatus(message('planConflict'));
+        throw new ApiError(409, message('unseenPage'));
       }
       const chosenEnglish = english ? plan.localeVariants?.find((item) => item.pageId === english.pageId) : null;
-      if (english && english.version > 0 && (chosenEnglish?.revisionId !== english.revisionId || chosenEnglish.version !== english.version || chosenEnglish.structure !== english.structure)) { invalidateSiteChoice(); throw new ApiError(409, 'De geopende EN-versie is gewijzigd. Open de actuele EN-versie voordat je publiceert.'); }
-      setSitePlan(plan); setSelectedLocales([]); setSiteChoice(null); setStatus(dc.planTitle);
+      if (english && english.version > 0 && (chosenEnglish?.revisionId !== english.revisionId || chosenEnglish.version !== english.version || chosenEnglish.structure !== english.structure)) { invalidateSiteChoice(); throw new ApiError(409, message('unseenEnglish')); }
+      setSitePlan(plan); setSelectedLocales([]); setSiteChoice(null); setStatus(message('planTitle'));
     });
   }
   function publishSite() {
@@ -355,14 +356,14 @@ function App() {
         });
         if (!current()) return;
         setAttempt(result);
-        if (result.status === 'building') { setStatus('Website wordt gebouwd. Controleer opnieuw met dezelfde keuze.'); return; }
+        if (result.status === 'building') { setStatus(message('buildingSite')); return; }
         invalidateSiteChoice();
         setPage((prior) => prior ? { ...prior, activeReleaseId: result.releaseId, activeVersion: plan.activeVersion + 1 } : prior);
         setSelectedDocument((prior) => prior ? { ...prior, published: true } : prior);
-        setStatus(`Website lokaal gepubliceerd. Actieve versie ${plan.activeVersion + 1}.`);
+        setStatus(message('publishedSite',{version:plan.activeVersion+1}));
       } catch (err) {
         if (err instanceof ApiError && [409, 422, 428].includes(err.status) && current()) {
-          invalidateSiteChoice(); setStatus(err.status === 422 ? dc.planFailed : dc.planConflict);
+          invalidateSiteChoice(); setStatus(message(err.status === 422 ? 'planFailed' : 'planConflict'));
         }
         throw err;
       }
@@ -373,23 +374,23 @@ function App() {
     : values.image ?? null;
   const publicUrl = selectedDocument ? selectedDocument.published ? `/sites/${website}/${selectedDocument.content.slug}.html` : null
     : attempt?.publicUrl ?? (page?.activeReleaseId ? `/sites/${website}/index.html` : null);
-  return <main>
-    <header><p className="eyebrow">Draconis Labs · lokale proef</p><h1>Pagina bewerken</h1><p>Fictieve inhoud. Bewaar je concept en publiceer daarna naar de lokale website.</p></header>
-    <section aria-labelledby="access-title"><h2 id="access-title">Website openen</h2>
+  return <main lang={uiLocale}><label>{t.uiLanguage}<select value={uiLocale} onChange={(event) => setUiLocale(event.target.value as UiLocale)}><option value="nl" lang="nl">Nederlands</option><option value="en" lang="en">English</option></select></label>
+    <header><p className="eyebrow">{t.brand}</p><h1>{t.editPage}</h1><p>{t.introHelp}</p></header>
+    <section aria-labelledby="access-title"><h2 id="access-title">{t.openWebsite}</h2>
       <form onSubmit={open}>
-        <label>Website<select value={website} disabled={busy} onChange={(event) => {
-          if ((dirty || documentDirty || englishDirty) && !window.confirm('Je hebt onopgeslagen wijzigingen. Wisselen naar de andere website?')) return;
+        <label>{t.website}<select value={website} disabled={busy} onChange={(event) => {
+          if ((dirty || documentDirty || englishDirty) && !window.confirm(t.confirmSite)) return;
           reset(); setWebsite(event.target.value);
-        }}><option value="demo-cms">Proeftuin</option><option value="demo-other">Tweede testwebsite</option></select></label>
-        <label>Lokaal testtoken<input type="password" autoComplete="off" value={token} onChange={(event) => {
-          generation.current++; setBusy(false); setPreview(''); setError(''); setToken(event.target.value);
-          setStatus('Token aangepast. Je invoer blijft bewaard; probeer opslaan opnieuw of open de nieuwste versie.');
+        }}><option value="demo-cms">{t.trialSite}</option><option value="demo-other">{t.otherSite}</option></select></label>
+        <label>{t.testToken}<input type="password" autoComplete="off" value={token} onChange={(event) => {
+          generation.current++; setBusy(false); setPreview(''); setError(null); setToken(event.target.value);
+          setStatus(message('tokenChanged'));
         }} /></label>
-        <button disabled={busy || !token}>Pagina openen</button>
-      </form><p className="hint">Gebruik de editor- of publishergegevens uit het lokale toegangsbestand. Het token blijft alleen in dit tabbladgeheugen.</p>
+        <button disabled={busy || !token}>{t.openPage}</button>
+      </form><p className="hint">{t.tokenHelp}</p>
     </section>
-    <p role="status" aria-live="polite" className="status">{status}</p>
-    {error && <p role="alert" className="error">{error}</p>}
+    <p role="status" aria-live="polite" className="status">{formatUiMessage(uiLocale,status)}</p>
+    {error && <p role="alert" className="error">{formatUiMessage(uiLocale,error)}</p>}
     {page?.pagesEnabled && <section><h2>{dc.pages}</h2>
       <button disabled={busy} onClick={refreshOverview}>{dc.refresh}</button>
       {overview && <ul>{overview.pages.map((item) => <li key={item.pageId}>{item.title} · {item.file} · v{item.version}{' '}
@@ -400,105 +401,104 @@ function App() {
         <button disabled={!newPage.title.trim() || !newPage.slug.trim() || dirty || documentDirty} onClick={createDocument}>{dc.create}</button>
       </fieldset>
     </section>}
-    {page && <section aria-labelledby="content-title"><h2 id="content-title">{selectedDocument ? documentDraft?.title : 'Home · Nederlands'}</h2>
-      <p>Conceptversie {selectedDocument?.version ?? page.pageVersion} · Actieve publicatieversie {page.activeVersion}{(selectedDocument ? documentDirty : dirty) ? ' · Onopgeslagen wijzigingen' : ''}</p>
+    {page && <section aria-labelledby="content-title"><h2 id="content-title">{selectedDocument ? documentDraft?.title : t.homeDutch}</h2>
+      <p>{t.versionDraft} {selectedDocument?.version ?? page.pageVersion} {t.versionActive} {page.activeVersion}{(selectedDocument ? documentDirty : dirty) ? t.unsaved : ''}</p>
       {!selectedDocument && <>
-      <label>Titel<input value={values.title} maxLength={200} disabled={busy} onChange={(event) => setValues({ ...values, title: event.target.value })} /></label>
-      <label>Introductie<textarea value={values.intro} maxLength={4000} rows={5} disabled={busy} onChange={(event) => setValues({ ...values, intro: event.target.value })} /></label>
+      <label>{t.homeTitle}<input value={values.title} maxLength={200} disabled={busy} onChange={(event) => setValues({ ...values, title: event.target.value })} /></label>
+      <label>{t.homeIntro}<textarea value={values.intro} maxLength={4000} rows={5} disabled={busy} onChange={(event) => setValues({ ...values, intro: event.target.value })} /></label>
       </>}
-      {page.uploadEnabled && !english && <fieldset disabled={busy}><legend>Eigen afbeelding uploaden</legend>
-        <label>PNG-, JPEG- of WebP-bestand<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></label>
-        <button disabled={!file} onClick={upload}>Bestand uploaden</button>
-        <p className="hint">Maximaal 20 MB. Alleen geschoonde beeldvarianten kunnen naar de website; het origineel blijft privé. Een upload geeft geen publicatierechten.</p>
-        <details><summary>Uploadstatus controleren of herstellen</summary>
-          <label>Uploadnummer<input value={uploadJobId} onChange={(event) => setUploadJobId(event.target.value)} /></label>
-          <div className="actions"><button disabled={!uploadJobId} onClick={() => loadUpload()}>Status ophalen</button>
-            <button disabled={uploadStatus?.state !== 'failed' || uploadStatus.assetId !== uploadJobId} onClick={() => loadUpload(true)}>Verwerking opnieuw proberen</button></div>
+      {page.uploadEnabled && !english && <fieldset disabled={busy}><legend>{t.uploadOwn}</legend>
+        <label>{t.imageFile}<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></label>
+        <button disabled={!file} onClick={upload}>{t.uploadFile}</button>
+        <p className="hint">{t.uploadHelp}</p>
+        <details><summary>{t.uploadRecovery}</summary>
+          <label>{t.uploadId}<input value={uploadJobId} onChange={(event) => setUploadJobId(event.target.value)} /></label>
+          <div className="actions"><button disabled={!uploadJobId} onClick={() => loadUpload()}>{t.loadStatus}</button>
+            <button disabled={uploadStatus?.state !== 'failed' || uploadStatus.assetId !== uploadJobId} onClick={() => loadUpload(true)}>{t.retryProcessing}</button></div>
         </details>
-        {uploadStatus && <aside><p>Laatste upload: {uploadStatus.state} · Rechten: {uploadStatus.rights}</p>
+        {uploadStatus && <aside><p>{t.lastUpload} {code(uploadStatus.state)} {t.rightsInline} {code(uploadStatus.rights)}</p>
           {uploadStatus.error && <p>{uploadStatus.error}</p>}
-          {uploadStatus.state === 'ready' && <button onClick={() => useUpload(uploadStatus)}>Deze upload gebruiken</button>}
+          {uploadStatus.state === 'ready' && <button onClick={() => useUpload(uploadStatus)}>{t.useUpload}</button>}
         </aside>}
       </fieldset>}
-      {selectedDocument && <div className="actions"><button disabled={busy || englishDirty} onClick={() => {setEnglishLatest(null); setEnglish(null); setEnglishDraft(null); setPreview('');}}>Nederlands bewerken</button>
-        <button disabled={busy || dirty || documentDirty || englishDirty} onClick={openEnglish}>English bewerken</button>
-        {english && <button disabled={busy} onClick={() => { if (englishDirty && !window.confirm('Je hebt onopgeslagen EN-tekst. Actuele EN-versie openen en deze invoer vervangen?')) return;
-          setEnglishDraft(english.content); }}>Lokale EN-wijzigingen verwerpen</button>}
+      {selectedDocument && <div className="actions"><button disabled={busy || englishDirty} onClick={() => {setEnglishLatest(null); setEnglish(null); setEnglishDraft(null); setPreview('');}}>{t.editDutch}</button>
+        <button disabled={busy || dirty || documentDirty || englishDirty} onClick={openEnglish}>{t.editEnglish}</button>
+        {english && <button disabled={busy} onClick={() => { if (englishDirty && !window.confirm(t.confirmDiscardEnglish)) return;
+          setEnglishDraft(english.content); }}>{t.discardEnglish}</button>}
       </div>}
-      {englishLatest && <aside><p>De EN-versie of NL-structuur is gewijzigd. Jouw invoer blijft staan. Kopieer tekst die je wilt behouden voordat je de actuele versie overneemt.</p>
-        <button disabled={busy} onClick={() => {if (busy) return; setEnglish(englishLatest); setEnglishDraft(englishLatest.content); setEnglishLatest(null); setPreview(''); invalidateSiteChoice();}}>Actuele EN-versie overnemen</button></aside>}
-      {english && englishDraft && <EnglishEditor record={english} draft={englishDraft} onChange={(content) => {setEnglishDraft(content); setPreview(''); invalidateSiteChoice();}} busy={busy} dirty={englishDirty} onSave={saveEnglish} onPreview={previewEnglish} />}
-      {selectedDocument && !english && documentDraft && <DocumentEditor draft={documentDraft} onChange={changeDocument} busy={busy} dirty={documentDirty}
+      {englishLatest && <aside><p>{t.englishConflictHelp}</p>
+        <button disabled={busy} onClick={() => {if (busy) return; setEnglish(englishLatest); setEnglishDraft(englishLatest.content); setEnglishLatest(null); setPreview(''); invalidateSiteChoice();}}>{t.adoptEnglish}</button></aside>}
+      {english && englishDraft && <EnglishEditor uiLocale={uiLocale} record={english} draft={englishDraft} onChange={(content) => {setEnglishDraft(content); setPreview(''); invalidateSiteChoice();}} busy={busy} dirty={englishDirty} onSave={saveEnglish} onPreview={previewEnglish} />}
+      {selectedDocument && !english && documentDraft && <DocumentEditor uiLocale={uiLocale} draft={documentDraft} onChange={changeDocument} busy={busy} dirty={documentDirty}
         onSave={saveDocument} onPreview={previewDocument} availableImage={availableImage} portfolioSelections={portfolioSelections}
         onLoadPortfolio={() => { if (busy) return; void perform(async (current) => { const selections = await request<PortfolioSelection[]>('/portfolio-snapshots'); if (current()) setPortfolioSelections(selections); }); }} />}
       {documentConflict && <aside><p>{dc.conflict}</p><p>{documentConflict.content.title}</p>
         <button disabled={busy} onClick={() => { if (busy) return; setSelectedDocument(documentConflict); setDocumentDraft(documentConflict.content);
           setDocumentConflict(null); setPreview(''); resetRights(); invalidateSiteChoice(); }}>{dc.latest}</button></aside>}
-      {!selectedDocument && <fieldset disabled={busy}><legend>Afbeelding in concept</legend>
-        <p className="hint">{page.uploadEnabled ? 'Kies je upload of een vaste testafbeelding. De vaste testafbeeldingen zijn vergrote pixels; je eigen upload gebruikt geschoonde beeldvarianten.'
-          : 'De testafbeelding is één gekleurde pixel, hier vergroot. Kies expliciet een bestandsversie; uploads zijn niet aangesloten.'}</p>
-        <label>Afbeelding<select value={values.image ? `${values.image.assetId}:${values.image.fileVersion}` : ''} onChange={(event) => {
+      {!selectedDocument && <fieldset disabled={busy}><legend>{t.imageInDraft}</legend>
+        <p className="hint">{page.uploadEnabled ? t.imageHelpUploads
+          : t.imageHelpFixture}</p>
+        <label>{t.imageSelect}<select value={values.image ? `${values.image.assetId}:${values.image.fileVersion}` : ''} onChange={(event) => {
           resetRights();
           const [assetId, version] = event.target.value.split(':');
           setValues({ ...values, image: assetId ? { assetId, fileVersion: Number(version), usage: 'hero',
             altText: values.image?.altText ?? { nl: '' }, decorative: values.image?.decorative ?? false } : null });
-        }}><option value="">Geen afbeelding</option>
-          {values.image && !['photo', 'unlicensed', 'pending'].includes(values.image.assetId) && <option value={`${values.image.assetId}:${values.image.fileVersion}`}>Geüploade afbeelding · versie {values.image.fileVersion}</option>}
-          <option value="photo:1">Testafbeelding · versie 1</option><option value="photo:2">Testafbeelding · versie 2</option>
-          <option value="unlicensed:1">Rechten onbekend · blokkeert publicatie</option><option value="pending:1">Nog in verwerking · blokkeert publicatie</option></select></label>
+        }}><option value="">{t.noImage}</option>
+          {values.image && !['photo', 'unlicensed', 'pending'].includes(values.image.assetId) && <option value={`${values.image.assetId}:${values.image.fileVersion}`}>{t.uploadedVersion} {values.image.fileVersion}</option>}
+          <option value="photo:1">{t.fixtureOne}</option><option value="photo:2">{t.fixtureTwo}</option>
+          <option value="unlicensed:1">{t.fixtureUnlicensed}</option><option value="pending:1">{t.fixturePending}</option></select></label>
         {values.image && <>
           <label className="check"><input type="checkbox" checked={values.image.decorative} onChange={(event) => {
             setValues({ ...values, image: { ...values.image!, decorative: event.target.checked,
               altText: event.target.checked ? { nl: '' } : values.image!.altText } });
-          }} />Deze afbeelding is decoratief</label>
-          <label>Alt-tekst Nederlands<input value={values.image.altText.nl ?? ''} maxLength={2000} disabled={values.image.decorative} onChange={(event) => {
+          }} />{t.imageDecorative}</label>
+          <label>{t.altDutch}<input value={values.image.altText.nl ?? ''} maxLength={2000} disabled={values.image.decorative} onChange={(event) => {
             setValues({ ...values, image: { ...values.image!, altText: { ...values.image!.altText, nl: event.target.value } } });
           }} /></label>
-          <p className="hint">{values.image.decorative ? 'De export krijgt een leeg alt-attribuut.' : 'Vul een beschrijving in voordat je previewt of publiceert.'}</p>
+          <p className="hint">{values.image.decorative ? t.decorativeHelp : t.altHelp}</p>
         </>}
       </fieldset>}
-      {page.uploadEnabled && selectedImage && <fieldset disabled={busy}><legend>Rechten beoordelen</legend>
-        <p>Een gereed beeld kan privé bekeken worden. Publiceren vereist een expliciete vrijgave; een upload alleen geeft geen toestemming.</p>
-        <button onClick={loadRights}>Rechtenstatus ophalen</button>
+      {page.uploadEnabled && selectedImage && <fieldset disabled={busy}><legend>{t.reviewRights}</legend>
+        <p>{t.rightsHelp}</p>
+        <button onClick={loadRights}>{t.loadRights}</button>
         {rightsTarget?.assetId === selectedImage.assetId && <>
-          <p>Huidige status: {rightsTarget.rights} · versie {rightsTarget.metadataVersion}</p>
-          <label>Rechthebbende<input value={rightsDecision.owner} onChange={(event) => setRightsDecision({ ...rightsDecision, owner: event.target.value })} /></label>
-          <label>Bron<input value={rightsDecision.source} onChange={(event) => setRightsDecision({ ...rightsDecision, source: event.target.value })} /></label>
-          <label>Onderbouwing van de rechtenbeslissing<textarea rows={3} value={rightsDecision.basis} onChange={(event) => setRightsDecision({ ...rightsDecision, basis: event.target.value })} /></label>
-          <label className="check"><input type="checkbox" checked={rightsDecision.confirmed} onChange={(event) => setRightsDecision({ ...rightsDecision, confirmed: event.target.checked })} />Ik bevestig deze rechtenbeslissing met bovenstaande onderbouwing</label>
-          <p className="hint">Je beslissing wordt met je proefaccount vastgelegd. Alleen een Publisher kan deze stap uitvoeren.</p>
-          <div className="actions"><button disabled={!rightsDecision.confirmed} onClick={() => decideRights('cleared')}>Rechten vrijgeven</button>
-            <button disabled={!rightsDecision.confirmed} className="secondary" onClick={() => decideRights('blocked')}>Nieuwe publicatie blokkeren</button></div>
+          <p>{t.currentStatus} {code(rightsTarget.rights)} {t.versionInline} {rightsTarget.metadataVersion}</p>
+          <label>{t.rightsOwner}<input value={rightsDecision.owner} onChange={(event) => setRightsDecision({ ...rightsDecision, owner: event.target.value })} /></label>
+          <label>{t.rightsSource}<input value={rightsDecision.source} onChange={(event) => setRightsDecision({ ...rightsDecision, source: event.target.value })} /></label>
+          <label>{t.rightsBasis}<textarea rows={3} value={rightsDecision.basis} onChange={(event) => setRightsDecision({ ...rightsDecision, basis: event.target.value })} /></label>
+          <label className="check"><input type="checkbox" checked={rightsDecision.confirmed} onChange={(event) => setRightsDecision({ ...rightsDecision, confirmed: event.target.checked })} />{t.rightsConfirm}</label>
+          <p className="hint">{t.rightsActorHelp}</p>
+          <div className="actions"><button disabled={!rightsDecision.confirmed} onClick={() => decideRights('cleared')}>{t.clearRights}</button>
+            <button disabled={!rightsDecision.confirmed} className="secondary" onClick={() => decideRights('blocked')}>{t.blockPublication}</button></div>
         </>}
       </fieldset>}
-      {!selectedDocument && draftConflict && <aside><h3>Nieuwste opgeslagen tekst</h3><p>{draftConflict.values.title}</p><p>{draftConflict.values.intro}</p>
+      {!selectedDocument && draftConflict && <aside><h3>{t.latestText}</h3><p>{draftConflict.values.title}</p><p>{draftConflict.values.intro}</p>
         <button disabled={busy} onClick={() => {
           if (busy) return;
           setPage(draftConflict); setValues(draftConflict.values); setDraftConflict(null); setPreview('');
           resetRights();
           setPendingChoice(null); setPublicationConflict(false); setAttempt(null);
-          setStatus('Nieuwste versie overgenomen. Kies Lokaal publiceren om deze revisie te publiceren.');
-        }}>Nieuwste versie overnemen</button>
-        <p>Jouw invoer blijft hierboven staan totdat je deze keuze maakt. Kopieer tekst die je wilt bewaren.</p></aside>}
-      {!selectedDocument && <div className="actions"><button disabled={busy || !dirty || !!draftConflict} onClick={save}>Concept opslaan</button>
-        <button className="secondary" disabled={busy || dirty || !!draftConflict} onClick={previewDraft}>Privépreview openen</button>
-        {!page.pagesEnabled && <button disabled={busy || dirty || !!draftConflict || publicationConflict} onClick={publish}>{pendingChoice ? 'Publicatie opnieuw controleren' : 'Lokaal publiceren'}</button>}</div>}
-      {!page.pagesEnabled && publicationConflict && <aside><p>Een andere publicatie is inmiddels actief. Wil je nog steeds deze opgeslagen conceptversie publiceren?</p><button disabled={busy} onClick={() => { if (busy) return; setPublicationConflict(false); setStatus('Nieuwe publicatiekeuze bevestigd. Klik Lokaal publiceren.'); }}>Deze revisie opnieuw kiezen</button></aside>}
+          setStatus(message('adoptedLatest'));
+        }}>{t.adoptLatest}</button>
+        <p>{t.keepInputHelp}</p></aside>}
+      {!selectedDocument && <div className="actions"><button disabled={busy || !dirty || !!draftConflict} onClick={save}>{t.saveHome}</button>
+        <button className="secondary" disabled={busy || dirty || !!draftConflict} onClick={previewDraft}>{t.previewHomeButton}</button>
+        {!page.pagesEnabled && <button disabled={busy || dirty || !!draftConflict || publicationConflict} onClick={publish}>{pendingChoice ? t.retryPage : t.publishPage}</button>}</div>}
+      {!page.pagesEnabled && publicationConflict && <aside><p>{t.confirmRevision}</p><button disabled={busy} onClick={() => { if (busy) return; setPublicationConflict(false); setStatus(message('revisionConfirmed')); }}>{t.rechooseRevision}</button></aside>}
       {page.pagesEnabled && <fieldset disabled={busy}><legend>{dc.planTitle}</legend>
         <button disabled={dirty || documentDirty || !!draftConflict || !!documentConflict || englishDirty} onClick={prepareSite}>{dc.plan}</button>
         {sitePlan && <><ul>{sitePlan.pages.map((item) => <li key={item.pageId}>{item.title} · {item.file} · v{item.version}</li>)}</ul>
           <button disabled={dirty || documentDirty || !!draftConflict || !!documentConflict || englishDirty} onClick={publishSite}>{siteChoice ? dc.retry : dc.publish}</button></>}
       </fieldset>}
-      {sitePlan && <fieldset disabled={busy}><legend>Expliciete taalpublicatie</legend>
-        <p>Eerder gepubliceerde EN-varianten blijven behouden. Alleen aangevinkte EN-concepten worden bijgewerkt.</p>
-        {(sitePlan.retainedLocales ?? []).map((item) => <p key={item.pageId}>Bestaande EN-publicatie behouden: {item.title} · {item.file}</p>)}
+      {sitePlan && <fieldset disabled={busy}><legend>{t.explicitLocales}</legend>
+        <p>{t.retainedHelp}</p>
+        {(sitePlan.retainedLocales ?? []).map((item) => <p key={item.pageId}>{t.retainedEnglish} {item.title} · {item.file}</p>)}
         {(sitePlan.localeVariants ?? []).map((item) => <label key={item.pageId} className="check"><input type="checkbox" checked={selectedLocales.includes(item.pageId)} disabled={!item.supported || item.needsUpdate}
-          onChange={(event) => {setSelectedLocales((prior) => event.target.checked ? [...prior, item.pageId] : prior.filter((id) => id !== item.pageId)); setSiteChoice(null);}} />
-          EN-concept publiceren: {item.title ?? 'Titel ontbreekt'} · en/{item.slug ?? 'slug-ontbreekt'}.html{item.needsUpdate ? ' · Structuur bijwerken nodig' : ''}{!item.supported ? ' · Alleen tekstblokken ondersteund' : ''}
+          onChange={(event) => {setSelectedLocales((prior) => event.target.checked ? [...prior, item.pageId] : prior.filter((id) => id !== item.pageId)); setSiteChoice(null);}} />{t.publishEnglish} {item.title ?? t.missingTitle} · en/{item.slug ?? t.missingSlug}.html{item.needsUpdate ? t.structureNeeded : ''}{!item.supported ? t.onlyText : ''}
         </label>)}
       </fieldset>}
-      {publicUrl && <p><a href={publicUrl} target="_blank" rel="noreferrer">Gepubliceerde lokale pagina openen</a></p>}
-      {preview && <div><h3>Privépreview</h3><iframe title="Privépreview opgeslagen concept" sandbox="" srcDoc={preview} /></div>}
+      {publicUrl && <p><a href={publicUrl} target="_blank" rel="noreferrer">{t.openPublic}</a></p>}
+      {preview && <div><h3>{t.previewHeading}</h3><iframe title={t.previewFrame} sandbox="" srcDoc={preview} /></div>}
     </section>}
   </main>;
 }

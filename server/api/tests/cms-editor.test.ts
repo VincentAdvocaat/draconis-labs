@@ -33,23 +33,27 @@ function editorHarness() {
     return slots[position];
   }
   const jsx = (type: Element['type'], props: Element['props']) => ({ type, props });
+  const i18nExports: Record<string, unknown> = {};
+  const i18nSource = readFileSync(new URL('../../../apps/cms/src/i18n.ts', import.meta.url), 'utf8');
+  runInNewContext(ts.transpileModule(i18nSource, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022}}).outputText,
+    {exports: i18nExports});
   const documentExports: Record<string, unknown> = {};
   const documentSource = readFileSync(new URL('../../../apps/cms/src/documents.tsx', import.meta.url), 'utf8');
   const documentCompiled = ts.transpileModule(documentSource, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
   } }).outputText;
   runInNewContext(documentCompiled, { exports: documentExports, crypto: { randomUUID: () => `new-block-${++key}` },
-    require: (name: string) => { if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx }; throw new Error(`Unexpected document import ${name}`); } });
+    require: (name: string) => { if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx }; if (name === './i18n') return i18nExports; throw new Error(`Unexpected document import ${name}`); } });
   const englishExports: Record<string, unknown> = {};
   const englishSource = readFileSync(new URL('../../../apps/cms/src/page-locales.tsx', import.meta.url), 'utf8');
   runInNewContext(ts.transpileModule(englishSource, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX}}).outputText,
-    {exports: englishExports, require: (name: string) => {if (name === 'react/jsx-runtime') return {jsx, jsxs: jsx}; throw new Error(name);}});
+    {exports: englishExports, require: (name: string) => {if (name === 'react/jsx-runtime') return {jsx, jsxs: jsx}; if (name === './i18n') return i18nExports; throw new Error(name);}});
   const source = readFileSync(new URL('../../../apps/cms/src/main.tsx', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
   } }).outputText;
   runInNewContext(compiled, {
-    exports: {}, document: { getElementById: () => ({}) }, window: { confirm: () => true },
+    exports: {}, document: { getElementById: () => ({}), documentElement: {lang: 'nl'}, title: '' }, window: { confirm: () => true },
     crypto: { randomUUID: () => `fixture-key-${++key}` },
     fetch: async (path: string, init: typeof requests[number]['init']) => {
       requests.push({ path, init });
@@ -60,10 +64,11 @@ function editorHarness() {
         json: async () => result.body };
     },
     require: (name: string) => {
-      if (name === 'react') return { useState, useRef };
+      if (name === 'react') return { useState, useRef, useEffect: (effect: () => void) => effect() };
       if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx };
       if (name === 'react-dom/client') return { createRoot: () => ({ render: (element: Element) => { component = element.type as () => Element; } }) };
       if (name === './style.css') return {};
+      if (name === './i18n') return i18nExports;
       if (name === './page-locales') return englishExports;
       if (name === './documents') return documentExports;
       throw new Error(`Unexpected component import ${name}`);
@@ -124,6 +129,39 @@ const pageA = { revisionId: 'revision-A', pageVersion: 1, values: { title: 'Revi
 const pageB = { ...pageA, revisionId: 'revision-B', pageVersion: 2, values: { title: 'Revisie B', intro: '' } };
 
 describe('CMS editor recovery and selected revision', () => {
+  it('switches interface language with dirty Dutch input without fetching or changing the save payload', async () => {
+    const ui = editorHarness(); ui.results.push({status: 200, body: pageA}); await ui.open();
+    await ui.action(ui.title(), 'onChange', {target: {value: 'Mijn eigen Nederlandse inhoud'}});
+    const before = ui.requests.length;
+    await ui.action(ui.field('Bedieningstaal'), 'onChange', {target: {value: 'en'}});
+    expect(ui.requests).toHaveLength(before);
+    expect(ui.field('Title').props.value).toBe('Mijn eigen Nederlandse inhoud');
+    ui.results.push({status: 200, body: {...pageB, values: {...pageB.values, title: 'Mijn eigen Nederlandse inhoud'}}});
+    await ui.action(ui.button('Save draft'));
+    expect(JSON.parse(ui.requests.at(-1)!.init.body!)).toMatchObject({expectedVersion: 1, values: {title: 'Mijn eigen Nederlandse inhoud'}});
+    expect(ui.status()).toContain('Draft version 2 saved');
+    await ui.action(ui.field('Interface language'), 'onChange', {target: {value: 'nl'}});
+    expect(ui.status()).toContain('Conceptversie 2 opgeslagen');
+  });
+  it('keeps publication choice and idempotency key when retrying after a language switch', async () => {
+    const ui = editorHarness(); ui.results.push({status: 200, body: pageA}); await ui.open();
+    ui.results.push(new Error('network lost')); await ui.action(ui.button('Lokaal publiceren'));
+    const initial = ui.requests.at(-1)!;
+    await ui.action(ui.field('Bedieningstaal'), 'onChange', {target: {value: 'en'}});
+    ui.results.push({status: 200, body: {releaseId: 'published', status: 'published'}}, {status: 200, body: {...pageA, activeVersion: 1, activeReleaseId: 'published'}});
+    await ui.action(ui.button('Check publication again'));
+    const retry = ui.requests.filter((item) => item.init.method === 'POST').at(-1)!;
+    expect(retry.init.body).toBe(initial.init.body); expect(retry.init.headers['Idempotency-Key']).toBe(initial.init.headers['Idempotency-Key']);
+    expect(ui.status()).toContain('Published to the local website');
+  });
+  it('uses the current language for a response that arrives after the interface language changes', async () => {
+    const ui = editorHarness(); let finish!: (value: {status: number; body: unknown}) => void;
+    ui.results.push(new Promise((resolve) => {finish = resolve;}));
+    const pending = ui.open();
+    await ui.action(ui.field('Bedieningstaal'), 'onChange', {target: {value: 'en'}});
+    finish({status: 200, body: pageA}); await pending; await ui.settle();
+    expect(ui.status()).toBe('Draft version 1 loaded.'); expect(ui.requests).toHaveLength(1);
+  });
   it('preserves unsaved English text after CAS failure until the user explicitly adopts the latest variant', async () => {
     const ui = editorHarness();
     ui.results.push({status: 200, body: {...pageA, pagesEnabled: true}}); await ui.open();
@@ -138,9 +176,13 @@ describe('CMS editor recovery and selected revision', () => {
       sourceBlocks: [{blockId: 'text-one', type: 'text'}], content: {...content, locale: 'en', title: 'English original'}};
     ui.results.push({status: 200, body: english}); await ui.action(ui.button('English bewerken'));
     await ui.action(ui.field('EN-paginatitel'), 'onChange', {target: {value: 'My unsaved English'}});
+    await ui.action(ui.field('Bedieningstaal'), 'onChange', {target: {value: 'en'}});
+    expect(ui.field('English page title').props.value).toBe('My unsaved English');
     const latest = {...english, revisionId: 'en-two', version: 2, content: {...english.content, title: 'Other editor English'}};
     ui.results.push({status: 409, body: {message: 'EN version changed'}}, {status: 200, body: latest});
-    await ui.action(ui.button('EN-concept opslaan'));
+    await ui.action(ui.button('Save English draft'));
+    expect(ui.field('English page title').props.value).toBe('My unsaved English');
+    await ui.action(ui.field('Interface language'), 'onChange', {target: {value: 'nl'}});
     expect(ui.field('EN-paginatitel').props.value).toBe('My unsaved English');
     expect(JSON.parse(ui.requests.at(-2)!.init.body!)).toMatchObject({expectedVersion: 1, expectedStructure: 'structure-one'});
     await ui.action(ui.button('Actuele EN-versie overnemen'));
@@ -171,8 +213,9 @@ describe('CMS editor recovery and selected revision', () => {
     await ui.action(ui.button('Publicatieselectie ophalen'));
     ui.results.push(new Error('response lost')); await ui.action(ui.button('Website lokaal publiceren'));
     const first = ui.requests.at(-1)!;
+    await ui.action(ui.field('Bedieningstaal'), 'onChange', {target: {value: 'en'}});
     ui.results.push({ status: 200, body: { releaseId: 'retained-site', status: 'published', publicUrl: '/sites/demo-cms/index.html' } });
-    await ui.action(ui.button('Websitepublicatie opnieuw controleren'));
+    await ui.action(ui.button('Check website publication again'));
     expect(ui.requests.at(-1)!.init.body).toBe(first.init.body);
     expect(ui.requests.at(-1)!.init.headers['Idempotency-Key']).toBe(first.init.headers['Idempotency-Key']);
   });

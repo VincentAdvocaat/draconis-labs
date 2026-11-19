@@ -15,6 +15,8 @@ Ontwerp van 19 november 2026. De oorspronkelijke ontwerp-PR bevat alleen bouwopd
 - [Portfolio-blok](portfolio-proef.md) koppelt een expliciet gekozen catalogussnapshot aan preview, retained pins en de volledige siterelease.
 - [Portfolio-blokteksten](portfolio-blokteksten.md) maakt de kop en lege-staattekst redactioneel bewerkbaar in NL/EN.
 - [Paginatalenproef](paginatalen-proef.md) voegt een expliciet gekozen handmatige EN-variant toe aan een bestaande NL-tekstpagina.
+- [CMS-bediening NL/EN](ui-talen-proef.md) vertaalt de bestaande bediening met behoud van drafts, conflicten en publicatiekeuzes.
+- [Publieke tekstcatalogus](publieke-tekstcatalogus-ontwerp.md) inventariseert de resterende vaste websitebindings en ontwerpt hun redactionele beheer.
 - [Centrale tekstredactie](centrale-tekstredactie.md) werkt de vervolgrichting voor pagina's, blokken en localevarianten uit.
 
 De bestaande sites blijven hun huidige ASP.NET Core CMS gebruiken. Labs krijgt eerst een geïsoleerde CMS-proef binnen zijn bestaande app/API-structuur. Daarna toetsen we de adapter en migratie op een fictieve kopie. Een productiemigratie, merge of deployment vraagt een aparte opdracht van de orchestrator.
