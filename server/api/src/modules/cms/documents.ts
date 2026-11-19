@@ -79,7 +79,7 @@ export class CmsDocuments {
         INSERT OR IGNORE INTO cms_migrations VALUES(3);
       `);
     })();
-    this.locales = new CmsPageLocales(repository, (site, page) => this.get(site, page));
+    this.locales = new CmsPageLocales(repository, (site, page) => this.get(site, page), media);
     repository.setSiteSnapshots(this);
   }
 
@@ -207,7 +207,7 @@ export class CmsDocuments {
       if (current.revisionId !== choice.revisionId || current.version !== choice.version || current.structure !== choice.structure)
         throw new CmsError(409, 'De geselecteerde EN-variant of blokstructuur is gewijzigd');
       const content = this.locales.complete(websiteId, choice.pageId, choice.revisionId);
-      pages.push({ pageId: choice.pageId, revisionId: choice.revisionId, version: choice.version, file: `en/${content.slug}.html`, content, mediaRevisionId: null });
+      pages.push({ pageId: choice.pageId, revisionId: choice.revisionId, version: choice.version, file: `en/${content.slug}.html`, content, mediaRevisionId: this.locales.mediaRevision(websiteId,choice.pageId,choice.revisionId) });
     }
     // Previously explicit EN publications remain pinned when publishing NL alone.
     // Omitting a new draft never silently removes an already published route.
@@ -221,7 +221,13 @@ export class CmsDocuments {
     return row ? (JSON.parse(row.snapshot) as SiteSnapshot).pages.filter((page) => page.content.locale === 'en') : [];
   }
   previewEnglish(websiteId: string, pageId: string, revisionId: string): string {
-    return this.render(this.locales.previewRevision(websiteId, pageId, revisionId), new Map());
+    const content=this.locales.previewRevision(websiteId,pageId,revisionId);
+    const images=new Map<string,{src:string;alt:string}>();
+    for(const ref of this.references(content)){
+      if(!this.uploads)throw new CmsError(503,'Mediaopslag niet beschikbaar voor privépreview');
+      images.set(ref.usage,{...this.uploads.preview(websiteId,ref),alt:ref.decorative?'':ref.altText.en??''});
+    }
+    return this.render(content,images);
   }
   previewShared(websiteId: string, input: {pageId: string; revisionId: string; locale: 'nl'|'en'; sharedRevisionId: string; sharedVersion: number}) {
     if (!this.shared) throw new CmsError(503,'Navigatietekst niet beschikbaar');
@@ -283,7 +289,7 @@ export class CmsDocuments {
         if (!this.media || !this.uploads || !page.mediaRevisionId) throw new CmsError(503, 'Mediaopslag niet beschikbaar voor publicatie');
         for (const ref of refs) this.uploads.requireApproval(websiteId, ref.assetId);
         const manifest = this.media.store.resolveRelease(this.media.websiteScope(websiteId), {
-          releaseId: `${releaseId}-${page.pageId}`, revisionId: page.mediaRevisionId, locales: ['nl'],
+          releaseId: `${releaseId}-${page.pageId}${page.content.locale==='en'?'-en':''}`, revisionId: page.mediaRevisionId, locales: [page.content.locale],
         });
         output.set(page.file, manifest.references.map((reference) => {
           const variant = reference.variants.find((item) => item.mime === 'image/png')
@@ -292,7 +298,7 @@ export class CmsDocuments {
           const bytes = readFileSync(join(this.media!.root, variant.path));
           if (bytes.length !== variant.bytes || createHash('sha256').update(bytes).digest('hex') !== variant.checksum) throw new CmsError(409, 'Beeldvariant gewijzigd');
           return { reference, bytes, extension: variant.mime === 'image/png' ? 'png' : variant.mime === 'image/jpeg' ? 'jpg' : 'webp',
-            alt: reference.decorative ? '' : reference.altText.nl };
+            alt: reference.decorative ? '' : reference.altText[page.content.locale] };
         }));
       }
       return output;
@@ -313,7 +319,7 @@ export class CmsDocuments {
         portfolio.set(block.blockId, result.html); files.push(...result.files);
       }
       for (const image of resolved.get(page.file) ?? []) {
-        const name = page.pageId === 'home' ? `hero.${image.extension}` : `${page.pageId}.${image.extension}`;
+        const name = page.content.locale==='en'?`${page.revisionId}.${image.extension}`:page.pageId === 'home' ? `hero.${image.extension}` : `${page.pageId}.${image.extension}`;
         const path = `media/${releaseId}/${name}`;
         images.set(image.reference.usage, { src: href(path), alt: image.alt }); files.push({ path, bytes: image.bytes });
       }

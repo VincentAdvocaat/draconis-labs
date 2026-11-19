@@ -199,6 +199,26 @@ describe('CMS editor recovery and selected revision', () => {
     finish({status: 200, body: pageA}); await pending; await ui.settle();
     expect(ui.status()).toBe('Draft version 1 loaded.'); expect(ui.requests).toHaveLength(1);
   });
+  it('requires explicit source confirmation even when image translations are unchanged', async () => {
+    const ui=editorHarness();ui.results.push({status:200,body:{...pageA,pagesEnabled:true}});await ui.open();
+    const content={schemaVersion:1,locale:'nl',title:'NL image',slug:'nl-image',seoTitle:'NL image',seoDescription:'',
+      blocks:[{blockId:'image-one',type:'image',reference:{assetId:'photo',fileVersion:2,usage:'block-image-one',decorative:false,altText:{nl:'NL alt'}},caption:'NL caption'}]};
+    ui.results.push({status:201,body:{pageId:'page-one',revisionId:'nl-two',version:2,content,published:false}},
+      {status:200,body:{activeVersion:0,activeReleaseId:null,pages:[]}});
+    await ui.action(ui.button('Nieuwe pagina aanmaken'));
+    const english={pageId:'page-one',revisionId:'en-one',version:1,structure:'image-two',savedStructure:'image-one',supported:true,needsUpdate:true,
+      sourceBlocks:[{blockId:'image-one',type:'image'}],sourceImages:[{blockId:'image-one',assetId:'photo',fileVersion:2,usage:'block-image-one',decorative:false}],
+      content:{...content,locale:'en',title:'English image',blocks:[{blockId:'image-one',type:'image',altText:'Saved English alt',caption:'Saved English caption'}]}};
+    ui.results.push({status:200,body:english});await ui.action(ui.button('English bewerken'));
+    expect(ui.button('EN-concept opslaan').props.disabled).toBe(true);
+    await ui.action(ui.button('EN-structuur en beeldbinding bevestigen'));
+    expect(ui.button('EN-concept opslaan').props.disabled).toBe(false);
+    ui.results.push({status:200,body:{...english,revisionId:'en-two',version:2,savedStructure:'image-two',needsUpdate:false}});
+    await ui.action(ui.button('EN-concept opslaan'));
+    expect(JSON.parse(ui.requests.at(-1)!.init.body!)).toEqual({expectedVersion:1,expectedStructure:'image-two',confirmSourceChange:true,content:english.content});
+    expect(ui.button('EN-concept opslaan').props.disabled).toBe(true);
+  });
+
   it('preserves unsaved English text after CAS failure until the user explicitly adopts the latest variant', async () => {
     const ui = editorHarness();
     ui.results.push({status: 200, body: {...pageA, pagesEnabled: true}}); await ui.open();

@@ -31,6 +31,10 @@ const documentMessages: Record<UiLocale, Copy> = { nl, en };
 
 
 const uiNl = {
+  englishImageBlock:'EN-afbeeldingsblok',englishSourceImage:'NL-bronbeeld:',englishImageAlt:'EN-alt-tekst',englishImageCaption:'EN-bijschrift',
+  englishDecorativeImage:'De NL-bron is decoratief. Bevestig expliciet lege EN-alt door ontbrekend uit te zetten; de bron blijft eigenaar van decoratief gebruik.',
+  englishMeaningfulImage:'Vul eigen betekenisvolle EN-alt in. De bronafbeelding en bestandsversie blijven gedeeld met NL.',
+
   sharedAbsent: 'Ontbreekt', sharedEmpty: 'Bewust leeg',
   sharedTitle: "Gedeelde navigatieteksten",
   openShared: "Navigatieteksten openen",
@@ -180,9 +184,9 @@ const uiNl = {
   "chooseSnapshot": "Snapshot {locale} kiezen",
   "englishIdentity": "English · dezelfde pagina-ID",
   "englishHelp": "Standaardtaal: Nederlands. Inhoudstaal: English. Geen automatische vertaling of NL-fallback.",
-  "englishUnsupported": "EN ondersteunt in deze stap alleen tekstblokken. Afbeeldingen en portfolio worden niet weggelaten. Bewerk en publiceer deze pagina in NL.",
-  "englishStructureHelp": "EN moet worden bijgewerkt: de NL-blokstructuur is gewijzigd. Je opgeslagen EN-tekst blijft behouden.",
-  "alignEnglish": "EN-blokstructuur bijwerken",
+  "englishUnsupported": "Portfolio-EN wordt nog niet ondersteund. Portfolio wordt niet weggelaten; bewerk en publiceer die pagina in NL.",
+  "englishStructureHelp": "EN moet worden bijgewerkt: de NL-structuur of beeldbinding is gewijzigd. Je EN-invoer blijft behouden; bevestig de nieuwe bron bewust.",
+  "alignEnglish": "EN-structuur en beeldbinding bevestigen",
   "englishTitle": "EN-paginatitel",
   "englishSlug": "EN-slug",
   "englishSeoTitle": "EN-SEO-titel",
@@ -199,6 +203,10 @@ const uiNl = {
   "items": "items"
 } as const;
 const uiEn: {[K in keyof typeof uiNl]: string} = {
+  englishImageBlock:'English image block',englishSourceImage:'Dutch source image:',englishImageAlt:'English alt text',englishImageCaption:'English caption',
+  englishDecorativeImage:'The Dutch source is decorative. Confirm explicitly empty English alt by clearing the missing checkbox; the source owns decorative use.',
+  englishMeaningfulImage:'Enter meaningful English alt text. The source image and file version remain shared with Dutch.',
+
   sharedAbsent: 'Missing', sharedEmpty: 'Explicitly empty',
   sharedTitle: "Shared navigation text",
   openShared: "Open navigation text",
@@ -348,9 +356,9 @@ const uiEn: {[K in keyof typeof uiNl]: string} = {
   "chooseSnapshot": "Choose {locale} snapshot",
   "englishIdentity": "English · same page ID",
   "englishHelp": "Default content language: Dutch. Content language: English. No automatic translation or Dutch fallback.",
-  "englishUnsupported": "English supports only text blocks in this step. Images and portfolios are not omitted. Edit and publish this page in Dutch.",
-  "englishStructureHelp": "English needs updating: the Dutch block structure changed. Your saved English text is preserved.",
-  "alignEnglish": "Update English block structure",
+  "englishUnsupported": "English portfolios are not supported yet. Portfolios are not omitted; edit and publish that page in Dutch.",
+  "englishStructureHelp": "English needs updating: the Dutch structure or image binding changed. Your English input is preserved; explicitly confirm the new source.",
+  "alignEnglish": "Confirm English structure and image binding",
   "englishTitle": "English page title",
   "englishSlug": "English slug",
   "englishSeoTitle": "English SEO title",

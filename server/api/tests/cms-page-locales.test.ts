@@ -38,7 +38,7 @@ function content(draft: Awaited<ReturnType<typeof get>>, slug = 'sample-page') {
 }
 async function save(test: Test, draft: Awaited<ReturnType<typeof get>>, changed = content(draft)) {
   return test.running.app.inject({method: 'PUT', url: `${base}/documents/${draft.pageId}/locales/en`, headers,
-    payload: {expectedVersion: draft.version, expectedStructure: draft.structure, content: changed}});
+    payload: {expectedVersion: draft.version, expectedStructure: draft.structure, confirmSourceChange:draft.needsUpdate, content: changed}});
 }
 async function publish(test: Test, selected: string[] = []) {
   const plan = (await test.running.app.inject({url: base + '/site-plan', headers})).json();

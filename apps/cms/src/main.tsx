@@ -54,11 +54,12 @@ function App() {
   const [selectedDocument, setSelectedDocument] = useState<DocumentDto | null>(null);
   const [documentDraft, setDocumentDraft] = useState<DocumentContent | null>(null);
   const [documentConflict, setDocumentConflict] = useState<DocumentDto | null>(null);
+  const [englishConfirmedStructure,setEnglishConfirmedStructure]=useState('');
   const [english, setEnglish] = useState<EnglishDto | null>(null);
   const [englishLatest, setEnglishLatest] = useState<EnglishDto | null>(null);
   const [englishDraft, setEnglishDraft] = useState<EnglishContent | null>(null);
   const [selectedLocales, setSelectedLocales] = useState<string[]>([]);
-  const englishDirty = !!english && JSON.stringify(englishDraft) !== JSON.stringify(english.content);
+  const englishDirty = !!english && (JSON.stringify(englishDraft) !== JSON.stringify(english.content) || english.needsUpdate&&englishConfirmedStructure===english.structure);
   const [shared,setShared] = useState<SharedNavigationDto|null>(null);
   const [sharedDraft,setSharedDraft] = useState<SharedNavigationContent|null>(null);
   const [sharedLatest,setSharedLatest] = useState<SharedNavigationDto|null>(null);
@@ -88,7 +89,7 @@ function App() {
     setPage(null); setPreview(''); setAttempt(null); setDraftConflict(null);
     setPendingChoice(null); setPublicationConflict(false); setError(null); setBusy(false);
     setFile(null); setUploadJobId(''); setUploadStatus(null);
-    setShared(null); setSharedDraft(null); setSharedLatest(null); setSharedChosen(false); setPortfolioSelections([]); setEnglishLatest(null); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setOverview(null); setSelectedDocument(null); setDocumentDraft(null); setDocumentConflict(null); invalidateSiteChoice();
+    setShared(null); setSharedDraft(null); setSharedLatest(null); setSharedChosen(false); setPortfolioSelections([]); setEnglishLatest(null); setEnglishConfirmedStructure(''); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setOverview(null); setSelectedDocument(null); setDocumentDraft(null); setDocumentConflict(null); invalidateSiteChoice();
     setNewPage({ title: '', slug: '' });
     resetRights();
     setStatus(message('openWithToken'));
@@ -109,7 +110,7 @@ function App() {
       if (!current()) return;
       setPage(result); setValues(result.values); setDraftConflict(null); setAttempt(null);
       setPendingChoice(null); setPublicationConflict(false); setPreview('');
-      setEnglishLatest(null); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setSelectedDocument(null); setDocumentDraft(null); setDocumentConflict(null); invalidateSiteChoice();
+      setEnglishLatest(null); setEnglishConfirmedStructure(''); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setSelectedDocument(null); setDocumentDraft(null); setDocumentConflict(null); invalidateSiteChoice();
       resetRights();
       setStatus(message('loadedDraft',{version:result.pageVersion}));
     });
@@ -266,7 +267,7 @@ function App() {
     void perform(async (current) => {
       const result = await request<DocumentDto>(`/documents/${pageId}`);
       if (!current()) return;
-      setEnglishLatest(null); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setSelectedDocument(result); setDocumentDraft(result.content); setDocumentConflict(null);
+      setEnglishLatest(null); setEnglishConfirmedStructure(''); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setSelectedDocument(result); setDocumentDraft(result.content); setDocumentConflict(null);
       setPreview(''); resetRights(); invalidateSiteChoice(); setStatus(message('selected'));
     });
   }
@@ -275,7 +276,7 @@ function App() {
     void perform(async (current) => {
       const result = await request<DocumentDto>('/documents', { method: 'POST', body: JSON.stringify(newPage) });
       if (!current()) return;
-      setEnglishLatest(null); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setSelectedDocument(result); setDocumentDraft(result.content); setDocumentConflict(null); setNewPage({ title: '', slug: '' });
+      setEnglishLatest(null); setEnglishConfirmedStructure(''); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setSelectedDocument(result); setDocumentDraft(result.content); setDocumentConflict(null); setNewPage({ title: '', slug: '' });
       setPreview(''); resetRights(); invalidateSiteChoice(); setStatus(message('selected'));
       const list = await request<SitePlan>('/site-plan'); if (current()) setOverview(list);
     });
@@ -288,7 +289,7 @@ function App() {
           method: 'PUT', body: JSON.stringify({ expectedVersion: selectedDocument.version, content: documentDraft }),
         });
         if (!current()) return;
-        setEnglishLatest(null); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setSelectedDocument(result); setDocumentDraft(result.content); setDocumentConflict(null);
+        setEnglishLatest(null); setEnglishConfirmedStructure(''); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setSelectedDocument(result); setDocumentDraft(result.content); setDocumentConflict(null);
         setPreview(''); invalidateSiteChoice(); setStatus(message('saved'));
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {
@@ -312,16 +313,16 @@ function App() {
     void perform(async (current) => {
       const result = await request<EnglishDto>(`/documents/${selectedDocument.pageId}/locales/en`);
       if (!current()) return;
-      setEnglishLatest(null); setEnglish(result); setEnglishDraft(result.content); setPreview(''); invalidateSiteChoice();
+      setEnglishLatest(null); setEnglishConfirmedStructure(''); setEnglish(result); setEnglishDraft(result.content); setPreview(''); invalidateSiteChoice();
     });
   }
   function saveEnglish() {
     if (busy || !english || !englishDraft) return;
     void perform(async (current) => {
       try { const result = await request<EnglishDto>(`/documents/${english.pageId}/locales/en`, {method: 'PUT',
-        body: JSON.stringify({expectedVersion: english.version, expectedStructure: english.structure, content: englishDraft})});
+        body: JSON.stringify({expectedVersion: english.version, expectedStructure: english.structure, confirmSourceChange:englishConfirmedStructure===english.structure, content: englishDraft})});
       if (!current()) return;
-      setEnglishLatest(null); setEnglish(result); setEnglishDraft(result.content); setPreview(''); invalidateSiteChoice(); setStatus(message('englishSaved'));
+      setEnglishLatest(null); setEnglishConfirmedStructure(''); setEnglish(result); setEnglishDraft(result.content); setPreview(''); invalidateSiteChoice(); setStatus(message('englishSaved'));
       } catch (error) { if (error instanceof ApiError && error.status === 409) { const latest = await request<EnglishDto>(`/documents/${english.pageId}/locales/en`); if (current()) setEnglishLatest(latest); } throw error; }
     });
   }
@@ -455,14 +456,14 @@ function App() {
           {uploadStatus.state === 'ready' && <button onClick={() => useUpload(uploadStatus)}>{t.useUpload}</button>}
         </aside>}
       </fieldset>}
-      {selectedDocument && <div className="actions"><button disabled={busy || englishDirty} onClick={() => {setEnglishLatest(null); setEnglish(null); setEnglishDraft(null); setPreview('');}}>{t.editDutch}</button>
+      {selectedDocument && <div className="actions"><button disabled={busy || englishDirty} onClick={() => {setEnglishLatest(null); setEnglishConfirmedStructure(''); setEnglish(null); setEnglishDraft(null); setPreview('');}}>{t.editDutch}</button>
         <button disabled={busy || dirty || documentDirty || englishDirty} onClick={openEnglish}>{t.editEnglish}</button>
         {english && <button disabled={busy} onClick={() => { if (englishDirty && !window.confirm(t.confirmDiscardEnglish)) return;
           setEnglishDraft(english.content); }}>{t.discardEnglish}</button>}
       </div>}
       {englishLatest && <aside><p>{t.englishConflictHelp}</p>
-        <button disabled={busy} onClick={() => {if (busy) return; setEnglish(englishLatest); setEnglishDraft(englishLatest.content); setEnglishLatest(null); setPreview(''); invalidateSiteChoice();}}>{t.adoptEnglish}</button></aside>}
-      {english && englishDraft && <EnglishEditor uiLocale={uiLocale} record={english} draft={englishDraft} onChange={(content) => {setEnglishDraft(content); setPreview(''); invalidateSiteChoice();}} busy={busy} dirty={englishDirty} onSave={saveEnglish} onPreview={previewEnglish} />}
+        <button disabled={busy} onClick={() => {if (busy) return; setEnglishConfirmedStructure(''); setEnglish(englishLatest); setEnglishDraft(englishLatest.content); setEnglishLatest(null); setPreview(''); invalidateSiteChoice();}}>{t.adoptEnglish}</button></aside>}
+      {english && englishDraft && <EnglishEditor uiLocale={uiLocale} sourceConfirmed={!!english&&englishConfirmedStructure===english.structure} onAlign={()=>{if(english)setEnglishConfirmedStructure(english.structure);}} record={english} draft={englishDraft} onChange={(content) => {setEnglishDraft(content); setPreview(''); invalidateSiteChoice();}} busy={busy} dirty={englishDirty} onSave={saveEnglish} onPreview={previewEnglish} />}
       {selectedDocument && !english && documentDraft && <DocumentEditor uiLocale={uiLocale} draft={documentDraft} onChange={changeDocument} busy={busy} dirty={documentDirty}
         onSave={saveDocument} onPreview={previewDocument} availableImage={availableImage} portfolioSelections={portfolioSelections}
         onLoadPortfolio={() => { if (busy) return; void perform(async (current) => { const selections = await request<PortfolioSelection[]>('/portfolio-snapshots'); if (current()) setPortfolioSelections(selections); }); }} />}
