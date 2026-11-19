@@ -45,3 +45,8 @@ EN-home is inmiddels lokaal gebouwd en gereviewd in PR36. De volgende prioriteit
 ## Gesaneerde contacttemplate
 
 De afzonderlijke proef en controles staan in [contact-template-proef.md](contact-template-proef.md). Alle 27 bindings zijn afgedekt met fictieve NL/EN-inhoud, vaste templatehash en expliciete pagina/shared/templatepins. PR 37 blijft de vaste basis; mediacatalogus M2/M3 zijn nog niet geconsolideerd. PR40 is onafhankelijk akkoord op `3fe4da5a4ad4228e8ded4aa4e8b8718aefd7eb5d` door `/root/review_pr40`, GPT-6 Astra medium, na een geverifieerde en herbeoordeelde Viteproxyfix. Volledig rapport: [review-pr40.md](review-pr40.md). Dit bewijst één gesaneerde fixture, geen echte site-import of algemene templateaansluiting. Extra templates zijn niet automatisch onderdeel van de scope. Volgende oorspronkelijke CMS-prioriteit is CMS-09, uitsluitend fictieve back-up en offline restore op nieuwe opslag.
+
+
+## Fictieve back-up en restore
+
+CMS-09 heeft een afzonderlijke lokale CLI-proef voor twee databases en bestanden op nieuwe synthetische opslag. Zie [protocol en bewijs](backup-restore-proef.md). Productie-identiteit, echte klantimport, opslagbeleid en live omschakeling blijven open. Onafhankelijke review volgt vóór afronding.

@@ -3,7 +3,7 @@ import type {ContactBundle} from './contact-fixture/bundle.js';
 import {CmsSharedNavigation} from './shared-navigation.js';
 import Fastify from 'fastify';
 import { ZodError } from 'zod';
-import { readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, unlinkSync, mkdirSync, existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { z } from 'zod';
@@ -42,6 +42,8 @@ export interface CmsAppOptions {
 
 function lockRuntime(root: string): () => void {
   mkdirSync(root, { recursive: true });
+  const recoveryLock = join(root, '.recovery.lock');
+  if (existsSync(recoveryLock)) throw new Error('Offline recovery owns this fixture');
   const lock = join(root, 'runtime.lock');
   try {
     const pid = Number(readFileSync(lock, 'utf8'));
@@ -55,6 +57,7 @@ function lockRuntime(root: string): () => void {
   }
   // A second live process must not mark another process's in-flight builds interrupted.
   writeFileSync(lock, String(process.pid), { flag: 'wx' });
+  if (existsSync(recoveryLock)) { unlinkSync(lock); throw new Error('Offline recovery owns this fixture'); }
   return () => unlinkSync(lock);
 }
 
