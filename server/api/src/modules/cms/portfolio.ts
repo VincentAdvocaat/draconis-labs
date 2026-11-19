@@ -47,7 +47,9 @@ export class CmsPortfolio {
       const image = output.files.find((file) => file.itemId === item.itemId && ['image/png', 'image/jpeg', 'image/webp'].includes(file.mime));
       if (!image) throw new CmsError(409, 'Publieke portfoliovariant ontbreekt');
       const extension = image.mime === 'image/png' ? 'png' : image.mime === 'image/jpeg' ? 'jpg' : 'webp';
-      const path = attemptId ? `media/${attemptId}/portfolio-${block.blockId}-${item.itemId}.${extension}` : '';
+      // The server pin distinguishes page/revision/slot/attempt and is a canonical
+      // lowercase UUID even when callers reuse or uppercase their block UUID.
+      const path = attemptId ? `media/${attemptId}/portfolio-${pin.pinId}-${item.itemId.toLowerCase()}.${extension}` : '';
       if (attemptId) files.push({ path, bytes: image.bytes });
       const src = attemptId ? path : `data:${image.mime};base64,${image.bytes.toString('base64')}`;
       const alt = item.media.decorative ? '' : item.resolvedMedia.altText[block.localeContext.locale];

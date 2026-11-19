@@ -41,6 +41,36 @@ async function document(test: Awaited<ReturnType<typeof start>>, locale: 'nl' | 
   expect(saved.statusCode).toBe(200); return saved.json();
 }
 describe('CMS portfolio integration', () => {
+  it('publishes and serves a portfolio image with an uppercase accepted block UUID', async () => {
+    const test = await start(); const doc = await document(test);
+    doc.content.blocks[1].blockId = doc.content.blocks[1].blockId.toUpperCase();
+    expect((await test.running.app.inject({ method: 'PUT', url: `${base}/documents/${doc.pageId}/draft`, headers,
+      payload: { expectedVersion: doc.version, content: doc.content } })).statusCode).toBe(200);
+    expect((await publish(test.running)).statusCode).toBe(200);
+    const html = (await test.running.app.inject('/sites/demo-cms/portfolio-page.html')).body;
+    const image = html.match(/src="([^"]+)"/)![1];
+    const served = await test.running.app.inject('/sites/demo-cms/' + image);
+    expect(served.statusCode).toBe(200);
+    expect(createHash('sha256').update(served.rawPayload).digest('hex')).toBe(test.fixture.en.items[0].resolvedMedia.variants[0].checksum);
+  });
+
+  it('publishes copied portfolio blocks on separate pages with distinct reachable image paths', async () => {
+    const test = await start(); const doc = await document(test);
+    const second = (await test.running.app.inject({ method: 'POST', url: base + '/documents', headers,
+      payload: { title: 'Copied page', slug: 'copied-page' } })).json();
+    expect((await test.running.app.inject({ method: 'PUT', url: `${base}/documents/${second.pageId}/draft`, headers,
+      payload: { expectedVersion: second.version, content: { ...doc.content, slug: 'copied-page' } } })).statusCode).toBe(200);
+    const result = await publish(test.running); expect(result.statusCode).toBe(200);
+    const paths = [];
+    for (const slug of ['portfolio-page', 'copied-page']) {
+      const html = (await test.running.app.inject(`/sites/demo-cms/${slug}.html`)).body;
+      const path = html.match(/src="([^"]+)"/)![1]; paths.push(path);
+      expect((await test.running.app.inject('/sites/demo-cms/' + path)).statusCode).toBe(200);
+    }
+    expect(new Set(paths).size).toBe(2);
+    expect(test.fixture.consumer.listPins(test.fixture.website, { module: 'cms', attemptId: result.json().releaseId })).toHaveLength(2);
+  });
+
   it('rejects cross-site refs, wrong checksums and locale contexts without advancing the draft', async () => {
     const test = await start(); const doc = await document(test, 'nl');
     const selected = doc.content.blocks[1];
