@@ -100,6 +100,22 @@ describe('catalog locale persistence and publication', () => {
     expect(service.resolveSnapshot({ websiteId: site, collectionId: 'portfolio', snapshotId: previous.snapshotId })).toEqual(previous);
   });
 
+  it('serializes competing HTTP writes to the same site/collection/EN slug through the real constraint', async () => {
+    const first = service.save(site, input);
+    const second = service.save(site, { ...input, slug: 'ander-item', title: 'Ander item' });
+    const token = 'local-concurrent-slug-token-123456789012345';
+    const app = await buildCatalogApp(fixture.root, token);
+    try {
+      const results = await Promise.all([first, second].map(item => app.inject({
+        method: 'PUT', url: `/catalogus/api/${site}/items/${item.itemId}/locales/en`,
+        headers: { authorization: `Bearer ${token}` }, payload: { ...en, slug: 'shared-slug' },
+      })));
+      expect(results.map(result => result.statusCode).sort()).toEqual([200, 409]);
+      const slugs = [first, second].map(item => service.localeVariant(site, item.itemId, 'en').values.slug);
+      expect(slugs.filter(slug => slug === 'shared-slug')).toHaveLength(1);
+    } finally { await app.close(); }
+  });
+
   it('migrates a real legacy snapshot/default item without rewriting IDs, JSON, refs or withdrawn state', () => {
     const item = service.save(site, input);
     const current = service.publish(site, 1);

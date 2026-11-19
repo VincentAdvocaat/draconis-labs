@@ -21,6 +21,8 @@ Heropenen van een eerdere eigen tijdelijke fixture kan met `-FixtureRoot <fixtur
 
 Sla wijzigingen aan het standaarditem eerst op voordat je EN laadt of opslaat. De UI bewaakt dit voor gewijzigde NL-velden en een nieuw geselecteerde afbeelding, zodat een taalactie geen onopgeslagen standaardinvoer weggooit. Na een externe wijziging blijft een EN-formulier aan zijn eerdere versie gebonden en geeft opslaan een conflict. Expliciet Laden vernieuwt de formulieren samen met hun versies.
 
+Ook EN laden zelf vereist dezelfde item-ID en versie als het zichtbare bron-/afbeeldingspaneel. Als een ander venster het item intussen heeft gewijzigd, maakt de editor de EN-bewerking ongeldig en vraagt hij expliciet volledig herladen. Bestaande onopgeslagen EN-invoer blijft daarbij zichtbaar, maar kan niet met een stilzwijgend nieuwere versie worden opgeslagen. Dit sluit de P2 uit de onafhankelijke PR 19-review; twee regressietests dekken een externe wijziging vóór EN laden en vóór opnieuw EN laden.
+
 ## Opslag en migratie
 
 Catalogus-databaseschema 3 voegt default_locale, immutable localevelden per itemrevisie en aparte slugreserveringen toe. De bekende bestaande fixture-inhoud wordt expliciet als NL opgenomen. De migratie wijzigt geen bestaande itemrevisie-JSON of snapshot-JSON, geen ID, defaultslug of media-usage. Zij draait transactioneel op de gecontroleerde tijdelijke fixtureopslag, niet op klantdata.
@@ -67,6 +69,8 @@ corepack pnpm build
 ```
 
 De tests bewijzen defaultbehoud, expliciete fallback, missing/null tegenover empty, directe titel/slug/alt, decorative-alt, echte slugconstraints per namespace, CAS, variantretentie bij standaardedit, invalidatie van oude alt bij beeldwissel, heropenen, legacy snapshot-JSON en withdrawn routes. De beheerscript-tests bewijzen dat fallback geen invoer materialiseert en dat een taalactie geen onopgeslagen standaardinvoer of bewust gekozen nieuwe upload weggooit.
+
+Een concurrerende HTTP-proef laat twee verschillende items binnen dezelfde site/collectie/EN tegelijk dezelfde slug aanvragen. De databaseconstraint laat één verzoek slagen en weigert het andere met 409. Dit is concurrentie binnen de afgesproken ene server, geen claim van getest meerprocessenbeheer.
 
 De browserproef heropende de eerder bij snapshotbeheer gebruikte schema-2-fixture. De oude NL-snapshot bleef renderen en de ingetrokken beeld-URL bleef geweigerd. EN-publicatie zonder directe verplichte velden werd geweigerd ondanks fallback. Na handmatige EN-invoer werkte een EN-snapshot met eigen slug/alt en expliciet gekozen NL-beschrijving. Daarna bleef een bewust lege EN-beschrijving leeg, ook met fallback gekozen. Na procesherstart bleven EN-invoer en beide gepinde taalprofielen bestaan. Er is uitsluitend synthetisch lokaal testmateriaal gebruikt.
 

@@ -216,4 +216,40 @@ describe('actual admin script optimistic form binding', () => {
     expect(browser.el('asset').value).toBe('2');
     expect(browser.el('enTitle').value).toBe('EN pending');
   });
+
+  it('rejects EN loading against a source item changed before the EN request, without promoting its version', async () => {
+    const browser = browserHarness();
+    await browser.selectVersionOne();
+    browser.externalUpdate();
+    await browser.el('loadLocale').onclick!();
+    expect(browser.el('message').textContent).toContain('standaarditem is intussen gewijzigd');
+    expect(browser.el('title').value).toBe('Oude titel');
+    expect(browser.el('asset').value).toBe('0');
+    browser.el('enTitle').value = 'Based on old source';
+    await browser.el('saveLocale').onclick!();
+    expect(browser.sent).toEqual([]);
+    expect(browser.el('message').textContent).toContain('Laad eerst de EN-variant');
+    expect(browser.stored.title).toBe('Nieuwe titel');
+    await browser.el('load').onclick!();
+    await browser.el('loadLocale').onclick!();
+    expect(browser.el('title').value).toBe('Nieuwe titel');
+    expect(browser.el('asset').value).toBe('1');
+    expect(browser.el('message').textContent).toContain('EN-variant en bronlocale geladen');
+  });
+
+  it('invalidates EN reloading after an external image change without erasing pending EN input', async () => {
+    const browser = browserHarness();
+    await browser.selectVersionOne();
+    await browser.el('loadLocale').onclick!();
+    browser.el('enTitle').value = 'Unsaved EN input';
+    browser.el('enAlt').value = 'Description of the previously visible image';
+    browser.externalUpdate();
+    await browser.el('loadLocale').onclick!();
+    expect(browser.el('enTitle').value).toBe('Unsaved EN input');
+    expect(browser.el('enAlt').value).toBe('Description of the previously visible image');
+    expect(browser.el('message').textContent).toContain('standaarditem is intussen gewijzigd');
+    await browser.el('saveLocale').onclick!();
+    expect(browser.sent).toEqual([]);
+    expect(browser.el('message').textContent).toContain('Laad eerst de EN-variant');
+  });
 });
