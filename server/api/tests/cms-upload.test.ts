@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildCmsApp } from '../src/modules/cms/app.js';
 import { createMediaFixture } from '../src/media-fixture/fixture.js';
 import { MAX_BYTES } from '../src/media-upload/processor.js';
+import type { BuildHooks } from '../src/modules/cms/service.js';
 
 const base = '/api/v1/cms/websites/demo-cms';
 const credentials = ['editor', 'publisher'].map((role) => ({ name: `local-${role}`, role,
@@ -26,10 +27,10 @@ afterEach(async () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
-async function start() {
+async function start(hooks?: BuildHooks) {
   const fixture = createMediaFixture(); fixtures.push(fixture);
   const root = mkdtempSync(join(tmpdir(), 'cms-upload-test-')); roots.push(root);
-  const options = { runtimeRoot: root, credentials, seed: true, enableMedia: true, enableUploads: true, mediaRoot: fixture.root };
+  const options = { runtimeRoot: root, credentials, seed: true, enableMedia: true, enableUploads: true, mediaRoot: fixture.root, hooks };
   const running = await buildCmsApp(options); apps.push(running);
   return { ...running, fixture, root, options };
 }
@@ -45,6 +46,34 @@ const decision = { expectedVersion: 1, status: 'cleared', owner: 'Fictieve maker
   basis: 'Zelf gegenereerd proefbeeld voor uitsluitend lokale functionele tests.', confirmed: true };
 
 describe('real M1 uploads in the normal scoped CMS entrypoint', () => {
+  it('refuses activation after a Publisher blocks rights during the asynchronous build and retains the prior release', async () => {
+    let revoke = false;
+    let assetId: string;
+    const running = await start({ beforeActivate: async () => {
+      if (!revoke) return;
+      const blocked = await running.app.inject({ method: 'PUT', url: `${base}/media/${assetId}/rights`, headers: publisher,
+        payload: { ...decision, expectedVersion: 2, status: 'blocked' } });
+      expect(blocked.statusCode).toBe(200);
+    } });
+    assetId = (await upload(running, await png())).json().assetId;
+    expect((await running.app.inject({ method: 'PUT', url: `${base}/media/${assetId}/rights`, headers: publisher, payload: decision })).statusCode).toBe(200);
+    const original = (await running.app.inject({ url: base + '/pages/home', headers: publisher })).json();
+    const saved = (await running.app.inject({ method: 'PUT', url: base + '/pages/home/draft', headers: editor,
+      payload: { expectedVersion: original.pageVersion, values: { ...original.values, image: { assetId, fileVersion: 1, usage: 'hero', decorative: true, altText: { nl: '' } } } } })).json();
+    const publish = (key: string, activeVersion: number) => running.app.inject({ method: 'POST', url: base + '/releases',
+      headers: { ...publisher, 'idempotency-key': key }, payload: { revisionId: saved.revisionId, expectedActiveVersion: activeVersion } });
+    const prior = await publish('before-rights-revocation', 0); expect(prior.statusCode).toBe(200);
+    const oldImage = `/sites/demo-cms/media/${prior.json().releaseId}/hero.png`;
+    const oldBytes = (await running.app.inject(oldImage)).rawPayload;
+    revoke = true;
+    const denied = await publish('rights-revoked-during-build', 1);
+    expect(denied.statusCode).toBe(422); expect(denied.json().status).toBe('failed');
+    expect(denied.json().errorCode).toBe('media_not_publishable');
+    expect(running.repository.active('demo-cms').activeReleaseId).toBe(prior.json().releaseId);
+    expect((await running.app.inject(oldImage)).rawPayload).toEqual(oldBytes);
+    expect((await running.app.inject(`/sites/demo-cms/media/${denied.json().releaseId}/hero.png`)).statusCode).toBe(404);
+  });
+
   it.each(['jpeg', 'webp'] as const)('publishes a sanitized JPEG fallback for an actual %s input', async (format) => {
     const running = await start();
     const pipeline = sharp({ create: { width: 48, height: 32, channels: 3, background: { r: 30, g: 90, b: 150 } } });

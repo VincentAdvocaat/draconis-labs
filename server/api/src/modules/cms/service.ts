@@ -64,6 +64,14 @@ export class CmsService {
       }
       await rename(staging, complete);
       await this.hooks.beforeActivate?.();
+      // The supported local writer model is one owning CMS process. All rights routes
+      // run on this event loop. No await may separate this final synchronous validation
+      // (including ready, exact variants/hash and current approval) from pointer activation.
+      // Multiple independent writer processes need a shared transaction/lock protocol.
+      if (mediaRevision) {
+        if (values.image && this.uploads) this.uploads.requireApproval(websiteId, values.image.assetId);
+        this.media!.resolve(websiteId, mediaRevision, attempt.releaseId);
+      }
       const activated = this.repository.activate(attempt);
       await this.hooks.afterActivate?.();
       return activated;

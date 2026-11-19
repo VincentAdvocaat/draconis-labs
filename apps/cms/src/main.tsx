@@ -281,7 +281,8 @@ function App() {
         </>}
       </fieldset>}
       {draftConflict && <aside><h3>Nieuwste opgeslagen tekst</h3><p>{draftConflict.values.title}</p><p>{draftConflict.values.intro}</p>
-        <button onClick={() => {
+        <button disabled={busy} onClick={() => {
+          if (busy) return;
           setPage(draftConflict); setValues(draftConflict.values); setDraftConflict(null); setPreview('');
           resetRights();
           setPendingChoice(null); setPublicationConflict(false); setAttempt(null);
@@ -291,7 +292,7 @@ function App() {
       <div className="actions"><button disabled={busy || !dirty || !!draftConflict} onClick={save}>Concept opslaan</button>
         <button className="secondary" disabled={busy || dirty || !!draftConflict} onClick={previewDraft}>Privépreview openen</button>
         <button disabled={busy || dirty || !!draftConflict || publicationConflict} onClick={publish}>{pendingChoice ? 'Publicatie opnieuw controleren' : 'Lokaal publiceren'}</button></div>
-      {publicationConflict && <aside><p>Een andere publicatie is inmiddels actief. Wil je nog steeds deze opgeslagen conceptversie publiceren?</p><button onClick={() => { setPublicationConflict(false); setStatus('Nieuwe publicatiekeuze bevestigd. Klik Lokaal publiceren.'); }}>Deze revisie opnieuw kiezen</button></aside>}
+      {publicationConflict && <aside><p>Een andere publicatie is inmiddels actief. Wil je nog steeds deze opgeslagen conceptversie publiceren?</p><button disabled={busy} onClick={() => { if (busy) return; setPublicationConflict(false); setStatus('Nieuwe publicatiekeuze bevestigd. Klik Lokaal publiceren.'); }}>Deze revisie opnieuw kiezen</button></aside>}
       {publicUrl && <p><a href={publicUrl} target="_blank" rel="noreferrer">Gepubliceerde lokale pagina openen</a></p>}
       {preview && <div><h3>Privépreview</h3><iframe title="Privépreview opgeslagen concept" sandbox="" srcDoc={preview} /></div>}
     </section>}

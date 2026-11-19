@@ -8,7 +8,7 @@ interface Element {
   props: Record<string, unknown> & { children?: Child | Child[] };
 }
 type Child = Element | string | number | null | false;
-type FetchResult = { status: number; body: unknown } | Error;
+type FetchResult = { status: number; body: unknown } | Error | Promise<{ status: number; body: unknown }>;
 
 // Exercise the actual compiled component's event handlers and fetch flow. The hook adapter
 // replaces only React scheduling/DOM rendering; no copy of the publication logic lives here.
@@ -42,7 +42,7 @@ function editorHarness() {
     crypto: { randomUUID: () => `fixture-key-${++key}` },
     fetch: async (path: string, init: typeof requests[number]['init']) => {
       requests.push({ path, init });
-      const result = results.shift();
+      const result = await results.shift();
       if (!result) throw new Error('Unexpected request');
       if (result instanceof Error) throw result;
       return { ok: result.status >= 200 && result.status < 300, status: result.status,
@@ -86,6 +86,7 @@ function editorHarness() {
   };
   render();
   return { results, requests, action, button, title,
+    settle: async () => { await new Promise<void>((resolve) => setImmediate(resolve)); render(); },
     field: (label: string) => {
       const owner = find((node) => node.type === 'label' && Array.isArray(node.props.children) &&
         node.props.children.some((child) => typeof child === 'string' && child.trim() === label));
@@ -103,6 +104,33 @@ const pageA = { revisionId: 'revision-A', pageVersion: 1, values: { title: 'Revi
 const pageB = { ...pageA, revisionId: 'revision-B', pageVersion: 2, values: { title: 'Revisie B', intro: '' } };
 
 describe('CMS editor recovery and selected revision', () => {
+  it('blocks explicit conflict adoption while an upload is outstanding, then preserves B and its image on adoption', async () => {
+    const ui = editorHarness();
+    const withImage = { ...pageA, uploadEnabled: true, values: { ...pageA.values,
+      image: { assetId: 'photo', fileVersion: 1, usage: 'hero', decorative: false, altText: { nl: 'A image' } } } };
+    const conflict = { ...pageB, uploadEnabled: true, values: { ...pageB.values,
+      image: { assetId: 'unlicensed', fileVersion: 1, usage: 'hero', decorative: false, altText: { nl: 'B image' } } } };
+    ui.results.push({ status: 200, body: withImage }); await ui.open();
+    await ui.action(ui.title(), 'onChange', { target: { value: 'Mijn eigen invoer' } });
+    ui.results.push({ status: 409, body: { message: 'Concept gewijzigd' } }, { status: 200, body: conflict });
+    await ui.action(ui.button('Concept opslaan'));
+    let complete!: (response: { status: number; body: unknown }) => void;
+    const late = new Promise<{ status: number; body: unknown }>((resolve) => { complete = resolve; });
+    await ui.action(ui.field('PNG-, JPEG- of WebP-bestand'), 'onChange', { target: { files: [{
+      name: 'new.png', type: 'image/png', arrayBuffer: async () => new ArrayBuffer(8),
+    }] } });
+    ui.results.push(late); await ui.action(ui.button('Bestand uploaden'));
+    expect(ui.button('Nieuwste versie overnemen').props.disabled).toBe(true);
+    // Native disabled controls cannot dispatch this click; the handler guard also protects stale events.
+    await ui.action(ui.button('Nieuwste versie overnemen'));
+    expect(ui.title().props.value).toBe('Mijn eigen invoer');
+    complete({ status: 201, body: { assetId: 'late-upload', fileVersion: 1, state: 'ready', rights: 'unknown', error: null } });
+    await ui.settle();
+    await ui.action(ui.button('Nieuwste versie overnemen'));
+    expect(ui.title().props.value).toBe('Revisie B');
+    expect(ui.field('Afbeelding').props.value).toBe('unlicensed:1');
+  });
+
   it('requires fresh confirmation after loading a newer rights version and posts the matching selected asset', async () => {
     const ui = editorHarness();
     const uploadedPage = { ...pageA, uploadEnabled: true, values: { ...pageA.values,
