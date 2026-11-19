@@ -2,6 +2,7 @@ import { CatalogService } from '../../catalogus/service.js';
 import { CatalogSnapshotConsumer } from '../../catalogus/consumer.js';
 import type { z } from 'zod';
 import type { portfolioBlockSchema } from './documents.js';
+import { defaultPortfolioLabels } from './portfolio-schema.js';
 import { CmsError, encode, type Attempt } from './model.js';
 import type { CmsMedia } from './media.js';
 import type { CmsRepository } from './repository.js';
@@ -46,7 +47,7 @@ export class CmsPortfolio {
     const files: Array<{ path: string; bytes: Buffer }> = [];
     // Earlier immutable revisions predate editorial labels. Their compatibility
     // text is explicit in both supported locales; new saves persist these maps.
-    const labels = block.labels ?? { heading: { nl: 'Portfolio', en: 'Portfolio' }, empty: { nl: 'Er zijn nog geen projecten.', en: 'No projects yet.' } };
+    const labels = block.labels ?? defaultPortfolioLabels();
     const heading = validateContentField(labels.heading, block.localeContext, CONTENT_PUBLICATION_RULES_V1.title);
     const empty = validateContentField(labels.empty, block.localeContext, CONTENT_PUBLICATION_RULES_V1.title);
     if (!heading.valid || !empty.valid) throw new CmsError(400, 'Vul portfolio-kop en lege-staattekst rechtstreeks in de gekozen bloktaal in');

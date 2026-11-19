@@ -1,4 +1,4 @@
-import {portfolioSelectionSchema,portfolioLabelsSchema} from './portfolio-schema.js';
+import {portfolioSelectionSchema,portfolioLabelsSchema,defaultPortfolioLabels} from './portfolio-schema.js';
 import type {CmsPortfolio} from './portfolio.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
@@ -59,7 +59,7 @@ export class CmsPageLocales {
     const row = this.repository.db.prepare(`SELECT h.revision_id,h.version,r.content,r.structure,r.source_binding_json,r.media_revision_id FROM cms_locale_heads h
       JOIN cms_locale_revisions r ON r.id=h.revision_id WHERE h.website_id=? AND h.page_id=? AND h.locale='en'`).get(site, page) as Row | undefined;
     const content: EnglishContent = row ? JSON.parse(row.content) : { schemaVersion: 1, locale: 'en', title: null, slug: null,
-      seoTitle: null, seoDescription: null, blocks: source.content.blocks.flatMap<EnglishContent['blocks'][number]>((block) => block.type==='text'?[{blockId:block.blockId,type:'text',heading:null,body:null}]:block.type==='image'?[{blockId:block.blockId,type:'image',altText:null,caption:null}]:block.type==='portfolio'?[{blockId:block.blockId,type:'portfolio',selection:null,labels:block.labels}]:[]) };
+      seoTitle: null, seoDescription: null, blocks: source.content.blocks.flatMap<EnglishContent['blocks'][number]>((block) => block.type==='text'?[{blockId:block.blockId,type:'text',heading:null,body:null}]:block.type==='image'?[{blockId:block.blockId,type:'image',altText:null,caption:null}]:block.type==='portfolio'?[{blockId:block.blockId,type:'portfolio',selection:null,labels:block.labels ?? defaultPortfolioLabels()}]:[]) };
     return { pageId: page, locale: 'en' as const, defaultLocale: 'nl' as const, revisionId: row?.revision_id ?? null,
       version: row?.version ?? 0, structure, savedStructure: row?.structure ?? structure,
       needsUpdate: !!row && row.structure !== structure, supported: true,

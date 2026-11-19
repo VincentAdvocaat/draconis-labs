@@ -5,6 +5,9 @@ import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createCatalogConsumerFixture } from '../src/catalogus/consumer-fixture.js';
 import { buildCmsApp, type CmsAppOptions } from '../src/modules/cms/app.js';
+import { englishContentSchema } from '../src/modules/cms/page-locales.js';
+import { runInNewContext } from 'node:vm';
+import ts from 'typescript';
 
 const base = '/api/v1/cms/websites/demo-cms';
 const headers = { authorization: 'Bearer portfolio-test' };
@@ -47,6 +50,32 @@ async function save(test:Test,draft:Awaited<ReturnType<typeof get>>,values=conte
 async function preview(test:Test,draft:Awaited<ReturnType<typeof get>>){return test.running.app.inject({url:`${base}/documents/${draft.pageId}/locales/en/previews/${draft.revisionId}`,headers});}
 const img=(html:string)=>html.match(/<img src="([^"]+)"/)![1];
 describe('CMS English portfolio page',()=>{
+  it('opens legacy NL portfolio JSON in the English editor without changing immutable records or the active release',async()=>{
+    const test=await start();const doc=await document(test,'nl');
+    const legacy=structuredClone(doc.content);delete legacy.blocks[1].labels;
+    const raw=JSON.stringify(legacy);
+    test.running.repository.db.prepare('UPDATE cms_document_revisions SET content=? WHERE id=?').run(raw,doc.revisionId);
+    const first=await publish(test,false);expect(first.statusCode).toBe(200);
+    const oldHtml=(await test.running.app.inject('/sites/demo-cms/portfolio-page.html')).body;
+    const draft=await get(test,doc.pageId);
+    expect(englishContentSchema.safeParse(draft.content).success).toBe(true);
+    const exports:Record<string,unknown>={};const i18n:Record<string,unknown>={};
+    const compile=(file:string)=>ts.transpileModule(readFileSync(new URL(file,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+    runInNewContext(compile('../../../apps/cms/src/i18n.ts'),{exports:i18n});
+    const jsx=(type:unknown,props:unknown)=>({type,props});
+    runInNewContext(compile('../../../apps/cms/src/page-locales.tsx'),{exports,require:(name:string)=>{if(name==='./i18n')return i18n;if(name==='react/jsx-runtime')return {jsx,jsxs:jsx};throw new Error(name);}});
+    expect(()=>(exports.EnglishEditor as (props:unknown)=>unknown)({record:draft,draft:draft.content,busy:false,dirty:false})).not.toThrow();
+    const values=content(test,draft);values.blocks[1].labels=draft.content.blocks[1].labels;
+    const response=await save(test,draft,values);expect(response.statusCode).toBe(200);const en=response.json();
+    expect((await preview(test,en)).body).toContain('<h2>Portfolio</h2>');
+    await test.reopen();
+    expect((await get(test,doc.pageId)).content).toEqual(en.content);
+    expect((await preview(test,en)).statusCode).toBe(200);
+    expect(test.running.documents!.get('demo-cms',doc.pageId).revisionId).toBe(doc.revisionId);
+    expect(test.running.repository.db.prepare('SELECT content FROM cms_document_revisions WHERE id=?').get(doc.revisionId)).toEqual({content:raw});
+    expect(test.running.repository.active('demo-cms').activeReleaseId).toBe(first.json().releaseId);
+    expect((await test.running.app.inject('/sites/demo-cms/portfolio-page.html')).body).toBe(oldHtml);
+  });
   it('requires an explicit EN selection, preserves NL and pins preview, context and distinct reachable release bytes across restart',async()=>{
     const test=await start();const doc=await document(test,'nl');const draft=await get(test,doc.pageId);expect(draft.content.blocks[1]).toMatchObject({blockId:doc.content.blocks[1].blockId,type:'portfolio',selection:null});
     const saved=await save(test,draft);expect(saved.statusCode).toBe(200);const en=saved.json();const privateHtml=await preview(test,en);expect(privateHtml.statusCode).toBe(200);expect(privateHtml.body).toContain('Red sample');expect(privateHtml.body).toContain('English work');expect(privateHtml.body).toContain('data:image/png;base64,');
