@@ -68,3 +68,23 @@ it('moves to another date with the original appointment version and a separate i
   expect(client.appointments.move).toHaveBeenCalledWith('visit',{version:4,slotId:'slot-'+date,arrivalAt:'2026-11-21T08:15:00Z'},expect.any(String));
   expect(client.appointments.create).not.toHaveBeenCalled();
 });
+
+it.each(['success','failure'])('refreshes the current appointment context after a late contact mutation (%s)',async outcome=>{
+  const {client}=fixture();
+  let people: Contact[]=[{...person,id:'alice',name:'Alice'},{...person,id:'bob',name:'Bob'}];
+  client.contacts.list=vi.fn(async query=>people.filter(p=>(query?.archived||!p.archived)&&(!query?.q||p.name.includes(query.q))));
+  client.contacts.card=vi.fn(async id=>({contact:people.find(p=>p.id===id)!,upcoming:[],history:[],events:[]}));
+  let resolve!: (value:Contact)=>void, reject!: (reason:Error)=>void;
+  client.contacts.update=vi.fn(()=>new Promise<Contact>((done,fail)=>{resolve=done;reject=fail;}));
+  await act(async()=>root.render(<Bookings client={client} section="contacts"/>));
+  await change(document.querySelector('input')!,'Alice');
+  await click(button('Alice')); await click(button('Relatie archiveren'));
+  await act(async()=>root.render(<Bookings client={client} section="appointments"/>));
+  expect(document.querySelector('select')!.textContent).toContain('Bob');
+  await act(async()=>{
+    if(outcome==='success') {people=people.map(p=>p.id==='alice'?{...p,archived:true,version:2}:p);resolve(people[0]);}
+    else reject(Object.assign(new Error('Definitieve fout'),{code:'INTERNAL_ERROR'}));
+  });
+  expect(document.querySelector('select')!.textContent).toContain('Bob');
+  if(outcome==='success') expect(document.querySelector('select')!.textContent).not.toContain('Alice');
+});

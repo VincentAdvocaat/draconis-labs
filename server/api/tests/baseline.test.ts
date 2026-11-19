@@ -103,5 +103,5 @@ describe.each(['legacy', 'current'])('%s SQLite baseline', (fixture) => {
       else process.env.DATABASE_PATH = previousPath;
       rmSync(dir, { recursive: true, force: true });
     }
-  });
+  }, 15000);
 });

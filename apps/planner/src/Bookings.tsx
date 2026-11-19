@@ -29,6 +29,8 @@ export function Bookings({ client, section }: { client: BookingClient; section: 
     } catch (e) { if (alive.current && generation === sequence.current) setError(e instanceof Error ? e.message : String(e)); }
     finally { if (alive.current && generation === sequence.current) setLoading(false); }
   }, [client, date, query, archived, selected, section]);
+  const latestReload = useRef(reload);
+  useEffect(() => { latestReload.current = reload; }, [reload]);
   useEffect(() => { void reload(); return invalidate; }, [reload, invalidate]);
   const { id: cardId, version: cardVersion, name: cardName, email: cardEmail, phone: cardPhone } = card?.contact ?? {};
   useEffect(() => { setDraft(cardId ? { name: cardName!, email: cardEmail ?? '', phone: cardPhone ?? '' } : emptyContact); }, [cardId, cardVersion, cardName, cardEmail, cardPhone]);
@@ -40,12 +42,12 @@ export function Bookings({ client, section }: { client: BookingClient; section: 
       await command.execute(command.key);
       if (!alive.current) return;
       pending.current = null; setUncertain(false); setMoving(null); setArrivalTime('');
-      await reload();
+      await latestReload.current();
     } catch (e) {
       if (!alive.current) return;
       const unavailable = e instanceof Error && 'code' in e && e.code === 'UNAVAILABLE';
       setUncertain(unavailable);
-      if (!unavailable) { pending.current = null; if (e instanceof Error && 'code' in e && e.code === 'VERSION_CONFLICT') setMoving(null); await reload(); }
+      if (!unavailable) { pending.current = null; if (e instanceof Error && 'code' in e && e.code === 'VERSION_CONFLICT') setMoving(null); await latestReload.current(); }
       setError(e instanceof Error ? e.message : String(e));
     } finally { if (alive.current) setBusy(false); }
   }

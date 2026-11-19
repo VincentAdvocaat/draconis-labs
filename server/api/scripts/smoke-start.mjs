@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { once } from 'node:events';
 import { createServer } from 'node:net';
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 
 const reservation = createServer();
 reservation.listen(0, '127.0.0.1');
@@ -45,7 +46,19 @@ try {
   const wrong = await fetch(base + '/api/v1/workspaces/other/tasks');
   assert.equal(wrong.status, 404);
   assert.equal((await wrong.json()).error.code, 'WORKSPACE_NOT_FOUND');
-  console.log(JSON.stringify({ startCommand: 'node --import tsx dist/index.js', health: true, createMoveRead: true, legacy: true, workspace: true, wrongWorkspaceRejected: true, node: process.version }));
+  for (const method of ['PATCH','DELETE']) {
+    const preflight = await fetch(base + '/api/v1/workspaces/local/blocks/00000000-0000-4000-8000-000000000001', { method: 'OPTIONS', headers: { Origin: 'http://localhost:5173', 'Access-Control-Request-Method': method, 'Access-Control-Request-Headers':'content-type' } });
+    assert.equal(preflight.status, 204);
+    assert(preflight.headers.get('access-control-allow-methods').split(',').map(value=>value.trim()).includes(method));
+  }
+  const date = new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Amsterdam'});
+  const slots = (await request('/api/v1/workspaces/local/availability?date='+date)).value;
+  const block = (await request('/api/v1/workspaces/local/blocks','POST',{key:randomUUID(),input:{slotId:slots[0].slot.id,reason:'Fictieve startcontrole'}})).value;
+  const release = {key:randomUUID()};
+  assert.deepEqual(await request('/api/v1/workspaces/local/blocks/'+block.id,'DELETE',release),{ok:true,value:null});
+  assert.deepEqual(await request('/api/v1/workspaces/local/blocks/'+block.id,'DELETE',release),{ok:true,value:null});
+  assert((await request('/api/v1/workspaces/local/availability?date='+date)).value[0].available);
+  console.log(JSON.stringify({ startCommand: 'node --import tsx dist/index.js', health: true, createMoveRead: true, legacy: true, workspace: true, wrongWorkspaceRejected: true, corsWriteMethods:true, blockReleaseRetry:true, node: process.version }));
 } finally {
   child.kill();
   await ended;

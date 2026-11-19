@@ -41,7 +41,7 @@ it('runs the explicit CLI backup/dry-run/import/resume/restore flow on an own fi
   expect(run(...args, '--resume')).toMatchObject({ insertedTasks: 0, alreadyImported: true });
   run('restore', '--snapshot', snapshot, '--target', restored, '--sha256', report.sha256);
   expect(hash(restored)).toBe(report.sha256); expect(hash(source)).toBe(before);
-}, 15000);
+}, 30000);
 
 describe.each([['API 12', Database], ['desktop 13', DesktopDatabase]] as const)('%s snapshot tools', (_, Constructor) => {
   function fixture(modern = true) {

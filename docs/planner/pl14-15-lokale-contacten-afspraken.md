@@ -71,7 +71,7 @@ CSS en automatische JSX-transformatie. Webfilters blijven URL-synchronisatie
 gebruiken; `file:`-vensters houden hun exacte entry-URL voor de ongewijzigde
 IPC-afzendercontrole. De renderer heeft geen netwerktoegang in deze proef.
 
-- 89 tests: 66 API, 7 core, 5 shared, 5 ReactDOM en 6 desktop. De nieuwe
+- 91 tests: 66 API, 7 core, 5 shared, 7 ReactDOM en 6 desktop. De nieuwe
   gedragstests draaien met SQLite 12.11.1 en 13.2.0. Acht procesproeven houden
   de eerste write-lock vast en bewijzen reserveren/reserveren,
   reserveren/blokkeren, blokkeren/reserveren en dezelfde sleutel tweemaal.
@@ -87,9 +87,32 @@ IPC-afzendercontrole. De renderer heeft geen netwerktoegang in deze proef.
   Installatie/upgrade op een schone Windows-machine, signing en updatevertrouwen
   blijven open volgens ADR-001. Deze proef installeert of publiceert niets.
 
-Het compacte runtimebewijs staat in `evidence/pl14-15-desktop.json`. Normale
-webbrowserbediening via HTTP wordt afzonderlijk gecontroleerd; backendpariteit
-alleen is daarvoor geen vervanging.
+Het compacte runtimebewijs staat in `evidence/pl14-15-desktop.json`. De normale
+Chrome-webapp is met een aparte eigen SQLite-demo via HTTP bediend: klant maken,
+ochtend blokkeren/vrijgeven, middag boeken met interne aankomst 14:15, zichtbare
+bezetting, aankomst op de uitgesloten eindgrens weigeren, verplaatsen naar
+08:00–12:00 met 09:15 intern, annuleren, middag blokkeren/vrijgeven en opnieuw
+laden. De annulering en vrije capaciteit bleven zichtbaar na herladen.
+
+Deze controle vond een ontbrekende CORS-methodenconfiguratie bij een aparte
+`VITE_API_URL`: DELETE kwam door de preflight niet op de server. De API staat
+nu de ondersteunde PATCH/DELETE-methoden expliciet toe. De gecompileerde
+starttest bewijst beide preflights en tweemaal vrijgeven met dezelfde sleutel.
+De ongewijzigde blokkade vóór herstel is ook via de HTTP-read bevestigd.
+
+De onafhankelijke review vond daarnaast een late contactmutatie die na
+navigatie oude zoekresultaten teruglaadde. Voltooiing gebruikt nu de actuele
+reload-functie. Twee ReactDOM-regressies (succes en definitieve fout) falen met
+de oude closure en slagen met de fix. Een volledige reviewrun liep onder
+suitebelasting op twee tijdslimieten; beide gevallen slaagden afzonderlijk.
+Alleen de import-/CLI-integratiegevallen hebben daarom een ruimere expliciete
+tijdslimiet gekregen, zonder gewijzigde functionele verwachtingen.
+
+De verborgen desktop-screenshotcapture blijft soms het eerste frame tonen;
+zij geldt niet als visueel bewijs van het afsprakenscherm. Het packagedbewijs
+berust op daadwerkelijke formulieracties, DOM-resultaten, SDK-uitkomsten en
+duurzame vergelijking na herstart. Het zichtbare afsprakenscherm is aanvullend
+in de normale Chrome-browser gecontroleerd.
 
 ## Status oorspronkelijke stories
 
