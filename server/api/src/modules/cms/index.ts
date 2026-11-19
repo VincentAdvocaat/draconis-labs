@@ -1,3 +1,5 @@
+import {z} from 'zod';
+import {sharedSaveSchema} from './shared-navigation.js';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { ApiModule } from '../../core/module.js';
@@ -50,10 +52,25 @@ export function cmsModule(service: CmsService, credentials: LocalCredential[]): 
         }
       });
       app.get('/websites/:websiteId/pages/home', async (request) => ({
-        ...service.repository.page(parameters(request).websiteId), uploadEnabled: service.uploadEnabled, pagesEnabled: !!service.documents,
+        ...service.repository.page(parameters(request).websiteId), uploadEnabled: service.uploadEnabled, pagesEnabled: !!service.documents, sharedEnabled: !!service.documents?.shared,
       }));
       if (service.documents) {
         const documents = service.documents;
+        if (documents.shared) {
+          const shared = documents.shared;
+          app.get('/websites/:websiteId/shared-navigation', async (request) => shared.get(parameters(request).websiteId));
+          app.put('/websites/:websiteId/shared-navigation', async (request) => {
+            const actor = authorize(request);
+            if (typeof request.body === 'object' && request.body !== null && !('expectedVersion' in request.body)) throw new CmsError(428,'Verwachte navigatieversie vereist');
+            return shared.save(parameters(request).websiteId,sharedSaveSchema.parse(request.body),actor.name);
+          });
+          app.post('/websites/:websiteId/shared-navigation/previews', async (request,reply) => {
+            const input = z.object({pageId:z.string().uuid(),revisionId:z.string().uuid(),locale:z.enum(['nl','en']),
+              sharedRevisionId:z.string().uuid(),sharedVersion:z.number().int().positive()}).strict().parse(request.body);
+            reply.header('Content-Security-Policy', "default-src 'none'; img-src data:; frame-ancestors 'self'; form-action 'none'; base-uri 'none'");
+            return reply.type('text/html; charset=utf-8').send(documents.previewShared(parameters(request).websiteId,input));
+          });
+        }
         app.get('/websites/:websiteId/portfolio-snapshots', async (request) => {
           if (!documents.portfolio) throw new CmsError(503, 'Catalogus niet beschikbaar');
           return documents.portfolio.selections(parameters(request).websiteId);
@@ -144,7 +161,7 @@ export function cmsModule(service: CmsService, credentials: LocalCredential[]): 
         }
         const input = draftSchema.parse(request.body);
         return { ...service.repository.save(parameters(request).websiteId, input.expectedVersion, input.values, actor.name),
-          uploadEnabled: service.uploadEnabled, pagesEnabled: !!service.documents };
+          uploadEnabled: service.uploadEnabled, pagesEnabled: !!service.documents, sharedEnabled: !!service.documents?.shared };
       });
       app.get('/websites/:websiteId/previews/:revisionId', async (request, reply) => {
         const { websiteId, revisionId } = parameters(request);

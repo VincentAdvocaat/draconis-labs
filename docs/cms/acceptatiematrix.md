@@ -13,7 +13,8 @@ Stand op 19 november 2026 na onafhankelijke review van PR29 op `69b43c54` en de 
 | Twee databases en crashgap | Consumer test echte child-exit; CMS test echte CMS-commit met rollback mediatransactie en reconcile bij heropenen. Geen crash-atomiciteitsclaim. |
 | NL-pagina met NL/EN-portfolio | Gebouwd. Snapshot bepaalt bloklocale en expliciete fallback. Pagina blijft NL. |
 | Portfolio-kop en lege-staattekst redigeren | PR26 onafhankelijk gereviewd op `2fea3e3d`: CMS-owned localevelden, immutable paginarevisie/release en gedeeld localecontract. |
-| Alle publieke tekst centraal redigeerbaar | Nog open: onder meer gedeelde navigatie/footer, bestaande templatebindings en formulier-/linklabels waar aanwezig. Geen claim van volledige dekking. |
+| Eerste vaste publieke navigatiebindings | Gebouwd: bestaande taalkeuze-aria-label en endoniemen via vaste CMS-velden, migratie 5, revisie/CAS, exacte preview en expliciete shared releasepin. Onafhankelijke review volgt op de PR. |
+| Alle publieke tekst centraal redigeerbaar | De huidige lokale navigatiebindings zijn aangesloten. Andere echte templates, footer en formulier-/linklabels waar aanwezig vragen nog inventaris/aansluiting. Geen claim van algemene template- of productievolledigheid. |
 | Minimale CMS22-tekstpagina | PR27 onafhankelijk gereviewd op `f9538988`: dezelfde pagina-/blok-ID's, handmatige EN-titel/slug/SEO/tekst, EN-route/taalnav, expliciete publicatie en structuur-CAS. Legacy `/en.html` blijft bewerkbaar. |
 | Volledige CMS22 contenttalen | Nog open: andere bloktypen en home, meer talen, uitgebreidere fallbackdiagnostiek en localeconfiguratie. Eerste tekstvertical heeft expliciet geen fallback en bewaart leeg/ontbrekend. |
 | CMS-bediening NL/EN | PR29 onafhankelijk gereviewd op `69b43c54`, geen noodzakelijke fixes. Getypeerde namespace, eigen tabbladkeuze, bestaande schermen/status/foutcodes en statebehoud. Nederlandse bevestiging verduidelijkt op `7b77a7b8`; 16 relevante tests groen. |

@@ -1,3 +1,4 @@
+import {languageNavigation, navigationBaseline, navigationText, type CmsSharedNavigation, type SharedNavigationDto} from './shared-navigation.js';
 import { randomUUID, createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -50,13 +51,13 @@ export type DocumentContent = z.infer<typeof documentContentSchema>;
 export interface DocumentDto { pageId: string; revisionId: string; version: number; content: DocumentContent; published: boolean }
 export interface SnapshotPage { pageId: string; revisionId: string; version: number; file: string;
   content: Omit<DocumentContent, 'locale'> & { locale: 'nl' | 'en' }; mediaRevisionId: string | null }
-export interface SiteSnapshot { schemaVersion: 1; websiteId: string; pages: SnapshotPage[] }
+export interface SiteSnapshot { schemaVersion: 1; websiteId: string; pages: SnapshotPage[]; shared?: SharedNavigationDto }
 export interface RenderedSite { files: Array<{ path: string; bytes: Buffer }>; metadata: Record<string, unknown>; revalidate: () => void; activate?: (callback: () => import('./model.js').Attempt) => import('./model.js').Attempt }
 interface DocumentRow { id: string; revision_id: string; version: number; content: string; media_revision_id: string | null }
 
 export class CmsDocuments {
   readonly locales: CmsPageLocales;
-  constructor(private repository: CmsRepository, private media?: CmsMedia, private uploads?: CmsUploads, readonly portfolio?: CmsPortfolio) {
+  constructor(private repository: CmsRepository, private media?: CmsMedia, private uploads?: CmsUploads, readonly portfolio?: CmsPortfolio, readonly shared?: CmsSharedNavigation) {
     const db = repository.db;
     db.transaction(() => {
       db.exec(`
@@ -96,7 +97,7 @@ export class CmsDocuments {
   }
   plan(websiteId: string) {
     const home = this.repository.page(websiteId);
-    return { ...this.repository.active(websiteId), defaultLocale: 'nl' as const, localeVariants: this.locales.plan(websiteId), retainedLocales: this.retainedLocales(websiteId).map((page) => ({ pageId: page.pageId, locale: 'en', revisionId: page.revisionId, file: page.file, title: page.content.title })), pages: [
+    return { ...this.repository.active(websiteId), defaultLocale: 'nl' as const, ...(this.shared ? {shared: this.shared.get(websiteId)} : {}), localeVariants: this.locales.plan(websiteId), retainedLocales: this.retainedLocales(websiteId).map((page) => ({ pageId: page.pageId, locale: 'en', revisionId: page.revisionId, file: page.file, title: page.content.title })), pages: [
       { pageId: 'home', revisionId: home.revisionId, version: home.pageVersion, title: home.values.title, file: 'index.html' },
       ...this.rows(websiteId).map((row) => { const content = JSON.parse(row.content) as DocumentContent;
         return { pageId: row.id, revisionId: row.revision_id, version: row.version, title: content.title, file: `${content.slug}.html` }; }),
@@ -211,7 +212,7 @@ export class CmsDocuments {
     // Previously explicit EN publications remain pinned when publishing NL alone.
     // Omitting a new draft never silently removes an already published route.
     for (const retained of this.retainedLocales(websiteId)) if (!selected.some((item) => item.pageId === retained.pageId)) pages.push(retained);
-    return JSON.stringify({ schemaVersion: 1, websiteId, pages } satisfies SiteSnapshot);
+    return JSON.stringify({ schemaVersion: 1, websiteId, pages, ...(this.shared ? {shared: this.shared.capture(websiteId,input.expectedShared)} : {}) } satisfies SiteSnapshot);
   }
   private retainedLocales(websiteId: string): SnapshotPage[] {
     const active = this.repository.active(websiteId).activeReleaseId;
@@ -221,6 +222,14 @@ export class CmsDocuments {
   }
   previewEnglish(websiteId: string, pageId: string, revisionId: string): string {
     return this.render(this.locales.previewRevision(websiteId, pageId, revisionId), new Map());
+  }
+  previewShared(websiteId: string, input: {pageId: string; revisionId: string; locale: 'nl'|'en'; sharedRevisionId: string; sharedVersion: number}) {
+    if (!this.shared) throw new CmsError(503,'Navigatietekst niet beschikbaar');
+    const selected = this.shared.revision(websiteId,input.sharedRevisionId,input.sharedVersion);
+    const nav = languageNavigation(selected.content,input.locale,[{locale:'nl',href:'#nl'},{locale:'en',href:'#en'}]);
+    const html = input.locale === 'en' ? this.previewEnglish(websiteId,input.pageId,input.revisionId)
+      : this.preview(websiteId,input.pageId,input.revisionId);
+    return html.replace('<body>','<body>'+nav);
   }
   persist(releaseId: string, snapshot: string): void {
     this.repository.db.prepare('INSERT INTO cms_site_snapshots VALUES(?,?)').run(releaseId, snapshot);
@@ -265,6 +274,7 @@ export class CmsDocuments {
     const validate = () => {
       const output = new Map<string, Array<{ reference: MediaReference; bytes: Buffer; extension: string; alt: string }>>();
       for (const page of snapshot.pages) {
+        navigationText(snapshot.shared?.content ?? navigationBaseline(),page.content.locale);
         if (!page.content.title.trim() || !page.content.seoTitle.trim() ||
             (page.pageId !== 'home' && !page.content.blocks.some((block) => block.type === 'text' && block.body.trim())))
           throw new CmsError(400, 'Elke nieuwe pagina vereist titel, SEO-titel en een ingevuld tekstblok');
@@ -293,8 +303,8 @@ export class CmsDocuments {
     for (const page of snapshot.pages) {
       const nav = '<nav>' + snapshot.pages.filter((other) => other.content.locale === page.content.locale)
         .map((other) => `<a href="${encode(href(other.file))}">${encode(other.content.title)}</a>`).join(' ') + '</nav>' +
-        '<nav aria-label="' + (page.content.locale === 'en' ? 'Language' : 'Taal') + '">' + snapshot.pages.filter((other) => other.pageId === page.pageId)
-          .map((other) => `<a lang="${other.content.locale}" hreflang="${other.content.locale}" href="${encode(href(other.file))}">${other.content.locale === 'en' ? 'English' : 'Nederlands'}</a>`).join(' ') + '</nav>';
+        languageNavigation(snapshot.shared?.content ?? navigationBaseline(),page.content.locale,
+          snapshot.pages.filter((other) => other.pageId === page.pageId).map((other) => ({locale:other.content.locale,href:href(other.file)})));
       const images = new Map<string, { src: string; alt: string }>();
       const portfolio = new Map<string, string>();
       for (const block of page.content.blocks) if (block.type === 'portfolio') {
@@ -309,7 +319,7 @@ export class CmsDocuments {
       }
       files.push({ path: page.file, bytes: Buffer.from(this.render(page.content, images, nav, portfolio)) });
     }
-    return { files, metadata: { schemaVersion: snapshot.schemaVersion, defaultLocale: 'nl', pages: snapshot.pages.map((page) => ({
+    return { files, metadata: { schemaVersion: snapshot.schemaVersion, defaultLocale: 'nl', ...(snapshot.shared ? {sharedRevisionId:snapshot.shared.revisionId,sharedVersion:snapshot.shared.version} : {}), pages: snapshot.pages.map((page) => ({
       pageId: page.pageId, revisionId: page.revisionId, version: page.version, file: page.file, locale: page.content.locale,
       mediaRevisionId: page.mediaRevisionId, media: this.references(page.content),
       portfolio: page.content.blocks.filter((block) => block.type === 'portfolio'),

@@ -1,3 +1,4 @@
+import {SharedNavigationEditor,SharedNavigationSummary,type SharedNavigationDto,type SharedNavigationContent} from './shared-navigation';
 import {apiErrorMessage, createCmsTranslator, formatUiMessage, message, type UiMessage, type UiLocale} from './i18n';
 import { createRoot } from 'react-dom/client';
 import { useEffect, useRef, useState } from 'react';
@@ -16,6 +17,7 @@ interface Page {
   activeReleaseId: string | null; activeVersion: number;
   uploadEnabled?: boolean;
   pagesEnabled?: boolean;
+  sharedEnabled?: boolean;
 }
 interface UploadStatus { assetId: string; fileVersion: number; state: string; error: string | null; rights: string; metadataVersion?: number }
 interface RightsMetadata { assetId: string; metadataVersion: number; rights: string }
@@ -57,6 +59,11 @@ function App() {
   const [englishDraft, setEnglishDraft] = useState<EnglishContent | null>(null);
   const [selectedLocales, setSelectedLocales] = useState<string[]>([]);
   const englishDirty = !!english && JSON.stringify(englishDraft) !== JSON.stringify(english.content);
+  const [shared,setShared] = useState<SharedNavigationDto|null>(null);
+  const [sharedDraft,setSharedDraft] = useState<SharedNavigationContent|null>(null);
+  const [sharedLatest,setSharedLatest] = useState<SharedNavigationDto|null>(null);
+  const [sharedChosen,setSharedChosen] = useState(false);
+  const sharedDirty = !!shared && JSON.stringify(sharedDraft)!==JSON.stringify(shared.content);
   const [sitePlan, setSitePlan] = useState<SitePlan | null>(null);
   const [siteChoice, setSiteChoice] = useState<{ plan: SitePlan; locales: string[]; key: string } | null>(null);
   // Scope generation prevents late responses from a previous token/site reaching this view.
@@ -81,7 +88,7 @@ function App() {
     setPage(null); setPreview(''); setAttempt(null); setDraftConflict(null);
     setPendingChoice(null); setPublicationConflict(false); setError(null); setBusy(false);
     setFile(null); setUploadJobId(''); setUploadStatus(null);
-    setPortfolioSelections([]); setEnglishLatest(null); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setOverview(null); setSelectedDocument(null); setDocumentDraft(null); setDocumentConflict(null); invalidateSiteChoice();
+    setShared(null); setSharedDraft(null); setSharedLatest(null); setSharedChosen(false); setPortfolioSelections([]); setEnglishLatest(null); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setOverview(null); setSelectedDocument(null); setDocumentDraft(null); setDocumentConflict(null); invalidateSiteChoice();
     setNewPage({ title: '', slug: '' });
     resetRights();
     setStatus(message('openWithToken'));
@@ -96,7 +103,7 @@ function App() {
   }
   function open(event?: FormEvent) {
     event?.preventDefault();
-    if ((dirty || documentDirty || englishDirty) && !window.confirm(t.confirmOpen)) return;
+    if ((dirty || documentDirty || englishDirty || sharedDirty) && !window.confirm(t.confirmOpen)) return;
     void perform(async (current) => {
       const result = await request<Page>('/pages/home');
       if (!current()) return;
@@ -243,7 +250,7 @@ function App() {
       }
     });
   }
-  function invalidateSiteChoice() { setSitePlan(null); setSiteChoice(null); }
+  function invalidateSiteChoice() { setSharedChosen(false); setSitePlan(null); setSiteChoice(null); }
   function changeDocument(content: DocumentContent) {
     const before = documentDraft?.blocks.find((block) => block.type === 'image')?.reference.assetId;
     const after = content.blocks.find((block) => block.type === 'image')?.reference.assetId;
@@ -254,7 +261,7 @@ function App() {
     void perform(async (current) => { const result = await request<SitePlan>('/site-plan'); if (current()) setOverview(result); });
   }
   function openDocument(pageId: string) {
-    if (busy || dirty || documentDirty || englishDirty) return;
+    if (busy || dirty || documentDirty || englishDirty || sharedDirty) return;
     if (pageId === 'home') { open(); return; }
     void perform(async (current) => {
       const result = await request<DocumentDto>(`/documents/${pageId}`);
@@ -264,7 +271,7 @@ function App() {
     });
   }
   function createDocument() {
-    if (busy || dirty || documentDirty || englishDirty) return;
+    if (busy || dirty || documentDirty || englishDirty || sharedDirty) return;
     void perform(async (current) => {
       const result = await request<DocumentDto>('/documents', { method: 'POST', body: JSON.stringify(newPage) });
       if (!current()) return;
@@ -326,8 +333,29 @@ function App() {
       const html = await response.text(); if (current()) {setPreview(html); setStatus(message('englishPreview'));}
     });
   }
+  function openShared() {
+    if(busy||sharedDirty)return;
+    void perform(async(current)=>{const record=await request<SharedNavigationDto>('/shared-navigation');if(!current())return;
+      setShared(record);setSharedDraft(record.content);setSharedLatest(null);setPreview('');invalidateSiteChoice();});
+  }
+  function saveShared() {
+    if(busy||!shared||!sharedDraft)return;
+    void perform(async(current)=>{try{
+      const record=await request<SharedNavigationDto>('/shared-navigation',{method:'PUT',body:JSON.stringify({expectedVersion:shared.version,content:sharedDraft})});
+      if(!current())return;setShared(record);setSharedDraft(record.content);setSharedLatest(null);setPreview('');invalidateSiteChoice();setStatus(message('sharedSaved'));
+    }catch(error){if(error instanceof ApiError&&error.status===409){const latest=await request<SharedNavigationDto>('/shared-navigation');if(current())setSharedLatest(latest);}throw error;}});
+  }
+  function previewShared() {
+    if(busy||!shared||sharedDirty||dirty||documentDirty||englishDirty||!selectedDocument||(english&&!english.revisionId))return;
+    void perform(async(current)=>{
+      const response=await fetch(base+'/shared-navigation/previews',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
+        body:JSON.stringify({pageId:selectedDocument.pageId,revisionId:english?.revisionId??selectedDocument.revisionId,locale:english?'en':'nl',sharedRevisionId:shared.revisionId,sharedVersion:shared.version})});
+      if(!response.ok)throw new ApiError(response.status,apiErrorMessage(response.status,await response.json().catch(()=>null),'previewUnavailable'));
+      const html=await response.text();if(current()){setPreview(html);setStatus(message('sharedPreview'));}
+    });
+  }
   function prepareSite() {
-    if (busy || dirty || documentDirty || englishDirty || documentConflict || draftConflict) return;
+    if (busy || dirty || documentDirty || englishDirty || sharedDirty || documentConflict || draftConflict) return;
     void perform(async (current) => {
       const plan = await request<SitePlan>('/site-plan');
       if (!current()) return;
@@ -340,11 +368,12 @@ function App() {
       }
       const chosenEnglish = english ? plan.localeVariants?.find((item) => item.pageId === english.pageId) : null;
       if (english && english.version > 0 && (chosenEnglish?.revisionId !== english.revisionId || chosenEnglish.version !== english.version || chosenEnglish.structure !== english.structure)) { invalidateSiteChoice(); throw new ApiError(409, message('unseenEnglish')); }
-      setSitePlan(plan); setSelectedLocales([]); setSiteChoice(null); setStatus(message('planTitle'));
+      if(shared&&plan.shared&&(shared.revisionId!==plan.shared.revisionId||shared.version!==plan.shared.version)){invalidateSiteChoice();throw new ApiError(409,message('sharedUnseen'));}
+      setSharedChosen(false); setSitePlan(plan); setSelectedLocales([]); setSiteChoice(null); setStatus(message('planTitle'));
     });
   }
   function publishSite() {
-    if (busy || !sitePlan || dirty || documentDirty || englishDirty || documentConflict || draftConflict) return;
+    if (busy || !sitePlan || dirty || documentDirty || englishDirty || sharedDirty || (sitePlan.shared&&!sharedChosen) || documentConflict || draftConflict) return;
     const choice = siteChoice ?? { plan: sitePlan, locales: selectedLocales, key: crypto.randomUUID() };
     setSiteChoice(choice);
     void perform(async (current) => {
@@ -352,7 +381,7 @@ function App() {
         const plan = choice.plan;
         const result = await request<Attempt>('/releases', { method: 'POST', headers: { 'Idempotency-Key': choice.key },
           body: JSON.stringify({ revisionId: plan.pages.find((item) => item.pageId === 'home')!.revisionId,
-            expectedActiveVersion: plan.activeVersion, expectedLocales: (plan.localeVariants ?? []).filter((item) => choice.locales.includes(item.pageId)).map(({pageId, locale, revisionId, version, structure}) => ({pageId, locale, revisionId, version, structure})), expectedPages: plan.pages.map(({ pageId, revisionId, version }) => ({ pageId, revisionId, version })) }),
+            expectedActiveVersion: plan.activeVersion, ...(plan.shared?{expectedShared:{revisionId:plan.shared.revisionId,version:plan.shared.version}}:{}), expectedLocales: (plan.localeVariants ?? []).filter((item) => choice.locales.includes(item.pageId)).map(({pageId, locale, revisionId, version, structure}) => ({pageId, locale, revisionId, version, structure})), expectedPages: plan.pages.map(({ pageId, revisionId, version }) => ({ pageId, revisionId, version })) }),
         });
         if (!current()) return;
         setAttempt(result);
@@ -379,7 +408,7 @@ function App() {
     <section aria-labelledby="access-title"><h2 id="access-title">{t.openWebsite}</h2>
       <form onSubmit={open}>
         <label>{t.website}<select value={website} disabled={busy} onChange={(event) => {
-          if ((dirty || documentDirty || englishDirty) && !window.confirm(t.confirmSite)) return;
+          if ((dirty || documentDirty || englishDirty || sharedDirty) && !window.confirm(t.confirmSite)) return;
           reset(); setWebsite(event.target.value);
         }}><option value="demo-cms">{t.trialSite}</option><option value="demo-other">{t.otherSite}</option></select></label>
         <label>{t.testToken}<input type="password" autoComplete="off" value={token} onChange={(event) => {
@@ -391,6 +420,11 @@ function App() {
     </section>
     <p role="status" aria-live="polite" className="status">{formatUiMessage(uiLocale,status)}</p>
     {error && <p role="alert" className="error">{formatUiMessage(uiLocale,error)}</p>}
+    {page?.sharedEnabled&&<section><h2>{t.sharedTitle}</h2><button disabled={busy||sharedDirty} onClick={openShared}>{t.openShared}</button>
+      {shared&&sharedDraft&&<SharedNavigationEditor record={shared} draft={sharedDraft} onChange={(content)=>{setSharedDraft(content);setPreview('');invalidateSiteChoice();}} busy={busy} dirty={sharedDirty} onSave={saveShared} onPreview={previewShared}
+        previewDisabled={!selectedDocument||dirty||documentDirty||englishDirty||!!english&&!english.revisionId} uiLocale={uiLocale}/>}
+      {sharedLatest&&<aside><p>{t.sharedConflictHelp}</p><button disabled={busy} onClick={()=>{if(busy)return;setShared(sharedLatest);setSharedDraft(sharedLatest.content);setSharedLatest(null);setPreview('');invalidateSiteChoice();}}>{t.adoptShared}</button></aside>}
+    </section>}
     {page?.pagesEnabled && <section><h2>{dc.pages}</h2>
       <button disabled={busy} onClick={refreshOverview}>{dc.refresh}</button>
       {overview && <ul>{overview.pages.map((item) => <li key={item.pageId}>{item.title} · {item.file} · v{item.version}{' '}
@@ -486,9 +520,11 @@ function App() {
         {!page.pagesEnabled && <button disabled={busy || dirty || !!draftConflict || publicationConflict} onClick={publish}>{pendingChoice ? t.retryPage : t.publishPage}</button>}</div>}
       {!page.pagesEnabled && publicationConflict && <aside><p>{t.confirmRevision}</p><button disabled={busy} onClick={() => { if (busy) return; setPublicationConflict(false); setStatus(message('revisionConfirmed')); }}>{t.rechooseRevision}</button></aside>}
       {page.pagesEnabled && <fieldset disabled={busy}><legend>{dc.planTitle}</legend>
-        <button disabled={dirty || documentDirty || !!draftConflict || !!documentConflict || englishDirty} onClick={prepareSite}>{dc.plan}</button>
-        {sitePlan && <><ul>{sitePlan.pages.map((item) => <li key={item.pageId}>{item.title} · {item.file} · v{item.version}</li>)}</ul>
-          <button disabled={dirty || documentDirty || !!draftConflict || !!documentConflict || englishDirty} onClick={publishSite}>{siteChoice ? dc.retry : dc.publish}</button></>}
+        <button disabled={dirty || documentDirty || !!draftConflict || !!documentConflict || englishDirty || sharedDirty} onClick={prepareSite}>{dc.plan}</button>
+        {sitePlan && <>{sitePlan.shared&&<aside><p>{t.sharedRevision} {sitePlan.shared.revisionId} · v{sitePlan.shared.version}</p>
+          <SharedNavigationSummary record={sitePlan.shared} uiLocale={uiLocale}/>
+          <label className="check"><input type="checkbox" checked={sharedChosen} onChange={(event)=>{setSharedChosen(event.target.checked);setSiteChoice(null);}}/>{t.chooseShared}</label></aside>}<ul>{sitePlan.pages.map((item) => <li key={item.pageId}>{item.title} · {item.file} · v{item.version}</li>)}</ul>
+          <button disabled={dirty || documentDirty || !!draftConflict || !!documentConflict || englishDirty || sharedDirty || !!sitePlan.shared&&!sharedChosen} onClick={publishSite}>{siteChoice ? dc.retry : dc.publish}</button></>}
       </fieldset>}
       {sitePlan && <fieldset disabled={busy}><legend>{t.explicitLocales}</legend>
         <p>{t.retainedHelp}</p>

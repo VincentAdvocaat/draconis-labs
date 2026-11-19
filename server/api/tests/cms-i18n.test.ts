@@ -30,7 +30,7 @@ describe('CMS typed interface copy', () => {
   });
   it('leaves only language endonyms and route/version notation as literal JSX copy', () => {
     const allowed = new Set(['Nederlands', 'English', '· v', '· en/', '.html']);
-    for (const name of ['main', 'documents', 'page-locales']) {
+    for (const name of ['main', 'documents', 'page-locales', 'shared-navigation']) {
       const source = readFileSync(new URL(`../../../apps/cms/src/${name}.tsx`, import.meta.url), 'utf8');
       const file = ts.createSourceFile(name + '.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
       const visit = (node: ts.Node) => {

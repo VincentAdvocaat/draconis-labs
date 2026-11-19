@@ -1,3 +1,4 @@
+import {CmsSharedNavigation} from './shared-navigation.js';
 import Fastify from 'fastify';
 import { ZodError } from 'zod';
 import { readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'node:fs';
@@ -32,6 +33,7 @@ export interface CmsAppOptions {
   enableUploads?: boolean;
   enablePages?: boolean;
   enablePortfolio?: boolean;
+  enableSharedNavigation?: boolean;
 }
 
 function lockRuntime(root: string): () => void {
@@ -77,7 +79,8 @@ export async function buildCmsApp(options: CmsAppOptions) {
     repository.reconcile();
     if (options.seed) repository.seed();
     if (options.enablePortfolio && media) portfolio = new CmsPortfolio(media, repository);
-    const documents = options.enablePages ? new CmsDocuments(repository, media, uploads, portfolio) : undefined;
+    const shared = options.enableSharedNavigation ? new CmsSharedNavigation(repository) : undefined;
+    const documents = options.enablePages ? new CmsDocuments(repository, media, uploads, portfolio, shared) : undefined;
     const service = new CmsService(repository, join(root, 'releases'), options.hooks, media, mediaUnavailable, uploads, options.enableUploads, documents);
     app.addHook('onClose', async () => { portfolio?.close(); repository!.close(); uploads?.close(); media?.close(); unlock(); });
     app.addHook('onSend', async (_request, reply, payload) => {

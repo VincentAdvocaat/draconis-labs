@@ -48,6 +48,10 @@ function editorHarness() {
   const englishSource = readFileSync(new URL('../../../apps/cms/src/page-locales.tsx', import.meta.url), 'utf8');
   runInNewContext(ts.transpileModule(englishSource, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX}}).outputText,
     {exports: englishExports, require: (name: string) => {if (name === 'react/jsx-runtime') return {jsx, jsxs: jsx}; if (name === './i18n') return i18nExports; throw new Error(name);}});
+  const sharedExports: Record<string, unknown> = {};
+  const sharedSource = readFileSync(new URL('../../../apps/cms/src/shared-navigation.tsx', import.meta.url), 'utf8');
+  runInNewContext(ts.transpileModule(sharedSource, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText,
+    {exports:sharedExports,require:(name:string)=>{if(name==='react/jsx-runtime')return {jsx,jsxs:jsx};if(name==='./i18n')return i18nExports;throw new Error(name);}});
   const source = readFileSync(new URL('../../../apps/cms/src/main.tsx', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
@@ -68,6 +72,7 @@ function editorHarness() {
       if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx };
       if (name === 'react-dom/client') return { createRoot: () => ({ render: (element: Element) => { component = element.type as () => Element; } }) };
       if (name === './style.css') return {};
+      if (name === './shared-navigation') return sharedExports;
       if (name === './i18n') return i18nExports;
       if (name === './page-locales') return englishExports;
       if (name === './documents') return documentExports;
@@ -129,6 +134,38 @@ const pageA = { revisionId: 'revision-A', pageVersion: 1, values: { title: 'Revi
 const pageB = { ...pageA, revisionId: 'revision-B', pageVersion: 2, values: { title: 'Revisie B', intro: '' } };
 
 describe('CMS editor recovery and selected revision', () => {
+  it('requires an explicit shared pin, preserves it across retry/language changes and sends only its revision/version',async()=>{
+    const ui=editorHarness();ui.results.push({status:200,body:{...pageA,pagesEnabled:true,sharedEnabled:true}});await ui.open();
+    const shared={revisionId:'shared-one',version:1,content:{schemaVersion:1,fields:{
+      'navigation.languageLabel':{values:{nl:'Taal',en:'Language'}},'navigation.locale.nl':{value:'Nederlands',sourceLocale:'nl'},'navigation.locale.en':{value:'English',sourceLocale:'en'}}}};
+    ui.results.push({status:200,body:shared});await ui.action(ui.button('Navigatieteksten openen'));
+    await ui.action(ui.field('Taalkeuzekop nl'),'onChange',{target:{value:'Eigen gedeelde kop'}});
+    const changed={...shared,revisionId:'shared-two',version:2,content:{...shared.content,fields:{...shared.content.fields,'navigation.languageLabel':{values:{nl:'Eigen gedeelde kop',en:'Language'}}}}};
+    ui.results.push({status:200,body:changed});await ui.action(ui.button('Navigatieconcept opslaan'));
+    expect(JSON.parse(ui.requests.at(-1)!.init.body!)).toMatchObject({expectedVersion:1});
+    ui.results.push({status:200,body:{activeVersion:0,activeReleaseId:null,pages:[{pageId:'home',revisionId:pageA.revisionId,version:1,title:'Home',file:'index.html'}],shared:changed}});
+    await ui.action(ui.button('Publicatieselectie ophalen'));expect(ui.button('Website lokaal publiceren').props.disabled).toBe(true);
+    await ui.action(ui.field('Deze navigatierevisie expliciet mee publiceren'),'onChange',{target:{checked:true}});
+    ui.results.push(new Error('network lost'));await ui.action(ui.button('Website lokaal publiceren'));const initial=ui.requests.at(-1)!;
+    expect(JSON.parse(initial.init.body!).expectedShared).toEqual({revisionId:'shared-two',version:2});
+    await ui.action(ui.field('Bedieningstaal'),'onChange',{target:{value:'en'}});
+    expect(ui.field('Explicitly publish this navigation revision').props.checked).toBe(true);
+    ui.results.push({status:200,body:{releaseId:'shared-publication',status:'published'}});await ui.action(ui.button('Check website publication again'));
+    expect(ui.requests.at(-1)!.init.body).toBe(initial.init.body);expect(ui.requests.at(-1)!.init.headers['Idempotency-Key']).toBe(initial.init.headers['Idempotency-Key']);
+  });
+
+  it('preserves local shared text on conflict until explicit adoption of the current shared revision',async()=>{
+    const ui=editorHarness();ui.results.push({status:200,body:{...pageA,pagesEnabled:true,sharedEnabled:true}});await ui.open();
+    const shared={revisionId:'shared-one',version:1,content:{schemaVersion:1,fields:{
+      'navigation.languageLabel':{values:{nl:'Taal',en:'Language'}},'navigation.locale.nl':{value:'Nederlands',sourceLocale:'nl'},'navigation.locale.en':{value:'English',sourceLocale:'en'}}}};
+    ui.results.push({status:200,body:shared});await ui.action(ui.button('Navigatieteksten openen'));
+    await ui.action(ui.field('Taalkeuzekop en'),'onChange',{target:{value:'My local label'}});
+    const latest={...shared,revisionId:'shared-two',version:2,content:{...shared.content,fields:{...shared.content.fields,'navigation.languageLabel':{values:{nl:'Taal',en:'Other editor label'}}}}};
+    ui.results.push({status:409,body:{message:'Shared conflict'}},{status:200,body:latest});await ui.action(ui.button('Navigatieconcept opslaan'));
+    expect(ui.field('Taalkeuzekop en').props.value).toBe('My local label');
+    await ui.action(ui.button('Actuele navigatieversie overnemen'));expect(ui.field('Taalkeuzekop en').props.value).toBe('Other editor label');
+  });
+
   it('switches interface language with dirty Dutch input without fetching or changing the save payload', async () => {
     const ui = editorHarness(); ui.results.push({status: 200, body: pageA}); await ui.open();
     await ui.action(ui.title(), 'onChange', {target: {value: 'Mijn eigen Nederlandse inhoud'}});

@@ -19,7 +19,7 @@ if (!existsSync(mediaPointer)) {
   fixture.consumer.close(); fixture.catalog.close(); fixture.media.close();
 }
 const { app } = await buildCmsApp({ runtimeRoot: config.runtimeRoot, credentials: config.credentials,
-  seed: true, enableMedia: true, enableUploads: true, enablePages: true, enablePortfolio: true, uiRoot: join(repoRoot, 'apps', 'cms', 'dist') });
+  seed: true, enableMedia: true, enableUploads: true, enablePages: true, enablePortfolio: true, enableSharedNavigation: true, uiRoot: join(repoRoot, 'apps', 'cms', 'dist') });
 try {
   await app.listen({ host: '127.0.0.1', port: config.port });
 } catch (error) { await app.close(); throw error; }
