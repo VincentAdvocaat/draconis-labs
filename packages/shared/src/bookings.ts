@@ -60,7 +60,7 @@ export interface Zone { id: string; workspaceId: string; name: string; defaultCa
 export interface Slot extends CustomerWindow { id: string; workspaceId: string; zoneId: string; capacity: number; version: number }
 export interface Block { id: string; workspaceId: string; slotId: string; reason: string; actor: string; createdAt: string }
 export interface Availability { slot: Slot; occupied: number; block: Block | null; available: boolean }
-export interface Appointment { id: string; workspaceId: string; contactId: string; slotId: string; zoneId: string; zoneName: string; status: 'planned' | 'cancelled' | 'completed'; source: 'manual'; version: number; window: CustomerWindow; arrivalAt: string | null; createdAt: string; updatedAt: string }
+export interface Appointment { id: string; workspaceId: string; contactId: string; slotId: string; zoneId: string; zoneName: string; status: 'planned' | 'cancelled' | 'completed'; source: 'manual' | 'public'; version: number; window: CustomerWindow; arrivalAt: string | null; createdAt: string; updatedAt: string }
 export interface AppointmentEvent { id: string; workspaceId: string; appointmentId: string; actor: string; createdAt: string; type: 'planned' | 'moved' | 'cancelled' | 'completed'; before: { window: CustomerWindow; arrivalAt: string | null; zoneId?: string; zoneName?: string } | null; after: { window: CustomerWindow; arrivalAt: string | null; zoneId?: string; zoneName?: string } }
 export interface ContactCard { contact: Contact; upcoming: Appointment[]; history: Appointment[]; events: AppointmentEvent[] }
 export interface BookingPolicy { timezone: string; horizonDays: number; dayparts: { id: string; label: string; startTime: string; endTime: string }[] }

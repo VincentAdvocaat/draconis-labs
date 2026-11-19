@@ -32,4 +32,4 @@ export interface BookingStorage extends ContactStorage, CapacityStorage, Appoint
   receipt(actor: string, operation: string, key: string): { hash: string; result: unknown } | undefined;
   saveReceipt(actor: string, operation: string, key: string, hash: string, result: unknown): void;
 }
-export interface BookingEnvironment extends PlannerEnvironment { hash(canonicalInput: string): string }
+export interface BookingEnvironment extends PlannerEnvironment { hash(canonicalInput: string): string; appointmentSource?: 'manual' | 'public' }

@@ -1,0 +1,35 @@
+{
+  "date": "2026-11-19",
+  "scope": "Local synthetic SQLite Backup API copy only; source hash unchanged",
+  "channel": "39bea0aa-e858-42f3-8b5c-e86c8a7fd986",
+  "normalBrowserFlow": {
+    "postcode": "0002 AA",
+    "date": "2026-11-20",
+    "zone": "Noord (fictief)",
+    "window": "08:00–12:00 Europe/Amsterdam",
+    "reference": "6cd9efa6-8078-4b53-8fc5-c9435706a7bb",
+    "confirmed": true,
+    "reloadSameConfirmation": true,
+    "confirmationContainsContactOrInternalArrival": false,
+    "staffSourceLabel": "Publieke boeking",
+    "staffOccupancy": "2 van 2 bezet · Vol",
+    "newInternalArrival": null,
+    "existingInternalArrival": "10:15"
+  },
+  "compiledPublicApiRestart": {
+    "sameDatabase": true,
+    "browserReloadSameConfirmation": true,
+    "availabilityOnlyAfternoonRemainingOne": true,
+    "exactHttpReplayAfterRestart": "Passed independently in smoke:public"
+  },
+  "checks": {
+    "tests": 148,
+    "typecheck": "passed",
+    "lint": "passed",
+    "build": "passed; existing private bundle size advisory",
+    "privateStartupSmoke": "passed",
+    "publicStartupSmoke": "passed"
+  },
+  "browserLimitation": "Initial private Vite dev page remained blank; acceptance used built private app with explicit VITE_API_URL instead",
+  "screenshots": ["pl31-32-public.png", "pl31-32-staff.png"]
+}

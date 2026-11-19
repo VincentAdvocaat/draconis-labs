@@ -1,8 +1,9 @@
 # Lokale Planner-demo
 
 Deze demo gebruikt uitsluitend nieuwe fictieve gegevens. Zij maakt geen
-cloudresources of accounts aan en installeert niets. De code staat in PR #28,
-gestapeld op #23. De lokale zonesstap bouwt daarop voort. De [zoneregels](pl21-22-zones-capaciteit.md)
+cloudresources of accounts aan en installeert niets. De publieke stap bouwt
+gestapeld op PR #30 voort. De [publieke boekingsregels](pl31-32-lokaal-publiek-boeken.md),
+[zoneregels](pl21-22-zones-capaciteit.md)
 en [eerdere storymatrix](pl14-15-lokale-contacten-afspraken.md)
 onderscheiden lokale functionaliteit van de nog open cloud- en release-eisen.
 
@@ -13,7 +14,7 @@ draaien. Het uitgeprinte databasepad is het eigen demobestand; bewaar dat voor
 een volgende start met dezelfde gegevens.
 
 ```powershell
-Set-Location C:/git/draconis-labs/.worktrees/feature/planner-zones-capacity
+Set-Location C:/git/draconis-labs/.worktrees/feature/planner-local-public-booking
 corepack pnpm install --frozen-lockfile
 corepack pnpm build
 $plannerDemo = Join-Path $env:TEMP ('planner-demo-' + [guid]::NewGuid().ToString('N'))
@@ -28,7 +29,7 @@ corepack pnpm --filter @draconis/api start
 Open een tweede PowerShell-terminal:
 
 ```powershell
-Set-Location C:/git/draconis-labs/.worktrees/feature/planner-zones-capacity
+Set-Location C:/git/draconis-labs/.worktrees/feature/planner-local-public-booking
 $env:VITE_API_URL = 'http://127.0.0.1:3041'
 corepack pnpm --filter @draconis/planner exec vite --host 127.0.0.1 --port 3042 --strictPort
 ```
@@ -41,13 +42,44 @@ terminal opnieuw `corepack pnpm --filter @draconis/api start` uit. Maak daarbij
 geen nieuwe `$plannerDemo` aan. Een nieuwe browserpagina start bij Taken; kies
 dezelfde datum om eerdere afspraken terug te zien.
 
+## Lokale bezoekerspagina starten
+
+Start eerst de twee webterminals hierboven en plan eventueel een fictieve
+medewerkersafspraak. Open een derde terminal, vul exact het eerder uitgeprinte
+eigen databasepad in en maak eenmaal het kanaal. Bewaar de uitgeprinte URL.
+Een tweede actief kanaal voor dezelfde werkruimte wordt geweigerd.
+
+```powershell
+Set-Location C:/git/draconis-labs/.worktrees/feature/planner-local-public-booking
+$env:DATABASE_PATH = 'C:/Users/vince/AppData/Local/Temp/planner-demo-VERVANG/own.sqlite'
+corepack pnpm --filter @draconis/api planner:channel --database $env:DATABASE_PATH --origin http://127.0.0.1:3044 --name 'Fictief onderhoud'
+$env:PUBLIC_HOST = '127.0.0.1'
+$env:PUBLIC_PORT = '3043'
+corepack pnpm --filter @draconis/api start:public
+```
+
+Open een vierde terminal:
+
+```powershell
+Set-Location C:/git/draconis-labs/.worktrees/feature/planner-local-public-booking
+corepack pnpm --filter @draconis/planner dev:public
+```
+
+Open de kanaal-URL op poort 3044. Gebruik `0002 AA` voor Noord en kies een datum
+binnen 90 dagen. Boek met fictieve contactgegevens en ververs daarna de interne
+Afspraken-weergave voor dezelfde zone en datum. De publieke bevestiging toont
+alleen tijdvak en referentie. Stop en herstart uitsluitend `start:public` in
+dezelfde derde terminal om dezelfde database en hetzelfde kanaal te behouden.
+Voer de kanaalaanmaak bij herstart niet opnieuw uit. De publieke frontendproxy
+verwacht poort 3043 en de kanaalbinding verwacht exact origin 3044.
+
 ## Verpakte Windows-proef starten
 
 Dit maakt een ongeïnstalleerde, niet ondertekende proef-exe. Het lokale profiel
 is onafhankelijk van de webdemo; er vindt geen synchronisatie plaats.
 
 ```powershell
-Set-Location C:/git/draconis-labs/.worktrees/feature/planner-zones-capacity
+Set-Location C:/git/draconis-labs/.worktrees/feature/planner-local-public-booking
 corepack pnpm --filter @draconis/desktop-probe build
 corepack pnpm --filter @draconis/desktop-probe package
 $env:PLANNER_PROBE_PROFILE = Join-Path $env:TEMP ('planner-window-demo-' + [guid]::NewGuid().ToString('N'))

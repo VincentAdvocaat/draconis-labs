@@ -96,3 +96,4 @@ export * from './bookings.js';
 export { createBookingHttpTransport } from './booking-http.js';
 export { bookingResultSchemas } from './booking-responses.js';
 export { PLANNER_ERROR_CODES } from './planner-client.js';
+export * from './public-booking.js';

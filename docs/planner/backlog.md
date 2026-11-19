@@ -79,6 +79,11 @@ geen Azure Boards-status of eerdere open cloud-/releasevoorwaarden.
 
 ## Fase 3 · Publiek boeken
 
+De [lokale PL-31/32-stap](pl31-32-lokaal-publiek-boeken.md) levert één expliciet
+gebonden lokaal kanaal, een bezoekerspagina en atomair reserveren met dezelfde
+capaciteitsregels. Dit lokale checkpoint wijzigt geen Azure-status of open
+cloud-, e-mail- en releasevoorwaarden.
+
 | Story | Prioriteit · vereist | Uitvoering en acceptatie |
 | --- | --- | --- |
 | PL-31 · Publiek kanaal en tijdvakken | P1 · PL-22 | Voeg beheer van één actief kanaal per pilotwerkruimte en onpersoonlijke beschikbaarheidsresponses toe. Valideer zone/postcode, horizon en rate limits aan de serverkant. **Gereed als** publieke lijstopvraging alleen boekbare klanttijdvakken toont en tests expliciet uitsluiten dat interne aankomsttijd, route, blokkadereden of klantgegevens naar buiten gaan. |

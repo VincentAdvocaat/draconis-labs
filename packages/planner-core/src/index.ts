@@ -7,3 +7,5 @@ export type { PlannerStorage, PlannerEnvironment, HistoryQuery } from './storage
 export { executePlannerCommand } from './commands.js';
 export { createBookingService, type BookingService } from './bookings.js';
 export type { BookingStorage, BookingEnvironment } from './booking-storage.js';
+export { createPublicBookingService, type PublicBookingService } from './public-booking.js';
+export type { PublicBookingStorage, PublicChannel, PublicRequest } from './public-storage.js';

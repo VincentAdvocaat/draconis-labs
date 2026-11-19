@@ -35,7 +35,7 @@ describe.each(['legacy', 'current'])('%s SQLite baseline', (fixture) => {
       expect(sqlite.prepare('SELECT * FROM user_preferences').all()).toEqual(preferencesBefore);
       const { initializePlannerSqlite } = await import('@draconis/planner-sqlite');
       const versions = sqlite.prepare('SELECT * FROM planner_schema_migrations').all();
-      expect(versions).toMatchObject([{ version: 1 }, { version: 2 }, { version: 3 }]);
+      expect(versions).toMatchObject([{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }]);
       initializePlannerSqlite(sqlite);
       expect(sqlite.prepare('SELECT * FROM planner_schema_migrations').all()).toEqual(versions);
       const get = (url: string) => app.inject({ method: 'GET', url });

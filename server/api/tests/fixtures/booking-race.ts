@@ -2,9 +2,11 @@ import { fork } from 'node:child_process';
 import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect } from 'vitest';
-import type { BookingCommand, PlannerReply } from '@draconis/shared';
+import type { BookingCommand, PlannerReply,PublicReservation,PublicReply,PublicConfirmation } from '@draconis/shared';
+export type WriterCommand=BookingCommand|{type:'public.reserve';channelId:string;origin:string;input:PublicReservation};
+type WriterReply=PlannerReply|PublicReply<PublicConfirmation>;
 
-export async function race(path: string, binding: string, commands: BookingCommand[], gate: string) {
+export async function race(path: string, binding: string, commands: WriterCommand[], gate: string) {
   const children = commands.map((command, index) => fork(new URL('./booking-writer.ts', import.meta.url), [path, binding, JSON.stringify(command), gate, ['first','second','third'][index]], { execArgv: ['--import','tsx'], stdio: ['ignore','ignore','pipe','ipc'], windowsHide: true }));
   let log = '';
   const closed = children.map(child => new Promise<void>(resolve => child.once('close', () => resolve())));
@@ -13,8 +15,8 @@ export async function race(path: string, binding: string, commands: BookingComma
     child.on('message', message => { if ('ready' in (message as object)) resolve(); });
     child.once('error', reject); child.once('exit', exit => { if (exit) reject(new Error(log)); });
   }));
-  const results = children.map(child => new Promise<PlannerReply>((resolve, reject) => {
-    child.on('message', message => { if ('ok' in (message as object)) resolve(message as PlannerReply); });
+  const results = children.map(child => new Promise<WriterReply>((resolve, reject) => {
+    child.on('message', message => { if ('ok' in (message as object)) resolve(message as WriterReply); });
     child.once('error', reject); child.once('exit', exit => { if (exit) reject(new Error(log)); });
   }));
   // Prevent unhandled rejections while waiting on the deterministic gate.

@@ -148,7 +148,7 @@ export function Bookings({ client, section }: { client: BookingClient; section: 
       </div>
       <section aria-label="Afspraken op datum"><h2>Op deze datum</h2>
         <ul>{visits.map(a => <li key={a.id} className="booking-visit">
-          <strong>{contacts.find(contact => contact.id === a.contactId)?.name ?? 'Relatie op klantkaart'}</strong> · {windowLabel(a)} · {statusLabel[a.status]}
+          <strong>{contacts.find(contact => contact.id === a.contactId)?.name ?? 'Relatie op klantkaart'}</strong> · {windowLabel(a)} · {statusLabel[a.status]}{a.source==='public'?' · Publieke boeking':''}
           <p>Interne aankomst: {a.arrivalAt ? new Intl.DateTimeFormat('nl-NL', { timeZone: a.window.timezone, hour: '2-digit', minute: '2-digit' }).format(new Date(a.arrivalAt)) : 'Niet ingevuld'}</p>
           {a.status === 'planned' && <>
             <button disabled={disabled} onClick={() => { setMoving(a); setSlotId(''); setArrivalTime(''); }}>Verplaatsen</button>

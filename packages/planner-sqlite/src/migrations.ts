@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 import { applyBookings } from './booking-migration.js';
 import { applyZones } from './zone-migration.js';
+import { applyPublicBooking } from './public-migration.js';
 
 function applyBaseline(sqlite: Database.Database) {
   sqlite.exec(`
@@ -58,4 +59,4 @@ function applyBaseline(sqlite: Database.Database) {
 
 }
 
-export const plannerMigrations = [{ version: 1, apply: applyBaseline }, { version: 2, apply: applyBookings }, { version: 3, apply: applyZones }] as const;
+export const plannerMigrations = [{ version: 1, apply: applyBaseline }, { version: 2, apply: applyBookings }, { version: 3, apply: applyZones }, { version: 4, apply: applyPublicBooking }] as const;

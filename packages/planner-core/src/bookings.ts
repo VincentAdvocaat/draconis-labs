@@ -127,7 +127,7 @@ export function createBookingService(storage: BookingStorage, env: BookingEnviro
         const contact = required(storage.contact(command.input.contactId));
         if (contact.archived) throw new BookingError('CONTACT_ARCHIVED', 'Kies een actieve relatie.');
         const slot = freeSlot(command.input.slotId), now = env.now();
-        const appointment: Appointment = { id: env.id(), workspaceId: storage.workspaceId, contactId: contact.id, slotId: slot.id, zoneId: slot.zoneId, zoneName: zone(slot.zoneId).name, source: 'manual', status: 'planned', version: 1, window: promised(slot), arrivalAt: arrival(command.input.arrivalAt, slot), createdAt: now, updatedAt: now };
+        const appointment: Appointment = { id: env.id(), workspaceId: storage.workspaceId, contactId: contact.id, slotId: slot.id, zoneId: slot.zoneId, zoneName: zone(slot.zoneId).name, source: env.appointmentSource ?? 'manual', status: 'planned', version: 1, window: promised(slot), arrivalAt: arrival(command.input.arrivalAt, slot), createdAt: now, updatedAt: now };
         storage.saveAppointment(appointment); event('planned', actor, appointment); return appointment;
       }
       case 'appointments.move': case 'appointments.status': {
