@@ -76,6 +76,9 @@ zelfstandig Tauri-pakket op een machine zonder Node.
 
 ## PL-11 vervolgstap
 
+De eerste opslagstap is inmiddels [uitgevoerd en afzonderlijk verantwoord](pl11-core-en-opslag.md).
+Onderstaande beschrijving legt het uitgangspunt van PL-02 vast.
+
 De taakregels hebben een begin in `packages/planner-core`. `newTask` ontvangt
 ID, klok, actor en huidige positie. De desktopstore is nog een geïsoleerde
 JSON-recordproef en geen gedeelde productadapter. Verplaats in de volgende

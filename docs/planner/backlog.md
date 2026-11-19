@@ -25,7 +25,9 @@ fictieve schemafixtures, 22 tests en de resterende UI-controle vast. De
 [Windows-ADR](adr-001-windows-runtime.md) bevat de uitvoerbare Electron-proef,
 meetresultaten en harde grenzen. PL-02 blijft voorlopig zolang de schone-VM-
 vergelijking, installatie-/upgradetest en identity-/signingcontroles ontbreken.
-Dit wijzigt geen Azure Boards-status.
+De [eerste PL-11-opslagstap](pl11-core-en-opslag.md) deelt inmiddels service en
+SQLite-adapter met desktop. Werkruimteroutes en de gedeelde foutenenvelop staan
+nog open. Dit wijzigt geen Azure Boards-status.
 
 | Story | Prioriteit · vereist | Uitvoering en acceptatie |
 | --- | --- | --- |

@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { openProbeStore } from './store.js';
+import { assertProbeSender, guardProbeInvoke } from './sender.js';
 
 const started = performance.now();
 if (process.argv.some(arg => arg.startsWith('--squirrel-'))) app.exit(0);
@@ -26,22 +27,30 @@ app.whenReady().then(async () => {
   });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', event => event.preventDefault());
-  const assertSender = (event: Electron.IpcMainInvokeEvent) => {
-    if (event.sender !== win.webContents || event.senderFrame !== win.webContents.mainFrame || event.senderFrame.url !== page) {
-      throw new Error('Unknown probe sender');
-    }
-  };
-  ipcMain.handle('probe:list', event => { assertSender(event); return store!.list(); });
-  ipcMain.handle('probe:create', (event, input) => { assertSender(event); return store!.create(input); });
+  const sender = { webContents: win.webContents, mainFrame: win.webContents.mainFrame, page };
+  ipcMain.handle('probe:list', guardProbeInvoke(sender, () => store!.list()));
+  ipcMain.handle('probe:create', guardProbeInvoke(sender, input => store!.create(input)));
+  ipcMain.handle('probe:update', guardProbeInvoke(sender, (id: string, input) => store!.update(id, input)));
   ipcMain.handle('probe:ready', async event => {
-    assertSender(event);
+    assertProbeSender(event, sender);
     const readyMs = performance.now() - started;
     const readyEpochMs = Date.now();
     if (!process.env.PLANNER_PROBE_OUTPUT) return;
     try {
       const before = store!.list();
       // Invoke the actual isolated preload interface from the bundled renderer.
-      const task = await win.webContents.executeJavaScript("window.plannerProbe.create({title:'Persistente fictieve desktoptaak',labels:['probe']})");
+      const initial = await win.webContents.executeJavaScript(`window.plannerProbe.create({
+        title: 'Rijke fictieve desktoptaak', description: 'Behoud alle velden',
+        plannedDate: '2026-11-19', dueDate: '2026-11-20', dueTime: '09:15',
+        timezone: 'Europe/Amsterdam', recurrence: {frequency:'weekly',interval:2},
+        priority:'high', labels:['probe','onderhoud'],
+        createdBy:'forged', id:'forged', lane:'done', version:999
+      })`);
+      const actorBoundary = initial.createdBy === 'local-probe' && initial.id !== 'forged' && initial.lane === 'todo' && initial.version === 1;
+      await win.webContents.executeJavaScript(`window.plannerProbe.update('${initial.id}', {lane:'doing',position:${initial.position},version:1})`);
+      const conflictRejected = await win.webContents.executeJavaScript(`window.plannerProbe.update('${initial.id}',{title:'stale',version:1}).then(()=>false,()=>true)`);
+      await win.webContents.executeJavaScript(`window.plannerProbe.update('${initial.id}',{lane:'done',version:2})`);
+      const task = await win.webContents.executeJavaScript(`window.plannerProbe.update('${initial.id}',{lane:'done'})`);
       const read = await win.webContents.executeJavaScript('window.plannerProbe.list()');
       const rejected = await win.webContents.executeJavaScript("window.plannerProbe.create({title:''}).then(()=>false,()=>true)");
       const encrypted = await safeStorage.isAsyncEncryptionAvailable();
@@ -50,7 +59,7 @@ app.whenReady().then(async () => {
       writeFileSync(`${process.env.PLANNER_PROBE_OUTPUT}.png`, screenshot.toPNG());
       writeFileSync(process.env.PLANNER_PROBE_OUTPUT, JSON.stringify({
         version: app.getVersion(), electron: process.versions.electron, node: process.versions.node,
-        abi: process.versions.modules, readyMs, readyEpochMs, before, task, read, rejected,
+        abi: process.versions.modules, readyMs, readyEpochMs, before, task, read, rejected, actorBoundary, conflictRejected,
         tokenRoundTrip, sqlite: 'better-sqlite3', profile: app.getPath('userData'),
       }, null, 2));
       app.quit();

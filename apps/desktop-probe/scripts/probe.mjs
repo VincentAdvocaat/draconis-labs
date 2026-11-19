@@ -3,11 +3,20 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, readdirSync, statS
 import { tmpdir, release, arch, cpus } from 'node:os';
 import { join, resolve } from 'node:path';
 import assert from 'node:assert/strict';
+import Database from 'better-sqlite3';
 
 const outputDir = resolve(process.env.PLANNER_PROBE_RESULTS || `dist/results/run-${Date.now()}`);
 mkdirSync(outputDir, { recursive: true });
 assert.equal(readdirSync(outputDir).length, 0, 'Choose an empty result directory to preserve earlier evidence');
 const profile = process.env.PLANNER_PROBE_PROFILE || mkdtempSync(join(tmpdir(), 'draconis-desktop-probe-'));
+if (process.env.PLANNER_PROBE_SEED) {
+  mkdirSync(profile, { recursive: true });
+  const database = new Database(join(profile, 'probe.sqlite'));
+  database.exec('CREATE TABLE probe_tasks (id TEXT PRIMARY KEY, payload TEXT NOT NULL)');
+  const seed = JSON.parse(readFileSync(process.env.PLANNER_PROBE_SEED, 'utf8')).previous.read;
+  for (const task of seed) database.prepare('INSERT INTO probe_tasks VALUES (?, ?)').run(task.id, JSON.stringify(task));
+  database.close();
+}
 const exe = resolve('dist/packages/DraconisPlannerProbe-win32-x64/DraconisPlannerProbe.exe');
 function run(file, args, env, input) {
   return new Promise((done, fail) => {
@@ -31,14 +40,24 @@ const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
 const runs = [];
 let previous = process.env.PLANNER_PROBE_PREVIOUS
-  ? JSON.parse(readFileSync(process.env.PLANNER_PROBE_PREVIOUS, 'utf8')).read : undefined;
+  ? JSON.parse(readFileSync(process.env.PLANNER_PROBE_PREVIOUS, 'utf8')).read : process.env.PLANNER_PROBE_SEED
+    ? JSON.parse(readFileSync(process.env.PLANNER_PROBE_SEED, 'utf8')).previous.read : undefined;
 for (let index = 0; index < 5; index++) {
   const output = join(outputDir, `launch-${index + 1}.json`);
   const processResult = await run(exe, [], { ...env, PLANNER_PROBE_PROFILE: profile, PLANNER_PROBE_OUTPUT: output });
   const result = JSON.parse(readFileSync(output, 'utf8'));
   assert(result.rejected, 'main process must reject invalid payload');
   assert(result.tokenRoundTrip, 'Windows safeStorage must round-trip a synthetic token');
-  assert.deepEqual(result.read, [...result.before, result.task]);
+  assert(result.actorBoundary, 'actor, ID, lane and version must remain main-process determined');
+  assert(result.conflictRejected, 'shared update must reject stale versions');
+  const priorIds = new Set(result.before.map(task => task.id));
+  assert.deepEqual(result.read.filter(task => priorIds.has(task.id)), result.before);
+  assert.equal(result.read.length, result.before.length + 2);
+  assert.equal(result.task.version, 4);
+  assert.equal(result.task.timezone, 'Europe/Amsterdam');
+  const successor = result.read.find(task => task.recurrenceParentId === result.task.id);
+  assert.equal(successor.dueDate, '2026-12-04');
+  assert.deepEqual(successor.recurrence, { frequency: 'weekly', interval: 2 });
   if (previous) assert.deepEqual(result.before, previous, 'SQLite records must survive process restart');
   previous = result.read;
   runs.push({ ...result, spawnToReadyMs: result.readyEpochMs - processResult.startedEpochMs, elapsedMs: processResult.elapsedMs, invalidInputLogged: processResult.stderr.includes('ZodError') });

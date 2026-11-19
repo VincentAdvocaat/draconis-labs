@@ -1,7 +1,8 @@
 # Lokale desktopproef
 
 PL-02-experiment met een kleine React-weergave, beperkte Electron-preload en
-duurzame SQLite-write via de gedeelde `planner-core.newTask`. De proef opent
+duurzame SQLite-write via `planner-core.createPlannerService` en de gedeelde
+`planner-sqlite`-adapter. De proef opent
 uitsluitend `probe.sqlite` in een eigen profiel. Hij migreert geen bestaande
 Planner-database. Cloud, werkruimten, contacten en afspraken zijn niet gebouwd.
 
@@ -20,8 +21,9 @@ of ontwikkelserver. Open `DraconisPlannerProbe.exe` voor handmatige invoer.
 De renderer gebruikt gebundelde assets; externe netwerkverzoeken worden geweigerd.
 
 De automatische proef start vijf afzonderlijke processen met één tijdelijk
-profiel, schrijft via de echte preload, controleert eerdere records en weigert
-ongeldige invoer. Hij controleert Windows safeStorage met een fictief token.
+profiel, schrijft via de echte preload, controleert eerdere records, verplaatst de taak, rondt haar af, controleert één
+opvolgtaak en weigert ongeldige invoer en verouderde versies. Vervalste maker, ID,
+lane en versie uit create-invoer worden genegeerd. Hij controleert Windows safeStorage met een fictief token.
 Vervolgens test hij het Node-sidecarprotocol met dezelfde SQLite-store en
 taakregel. Dit laatste is geen Tauri-shell. Een time-out beëindigt het eigen
 proces. De tijdelijke profielmap blijft beschikbaar voor inspectie.
@@ -63,3 +65,11 @@ SQLite 13.2 met meegeleverde Node-API-binaries. De versiegebonden pnpm-buildrege
 voorkomt een onnodige automatische C++-rebuild van die binary.
 
 Zie [de ADR](../../docs/planner/adr-001-windows-runtime.md) voor bewijs en grenzen.
+
+De PL-11-vervolgstap gebruikt de gewone gedeelde `tasks`- en voorkeurentabellen
+in diezelfde geïsoleerde proefdatabase. Eerdere PL-02-JSON-records worden per
+ontbrekend ID atomair overgenomen; de brontabel blijft behouden. Met
+`PLANNER_PROBE_SEED=../../docs/planner/evidence/upgrade-records.json` kan de
+meetprocedure die oude tabel met vijf fictieve records aanmaken in een nieuw
+profiel. Gebruik deze optie alleen voor de eerste run van dat nieuwe profiel.
+Zie [PL-11 en zijn resterende criteria](../../docs/planner/pl11-core-en-opslag.md).
