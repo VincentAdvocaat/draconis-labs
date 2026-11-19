@@ -89,3 +89,6 @@ export interface PaginatedTasks {
 
 export { LOCAL_WORKSPACE_ID, plannerCommandSchema, createPlannerClient, createPlannerHttpTransport, PlannerClientError, PlannerConflictError } from './planner-client.js';
 export type { PlannerClient, PlannerCommand, PlannerError, PlannerErrorCode, PlannerReply, PlannerTransport } from './planner-client.js';
+
+export { workspaceUpdateTaskSchema } from './planner-client.js';
+export type { WorkspaceTaskUpdate } from './planner-client.js';

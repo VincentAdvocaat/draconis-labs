@@ -53,7 +53,7 @@ app.whenReady().then(async () => {
       const conflictCode = await win.webContents.executeJavaScript(`window.plannerClient.update('${initial.id}',{title:'stale',version:1}).then(()=>null,error=>error.code)`);
       const conflictRejected = conflictCode === 'VERSION_CONFLICT';
       await win.webContents.executeJavaScript(`window.plannerClient.update('${initial.id}',{lane:'done',version:2})`);
-      const task = await win.webContents.executeJavaScript(`window.plannerClient.update('${initial.id}',{lane:'done'})`);
+      const task = await win.webContents.executeJavaScript(`window.plannerClient.update('${initial.id}',{lane:'done',version:3})`);
       const read = await win.webContents.executeJavaScript('window.plannerClient.list()');
       const rejected = await win.webContents.executeJavaScript("window.plannerClient.create({title:''}).then(()=>false,error=>error.code==='INVALID_INPUT')");
       await win.webContents.executeJavaScript("window.plannerClient.preferences.update({locale:'en'})");

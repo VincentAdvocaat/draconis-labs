@@ -28,7 +28,9 @@ vergelijking, installatie-/upgradetest en identity-/signingcontroles ontbreken.
 De [eerste PL-11-opslagstap](pl11-core-en-opslag.md) deelt inmiddels service en
 SQLite-adapter met desktop. De [lokale clientstap](pl11-lokale-client.md) gebruikt inmiddels expliciete
 werkruimtecontext en dezelfde foutenvelop over HTTP en desktop. PL-12 en PL-13
-blijven afzonderlijke vervolgstappen. Dit wijzigt geen Azure Boards-status.
+blijven afzonderlijke vervolgstappen. De [eerste SQLite-stap van PL-13](pl13-sqlite-atomiciteit.md)
+levert inmiddels genummerde migratie, verplichte workspace-versies en atomaire
+taakmutaties; PostgreSQL/import/herstel blijven open. Dit wijzigt geen Azure Boards-status.
 
 | Story | Prioriteit · vereist | Uitvoering en acceptatie |
 | --- | --- | --- |

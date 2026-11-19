@@ -113,3 +113,8 @@ trim vóór lengtegrenzen, update-invoer en voorkeurtypen. JSON-schema's documen
 de nieuwe routes; de gedeelde Zod-dispatcher valideert hun oorspronkelijke invoer
 zonder voorafgaande AJV-typeconversie. De volledige bestaande web-UI is niet met
 pointer-/toetsenbordautomatisering getest.
+
+De eerste [SQLite-stap van PL-13](pl13-sqlite-atomiciteit.md) heeft inmiddels
+verplichte workspace-updateversies en de lokale transactiegrens uitgevoerd.
+De bovenstaande PL-11-status blijft de oorspronkelijke acceptatiegrens;
+PostgreSQL, import en herstel zijn daarmee nog niet geaccepteerd.

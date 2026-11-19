@@ -78,9 +78,20 @@ function buildTaskFilters(query: PlannerListQuery) {
   return filters.length ? and(...filters) : undefined;
 }
 
-export function createSqlitePlannerStorage(sqlite: Database.Database): PlannerStorage {
+export function createSqlitePlannerStorage(sqlite: Database.Database, busyTimeoutMs = 5000): PlannerStorage {
+  if (!Number.isInteger(busyTimeoutMs) || busyTimeoutMs < 0 || busyTimeoutMs > 5000) throw new Error('Invalid SQLite busy timeout');
+  sqlite.pragma(`busy_timeout = ${busyTimeoutMs}`);
   const db = drizzle(sqlite);
   return {
+    transaction<T>(operation: () => T): T {
+      try { return sqlite.transaction(operation).immediate(); }
+      catch (error) {
+        if (typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string' && error.code.startsWith('SQLITE_BUSY')) {
+          throw Object.assign(new Error('Planner is tijdelijk bezet. Probeer opnieuw.'), { statusCode: 503 });
+        }
+        throw error;
+      }
+    },
     list(query: PlannerListQuery): Task[] | PaginatedTasks {
       const where = buildTaskFilters(query);
       const order = [asc(tasks.lane), asc(tasks.position)];

@@ -1,57 +1,19 @@
 import type Database from 'better-sqlite3';
+import { plannerMigrations } from './migrations.js';
 
 export function initializePlannerSqlite(sqlite: Database.Database) {
-  sqlite.exec(`
-    CREATE TABLE IF NOT EXISTS tasks (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      description TEXT,
-      lane TEXT NOT NULL DEFAULT 'todo',
-      planned_date TEXT,
-      due_date TEXT,
-      due_time TEXT,
-      timezone TEXT,
-      recurrence TEXT,
-      recurrence_parent_id TEXT,
-      position REAL NOT NULL,
-      version INTEGER NOT NULL DEFAULT 1,
-      created_by TEXT NOT NULL DEFAULT 'user',
-      priority TEXT NOT NULL DEFAULT 'normal',
-      labels TEXT NOT NULL DEFAULT '[]',
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      completed_at TEXT
-    );
-    CREATE INDEX IF NOT EXISTS idx_tasks_lane_position
-      ON tasks(lane, position);
-    CREATE INDEX IF NOT EXISTS idx_tasks_planned_date
-      ON tasks(planned_date);
-
-  `);
-
-  const taskColumns = sqlite.pragma('table_info(tasks)') as Array<{ name: string }>;
-  const ensureColumn = (name: string, ddl: string) => {
-    if (!taskColumns.some((column) => column.name === name)) {
-      sqlite.exec(ddl);
+  sqlite.transaction(() => {
+    sqlite.exec(`CREATE TABLE IF NOT EXISTS planner_schema_migrations (
+      version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL
+    )`);
+    const applied = sqlite.prepare('SELECT version FROM planner_schema_migrations ORDER BY version').all() as { version: number }[];
+    if (applied.some(row => !plannerMigrations.some(migration => migration.version === row.version))) {
+      throw new Error('Planner database bevat een onbekende migratieversie');
     }
-  };
-  ensureColumn('version', 'ALTER TABLE tasks ADD COLUMN version INTEGER NOT NULL DEFAULT 1');
-  ensureColumn('due_date', 'ALTER TABLE tasks ADD COLUMN due_date TEXT');
-  ensureColumn('due_time', 'ALTER TABLE tasks ADD COLUMN due_time TEXT');
-  ensureColumn('timezone', 'ALTER TABLE tasks ADD COLUMN timezone TEXT');
-  ensureColumn('recurrence', 'ALTER TABLE tasks ADD COLUMN recurrence TEXT');
-  ensureColumn('recurrence_parent_id', 'ALTER TABLE tasks ADD COLUMN recurrence_parent_id TEXT');
-
-  sqlite.exec(`
-    CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
-    CREATE INDEX IF NOT EXISTS idx_tasks_created_by ON tasks(created_by);
-    CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
-
-    CREATE TABLE IF NOT EXISTS user_preferences (
-      id TEXT PRIMARY KEY,
-      preferences TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-  `);
-
+    for (const migration of plannerMigrations) {
+      if (applied.some(row => row.version === migration.version)) continue;
+      migration.apply(sqlite);
+      sqlite.prepare('INSERT INTO planner_schema_migrations VALUES (?, ?)').run(migration.version, new Date().toISOString());
+    }
+  }).immediate();
 }

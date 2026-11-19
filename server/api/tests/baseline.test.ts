@@ -33,6 +33,12 @@ describe.each(['legacy', 'current'])('%s SQLite baseline', (fixture) => {
         expect(after[index]).toMatchObject(before[index]);
       }
       expect(sqlite.prepare('SELECT * FROM user_preferences').all()).toEqual(preferencesBefore);
+      const { initializePlannerSqlite } = await import('@draconis/planner-sqlite');
+      const versions = sqlite.prepare('SELECT * FROM planner_schema_migrations').all();
+      expect(versions).toHaveLength(1);
+      expect(versions[0]).toMatchObject({ version: 1 });
+      initializePlannerSqlite(sqlite);
+      expect(sqlite.prepare('SELECT * FROM planner_schema_migrations').all()).toEqual(versions);
       const get = (url: string) => app.inject({ method: 'GET', url });
       const list = (await get('/api/v1/planner/tasks')).json();
       expect(list.map((task: { id: string }) => task.id)).toEqual([id(3), id(2), id(1)]);

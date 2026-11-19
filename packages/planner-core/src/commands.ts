@@ -20,6 +20,7 @@ export function executePlannerCommand(service: PlannerService, workspaceId: stri
     return { ok: true, value };
   } catch (error) {
     if (error instanceof TaskConflictError) return { ok: false, error: { code: 'VERSION_CONFLICT', status: 409, message: error.message, task: error.task } };
+    if (error instanceof Error && 'statusCode' in error && error.statusCode === 503) return { ok: false, error: { code: 'UNAVAILABLE', status: 503, message: error.message } };
     if (error instanceof Error && 'statusCode' in error && error.statusCode === 404) return { ok: false, error: { code: 'TASK_NOT_FOUND', status: 404, message: error.message } };
     return { ok: false, error: { code: 'INTERNAL_ERROR', status: 500, message: 'Planner kan de opdracht niet uitvoeren.' } };
   }

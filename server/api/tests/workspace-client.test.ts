@@ -40,11 +40,15 @@ describe('one local workspace client over HTTP and desktop command transport', (
         await expect(client.update(task.id, { title: 123, version: 1 } as never)).rejects.toMatchObject({ code: 'INVALID_INPUT', status: 400 });
         await expect(client.update(task.id, { labels: 'single', version: 1 } as never)).rejects.toMatchObject({ code: 'INVALID_INPUT', status: 400 });
       }
+      const unversioned = { workspaceId: 'local', type: 'tasks.update', id: task.id, input: { title: 'No version' } };
+      expect(executePlannerCommand(service, 'local', actor(), unversioned)).toMatchObject({ ok: false, error: { code: 'INVALID_INPUT', status: 400 } });
+      const noVersionHttp = await app.inject({ method: 'PATCH', url: `/api/v1/workspaces/local/tasks/${task.id}`, payload: unversioned.input });
+      expect(noVersionHttp.statusCode).toBe(400);
       const moved = await ipc.update(task.id, { lane: 'doing', version: 1 });
       expect(await http.list({ lane: 'doing' })).toEqual([moved]);
       for (const client of [http, ipc]) {
         await expect(client.update(task.id, { title: 'Stale', version: 1 })).rejects.toMatchObject({ code: 'VERSION_CONFLICT', status: 409, task: moved });
-        await expect(client.update(randomUUID(), { title: 'Unknown' })).rejects.toMatchObject({ code: 'TASK_NOT_FOUND', status: 404 });
+        await expect(client.update(randomUUID(), { title: 'Unknown', version: 1 })).rejects.toMatchObject({ code: 'TASK_NOT_FOUND', status: 404 });
         await expect(client.create({ title: '' })).rejects.toMatchObject({ code: 'INVALID_INPUT', status: 400 });
       }
       const wrongHttp = createPlannerClient(createPlannerHttpTransport('', fetcher), 'other');

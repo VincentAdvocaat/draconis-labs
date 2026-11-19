@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { executePlannerCommand, type PlannerService } from '@draconis/planner-core';
 import type { Actor } from '../../core/auth.js';
-import { createTaskSchema, updateTaskSchema, updatePreferencesSchema, taskListQuerySchema, historyQuerySchema, type PlannerReply } from '@draconis/shared';
+import { createTaskSchema, workspaceUpdateTaskSchema, updatePreferencesSchema, taskListQuerySchema, historyQuerySchema, type PlannerReply } from '@draconis/shared';
 import { z } from 'zod';
 import { taskResponseSchema, paginatedTaskListSchema } from './schemas.js';
 
@@ -47,7 +47,7 @@ export function createWorkspacePlannerRoutes(service: PlannerService, workspaceI
       app.route({ method, url, schema: {
         tags: ['planner'], summary: `Local workspace ${type}`,
         ...(type === 'tasks.create' ? { body: z.toJSONSchema(createTaskSchema, { target: 'draft-7' }) } : {}),
-        ...(type === 'tasks.update' ? { body: z.toJSONSchema(updateTaskSchema, { target: 'draft-7' }) } : {}),
+        ...(type === 'tasks.update' ? { body: z.toJSONSchema(workspaceUpdateTaskSchema, { target: 'draft-7' }) } : {}),
         ...(type === 'preferences.update' ? { body: z.toJSONSchema(updatePreferencesSchema, { target: 'draft-7' }) } : {}),
         ...(type === 'tasks.list' ? { querystring: z.toJSONSchema(taskListQuerySchema, { target: 'draft-7' }) } : {}),
         ...(type === 'history.list' ? { querystring: z.toJSONSchema(historyQuerySchema, { target: 'draft-7' }) } : {}),

@@ -3,6 +3,8 @@ import type { Lane, PaginatedTasks, Task, TaskListQuery, UserPreferences } from 
 export interface HistoryQuery { from?: string; page?: number; pageSize?: number }
 
 export interface PlannerStorage {
+  /** Synchronous write transaction; reads and writes use the same connection. */
+  transaction<T>(operation: () => T): T;
   list(query: TaskListQuery): Task[] | PaginatedTasks;
   history(query: HistoryQuery): Task[] | PaginatedTasks;
   find(id: string): Task | undefined;

@@ -1,16 +1,18 @@
 import { z } from 'zod';
 import { createTaskSchema, updateTaskSchema, taskListQuerySchema, historyQuerySchema } from './schemas/planner.js';
 import { updatePreferencesSchema } from './schemas/preferences.js';
-import type { CreateTaskInput, Task, PaginatedTasks, TaskListQuery, UpdateTaskInput, UserPreferences } from './index.js';
+import type { CreateTaskInput, Task, PaginatedTasks, TaskListQuery, UserPreferences } from './index.js';
 
 export const LOCAL_WORKSPACE_ID = 'local';
+export const workspaceUpdateTaskSchema = updateTaskSchema.safeExtend({ version: z.number().int().positive() });
+export type WorkspaceTaskUpdate = z.infer<typeof workspaceUpdateTaskSchema>;
 const context = { workspaceId: z.string().min(1).max(120) };
 const id = z.string().uuid();
 const listQuery = taskListQuerySchema.omit({ future: true, overdue: true }).extend({ future: z.boolean().optional(), overdue: z.boolean().optional() });
 export const plannerCommandSchema = z.discriminatedUnion('type', [
   z.object({ ...context, type: z.literal('tasks.list'), query: listQuery.optional() }),
   z.object({ ...context, type: z.literal('tasks.create'), input: createTaskSchema }),
-  z.object({ ...context, type: z.literal('tasks.update'), id, input: updateTaskSchema }),
+  z.object({ ...context, type: z.literal('tasks.update'), id, input: workspaceUpdateTaskSchema }),
   z.object({ ...context, type: z.literal('tasks.remove'), id }),
   z.object({ ...context, type: z.literal('history.list'), query: historyQuerySchema.optional() }),
   z.object({ ...context, type: z.literal('preferences.get') }),
@@ -61,7 +63,7 @@ export function createPlannerClient(transport: PlannerTransport, workspaceId: st
     list: (query?: TaskListQuery) => send<Task[] | PaginatedTasks>({ type: 'tasks.list', query }),
     history: (query?: { from?: string; page?: number; pageSize?: number }) => send<Task[] | PaginatedTasks>({ type: 'history.list', query }),
     create: (input: CreateTaskInput) => send<Task>({ type: 'tasks.create', input }),
-    update: (id: string, input: UpdateTaskInput) => send<Task>({ type: 'tasks.update', id, input }),
+    update: (id: string, input: WorkspaceTaskUpdate) => send<Task>({ type: 'tasks.update', id, input }),
     remove: async (id: string) => { await send<null>({ type: 'tasks.remove', id }); },
     preferences: {
       get: () => send<UserPreferences>({ type: 'preferences.get' }),

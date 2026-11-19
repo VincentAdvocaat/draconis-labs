@@ -9,7 +9,8 @@ export function openProbeStore(path: string) {
   const db = new Database(path);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
-  initializePlannerSqlite(db);
+  try { initializePlannerSqlite(db); }
+  catch (error) { db.close(); throw error; }
   const storage = createSqlitePlannerStorage(db);
   // Preserve the isolated PL-02 JSON records when adopting the shared schema.
   // Retain the source table; only missing IDs are imported, in one transaction.
