@@ -19,8 +19,7 @@ describe('numbered Planner SQLite migrations', () => {
       db.exec('DROP TABLE idx_tasks_due_date');
       initializePlannerSqlite(db);
       const versions = db.prepare('SELECT * FROM planner_schema_migrations').all();
-      expect(versions).toHaveLength(1);
-      expect(versions[0]).toMatchObject({ version: 1 });
+      expect(versions).toMatchObject([{ version: 1 }, { version: 2 }]);
       initializePlannerSqlite(db);
       expect(db.prepare('SELECT * FROM planner_schema_migrations').all()).toEqual(versions);
       for (const [index, row] of tasks.entries()) {
@@ -34,7 +33,7 @@ describe('numbered Planner SQLite migrations', () => {
     db.exec(readFileSync(new URL('./fixtures/legacy.sql', import.meta.url), 'utf8'));
     db.exec(readFileSync(new URL('./fixtures/current.sql', import.meta.url), 'utf8'));
     initializePlannerSqlite(db);
-    db.prepare('INSERT INTO planner_schema_migrations VALUES (?, ?)').run(2, '2026-11-20T00:00:00.000Z');
+    db.prepare('INSERT INTO planner_schema_migrations VALUES (?, ?)').run(99, '2026-11-20T00:00:00.000Z');
     const tasks = db.prepare('SELECT * FROM tasks ORDER BY id').all();
     const versions = db.prepare('SELECT * FROM planner_schema_migrations').all();
     try {

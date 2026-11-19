@@ -24,7 +24,7 @@ function run(file, args, env, input) {
     const startedEpochMs = Date.now();
     const child = spawn(file, args, { env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
     let stdout = '', stderr = '';
-    const timeout = setTimeout(() => { child.kill(); fail(new Error('Probe timed out')); }, 25_000);
+    const timeout = setTimeout(() => { child.kill(); fail(new Error(`Probe timed out: ${stderr}`)); }, 25_000);
     child.stdout.on('data', chunk => { stdout += chunk; });
     child.stderr.on('data', chunk => { stderr += chunk; });
     child.on('error', error => { clearTimeout(timeout); fail(error); });
@@ -42,6 +42,7 @@ const runs = [];
 let previous = process.env.PLANNER_PROBE_PREVIOUS
   ? JSON.parse(readFileSync(process.env.PLANNER_PROBE_PREVIOUS, 'utf8')).read : process.env.PLANNER_PROBE_SEED
     ? JSON.parse(readFileSync(process.env.PLANNER_PROBE_SEED, 'utf8')).previous.read : undefined;
+let previousBookings;
 for (let index = 0; index < 5; index++) {
   const output = join(outputDir, `launch-${index + 1}.json`);
   const processResult = await run(exe, [], { ...env, PLANNER_PROBE_PROFILE: profile, PLANNER_PROBE_OUTPUT: output });
@@ -53,6 +54,15 @@ for (let index = 0; index < 5; index++) {
   const priorIds = new Set(result.before.map(task => task.id));
   assert(result.workspaceRejected, 'wrong workspace must be rejected');
   assert(result.preferencesRoundTrip, 'workspace preferences must round-trip');
+  assert(result.booking.idempotent, 'contact retry must reuse its outcome');
+  assert.equal(result.booking.blocked, 'SLOT_BLOCKED');
+  assert.equal(result.booking.stale, 'VERSION_CONFLICT');
+  assert.equal(result.booking.moved.window.startTime, '08:00');
+  assert(result.booking.moved.arrivalAt, 'internal arrival is separate from promised customer window');
+  assert.equal(result.booking.available[0].occupied, 1, 'completed visit retains capacity');
+  assert(result.booking.available[1].available, 'cancelled visit releases capacity');
+  if (previousBookings) assert.deepEqual(result.booking.before, previousBookings, 'contacts, appointments and events must survive restart');
+  previousBookings = result.booking.after;
   assert.deepEqual(result.read.filter(task => priorIds.has(task.id)), result.before.filter(task => task.id !== result.deletedId));
   assert.equal(result.read.length, result.before.length + 2 - (result.deletedId ? 1 : 0));
   if (result.deletedId) assert(!result.read.some(task => task.id === result.deletedId));
@@ -85,8 +95,14 @@ const report = {
   cpu: cpus()[0].model, hostNode: process.version, hostAbi: process.versions.modules,
   machine: 'Existing developer workstation, no clean VM; process-cold starts, OS cache not cleared',
   packageBytes: bytes(resolve('dist/packages/DraconisPlannerProbe-win32-x64')),
-  runs: runs.map(({ profile: _profile, before, task, read, ...result }) => ({
+  runs: runs.map(({ profile: _profile, before, task, read, booking, ...result }) => ({
     ...result, beforeCount: before.length, afterCount: read.length, createdId: task.id,
+    booking: { uiContactCreated: booking.uiContactCreated, uiAppointmentCreated: booking.uiAppointmentCreated,
+      contactsBefore: booking.before.length, contactsAfter: booking.after.length,
+      idempotent: booking.idempotent, blocked: booking.blocked, stale: booking.stale,
+      customerWindow: booking.moved.window, internalArrival: booking.moved.arrivalAt,
+      completedOccupies: booking.available[0].occupied === 1, cancelledReleases: booking.available[1].available,
+    },
   })),
   sidecar: { runtime: process.version, abi: process.versions.modules, firstMs: first.elapsedMs,
     secondMs: second.elapsedMs, recordsPreserved: true, invalidCommandRejected: true, eofExits: true,

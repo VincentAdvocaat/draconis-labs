@@ -19,11 +19,11 @@ export const plannerCommandSchema = z.discriminatedUnion('type', [
   z.object({ ...context, type: z.literal('preferences.update'), input: updatePreferencesSchema }),
 ]);
 export type PlannerCommand = z.infer<typeof plannerCommandSchema>;
-export const PLANNER_ERROR_CODES = ['INVALID_INPUT', 'WORKSPACE_NOT_FOUND', 'TASK_NOT_FOUND', 'VERSION_CONFLICT', 'UNAUTHORIZED', 'UNAVAILABLE', 'INTERNAL_ERROR'] as const;
+export const PLANNER_ERROR_CODES = ['INVALID_INPUT', 'WORKSPACE_NOT_FOUND', 'TASK_NOT_FOUND', 'VERSION_CONFLICT', 'UNAUTHORIZED', 'UNAVAILABLE', 'INTERNAL_ERROR', 'NOT_FOUND', 'SLOT_FULL', 'SLOT_BLOCKED', 'CONTACT_ARCHIVED', 'INVALID_TRANSITION', 'IDEMPOTENCY_CONFLICT', 'OUTSIDE_HORIZON'] as const;
 export type PlannerErrorCode = typeof PLANNER_ERROR_CODES[number];
 export interface PlannerError { code: PlannerErrorCode; message: string; status: 400 | 401 | 404 | 409 | 500 | 503; task?: Task }
 export type PlannerReply<T = unknown> = { ok: true; value: T } | { ok: false; error: PlannerError };
-const replyEnvelopeSchema = z.discriminatedUnion('ok', [
+export const replyEnvelopeSchema = z.discriminatedUnion('ok', [
   z.object({ ok: z.literal(true), value: z.unknown() }),
   z.object({ ok: z.literal(false), error: z.object({
     code: z.enum(PLANNER_ERROR_CODES), status: z.union([z.literal(400),z.literal(401),z.literal(404),z.literal(409),z.literal(500),z.literal(503)]),

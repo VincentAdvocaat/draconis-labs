@@ -92,3 +92,7 @@ export type { PlannerClient, PlannerCommand, PlannerError, PlannerErrorCode, Pla
 
 export { workspaceUpdateTaskSchema } from './planner-client.js';
 export type { WorkspaceTaskUpdate } from './planner-client.js';
+export * from './bookings.js';
+export { createBookingHttpTransport } from './booking-http.js';
+export { bookingResultSchemas } from './booking-responses.js';
+export { PLANNER_ERROR_CODES } from './planner-client.js';

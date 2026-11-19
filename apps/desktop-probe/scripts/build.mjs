@@ -11,7 +11,7 @@ const common = { bundle: true, platform: 'node', format: 'cjs', external: ['elec
 await build({ ...common, entryPoints: ['src/main.ts'], outfile: 'dist/stage/main.cjs' });
 await build({ ...common, entryPoints: ['src/preload.ts'], outfile: 'dist/stage/preload.cjs' });
 await build({ ...common, entryPoints: ['src/sidecar.ts'], outfile: 'dist/sidecar.cjs' });
-await build({ bundle: true, platform: 'browser', format: 'iife', define: { 'process.env.NODE_ENV': '"production"' }, minify: true, entryPoints: ['src/renderer.tsx'], outfile: 'dist/stage/renderer.js' });
+await build({ bundle: true, platform: 'browser', format: 'iife', jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"', 'import.meta.env': '{}' }, minify: true, entryPoints: ['src/renderer.tsx'], outfile: 'dist/stage/renderer.js' });
 for (const file of ['index.html', 'probe.css']) copyFileSync(`src/${file}`, new URL(file, stage));
 writeFileSync(new URL('package.json', stage), JSON.stringify({
   name: 'draconis-planner-probe', productName: 'DraconisPlannerProbe', version: process.env.PLANNER_PROBE_VERSION || '0.1.0',

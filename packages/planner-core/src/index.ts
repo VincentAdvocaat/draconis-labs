@@ -5,3 +5,5 @@ export { createPlannerService, TaskConflictError, type PlannerService } from './
 export type { PlannerStorage, PlannerEnvironment, HistoryQuery } from './storage.js';
 
 export { executePlannerCommand } from './commands.js';
+export { createBookingService, type BookingService } from './bookings.js';
+export type { BookingStorage, BookingEnvironment } from './booking-storage.js';

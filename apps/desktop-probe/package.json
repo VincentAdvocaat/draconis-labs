@@ -14,11 +14,12 @@
   },
   "dependencies": {
     "@draconis/planner-core": "workspace:*",
+    "@draconis/planner-sqlite": "workspace:*",
     "@draconis/shared": "workspace:*",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
+    "@draconis/ui": "workspace:*",
     "better-sqlite3": "13.2.0",
-    "@draconis/planner-sqlite": "workspace:*"
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@electron/packager": "20.3.0",

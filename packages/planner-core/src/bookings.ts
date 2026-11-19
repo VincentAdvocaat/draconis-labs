@@ -1,0 +1,148 @@
+import { bookingCommandSchema, bookingAddDays, bookingToday, bookingInstant, LOCAL_BOOKING_POLICY,
+  type Appointment, type BookingCommand, type BookingPolicy, type CustomerWindow, type PlannerErrorCode, type PlannerReply, type Slot } from '@draconis/shared';
+import type { BookingEnvironment, BookingStorage } from './booking-storage.js';
+
+class BookingError extends Error {
+  readonly code: PlannerErrorCode;
+  readonly status: 400 | 404 | 409;
+  constructor(code: PlannerErrorCode, message: string, status: 400 | 404 | 409 = 409) { super(message); this.code = code; this.status = status; }
+}
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b, 'en')).map(([key, child]) => [key, canonical(child)]));
+  return value;
+}
+export function createBookingService(storage: BookingStorage, env: BookingEnvironment, suppliedPolicy: BookingPolicy = LOCAL_BOOKING_POLICY) {
+  const policy: BookingPolicy = structuredClone(suppliedPolicy);
+  if (!Number.isInteger(policy.horizonDays) || policy.horizonDays < 1 || policy.horizonDays > 366 || !policy.dayparts.length || policy.dayparts.length > 8 || new Set(policy.dayparts.map(part => part.id)).size !== policy.dayparts.length) throw new Error('Ongeldig pilotrooster');
+  // Validate the zone and time syntax; actual DST validity is checked per date.
+  bookingToday(env.now(), policy.timezone);
+  for (const part of policy.dayparts) if (!part.id || !part.label || part.startTime >= part.endTime) throw new Error('Ongeldig dagdeel');
+  const required = <T>(record: T | undefined): T => { if (!record) throw new BookingError('NOT_FOUND', 'Record niet gevonden', 404); return record; };
+  function inHorizon(date: string) {
+    const today = bookingToday(env.now(), policy.timezone);
+    return date >= today && date < bookingAddDays(today, policy.horizonDays);
+  }
+  function materialize(date: string) {
+    if (!inHorizon(date)) return;
+    const existing = storage.slots(date);
+    const windows = policy.dayparts.filter(part => !existing.some(slot => slot.daypartId === part.id)).map(part => {
+      let startAt: string, endAt: string;
+      try { startAt = bookingInstant(date, part.startTime, policy.timezone); endAt = bookingInstant(date, part.endTime, policy.timezone); }
+      catch { throw new BookingError('INVALID_INPUT', 'Dit dagdeel bevat een ongeldige of dubbelzinnige lokale grens.', 400); }
+      return { date, daypartId: part.id, label: part.label, startTime: part.startTime, endTime: part.endTime, timezone: policy.timezone, startAt, endAt };
+    });
+    // A configuration change may add a daypart but may not overlap an old promise.
+    for (const window of windows) {
+      if (existing.some(slot => slot.daypartId === window.daypartId)) continue;
+      if ([...existing, ...windows.filter(other => other !== window && !existing.some(slot => slot.daypartId === other.daypartId))].some(other => window.startAt < other.endAt && window.endAt > other.startAt)) throw new BookingError('INVALID_INPUT', 'Dagdelen mogen niet overlappen.', 400);
+      storage.insertSlot({ ...window, id: env.id(), workspaceId: storage.workspaceId, capacity: 1 });
+    }
+  }
+  function freeSlot(id: string, ownAppointmentId?: string) {
+    const slot = required(storage.slot(id));
+    if (!inHorizon(slot.date)) throw new BookingError('OUTSIDE_HORIZON', 'Dit dagdeel valt buiten de boekingshorizon.');
+    if (storage.block(id)) throw new BookingError('SLOT_BLOCKED', 'Dit dagdeel is geblokkeerd.');
+    if (storage.appointments().some(a => a.id !== ownAppointmentId && a.slotId === id && a.status !== 'cancelled')) throw new BookingError('SLOT_FULL', 'Dit dagdeel is al bezet.');
+    return slot;
+  }
+  function promised(slot: Slot): CustomerWindow {
+    const { date, daypartId, label, startTime, endTime, timezone, startAt, endAt } = slot;
+    return { date, daypartId, label, startTime, endTime, timezone, startAt, endAt };
+  }
+  function arrival(value: string | null | undefined, slot: Slot) {
+    if (value == null) return null;
+    const instant = Date.parse(value);
+    if (!Number.isFinite(instant) || instant < Date.parse(slot.startAt) || instant >= Date.parse(slot.endAt)) throw new BookingError('INVALID_INPUT', 'De interne aankomsttijd moet binnen het klanttijdvak liggen.', 400);
+    return new Date(instant).toISOString();
+  }
+  function event(type: 'planned' | 'moved' | 'cancelled' | 'completed', actor: string, after: Appointment, before?: Appointment) {
+    storage.appendEvent({ id: env.id(), workspaceId: storage.workspaceId, appointmentId: after.id, type, actor, createdAt: env.now(),
+      before: before ? { window: before.window, arrivalAt: before.arrivalAt } : null,
+      after: { window: after.window, arrivalAt: after.arrivalAt },
+    });
+  }
+  function perform(command: BookingCommand, actor: string): unknown {
+    switch (command.type) {
+      case 'contacts.list': {
+        const q = command.query?.q?.trim().toLocaleLowerCase('nl') ?? '';
+        return storage.contacts().filter(contact => (command.query?.archived || !contact.archived) && [contact.name, contact.email, contact.phone].some(value => value?.toLocaleLowerCase('nl').includes(q))).sort((a, b) => a.name.localeCompare(b.name, 'nl'));
+      }
+      case 'contacts.create': {
+        const now = env.now(), contact = { ...command.input, email: command.input.email || null, phone: command.input.phone || null, id: env.id(), workspaceId: storage.workspaceId, archived: false, version: 1, createdAt: now, updatedAt: now };
+        storage.saveContact(contact); return contact;
+      }
+      case 'contacts.update': {
+        const contact = required(storage.contact(command.id));
+        if (contact.version !== command.input.version) throw new BookingError('VERSION_CONFLICT', 'Deze relatie is gewijzigd. Vernieuw de klantkaart.');
+        const updated = { ...contact, ...command.input, version: contact.version + 1, updatedAt: env.now() };
+        storage.saveContact(updated); return updated;
+      }
+      case 'contacts.card': {
+        const contact = required(storage.contact(command.id)), now = Date.parse(env.now());
+        const appointments = storage.appointments().filter(a => a.contactId === contact.id).sort((a, b) => a.window.startAt.localeCompare(b.window.startAt));
+        const upcoming = appointments.filter(a => a.status === 'planned' && Date.parse(a.window.endAt) > now);
+        return { contact, upcoming, history: appointments.filter(a => !upcoming.includes(a)), events: storage.events(appointments.map(a => a.id)) };
+      }
+      case 'availability.list': {
+        materialize(command.date);
+        const appointments = storage.appointments();
+        return storage.slots(command.date).sort((a, b) => a.startAt.localeCompare(b.startAt)).map(slot => {
+          const block = storage.block(slot.id) ?? null, occupied = appointments.filter(a => a.slotId === slot.id && a.status !== 'cancelled').length;
+          return { slot, block, occupied, available: inHorizon(slot.date) && !block && occupied < 1 };
+        });
+      }
+      case 'appointments.list': return storage.appointments().filter(a => a.window.date === command.date).sort((a, b) => a.window.startAt.localeCompare(b.window.startAt));
+      case 'appointments.create': {
+        const contact = required(storage.contact(command.input.contactId));
+        if (contact.archived) throw new BookingError('CONTACT_ARCHIVED', 'Kies een actieve relatie.');
+        const slot = freeSlot(command.input.slotId), now = env.now();
+        const appointment: Appointment = { id: env.id(), workspaceId: storage.workspaceId, contactId: contact.id, slotId: slot.id, source: 'manual', status: 'planned', version: 1, window: promised(slot), arrivalAt: arrival(command.input.arrivalAt, slot), createdAt: now, updatedAt: now };
+        storage.saveAppointment(appointment); event('planned', actor, appointment); return appointment;
+      }
+      case 'appointments.move': case 'appointments.status': {
+        const before = required(storage.appointment(command.id));
+        if (before.version !== command.input.version) throw new BookingError('VERSION_CONFLICT', 'Deze afspraak is gewijzigd. Vernieuw en probeer opnieuw.');
+        if (before.status !== 'planned') throw new BookingError('INVALID_TRANSITION', 'Alleen een geplande afspraak kan worden gewijzigd.');
+        let after: Appointment;
+        if (command.type === 'appointments.move') {
+          const slot = freeSlot(command.input.slotId, before.id);
+          after = { ...before, slotId: slot.id, window: promised(slot), arrivalAt: arrival(command.input.arrivalAt, slot), version: before.version + 1, updatedAt: env.now() };
+        } else after = { ...before, status: command.input.status, version: before.version + 1, updatedAt: env.now() };
+        storage.saveAppointment(after); event(command.type === 'appointments.move' ? 'moved' : command.input.status, actor, after, before); return after;
+      }
+      case 'blocks.create': {
+        const slot = freeSlot(command.input.slotId), block = { ...command.input, id: env.id(), workspaceId: storage.workspaceId, actor, createdAt: env.now() };
+        storage.insertBlock(block); return { ...block, slotId: slot.id };
+      }
+      case 'blocks.remove': required(storage.findBlock(command.id)); storage.removeBlock(command.id); return null;
+    }
+  }
+  return {
+    invoke(input: unknown, actor: { name: string }): PlannerReply {
+      const parsed = bookingCommandSchema.safeParse(input);
+      if (!parsed.success) return { ok: false, error: { code: 'INVALID_INPUT', status: 400, message: 'Ongeldige invoer' } };
+      const command = parsed.data;
+      if (command.workspaceId !== storage.workspaceId) return { ok: false, error: { code: 'WORKSPACE_NOT_FOUND', status: 404, message: 'Werkruimte niet gevonden' } };
+      try {
+        // Read snapshots are consistent; availability materialization uses the same lock.
+        const value = storage.transaction(() => {
+          if (!('key' in command)) return perform(command, actor.name);
+          const hash = env.hash(JSON.stringify(canonical(command))), previous = storage.receipt(actor.name, command.type, command.key);
+          if (previous) {
+            if (previous.hash !== hash) throw new BookingError('IDEMPOTENCY_CONFLICT', 'Deze opdrachtsleutel is al voor andere invoer gebruikt.');
+            return previous.result;
+          }
+          const result = perform(command, actor.name);
+          storage.saveReceipt(actor.name, command.type, command.key, hash, result); return result;
+        });
+        return { ok: true, value };
+      } catch (error) {
+        if (error instanceof BookingError) return { ok: false, error: { code: error.code, status: error.status, message: error.message } };
+        if (error instanceof Error && 'statusCode' in error && error.statusCode === 503) return { ok: false, error: { code: 'UNAVAILABLE', status: 503, message: error.message } };
+        return { ok: false, error: { code: 'INTERNAL_ERROR', status: 500, message: 'Planner kan de opdracht niet uitvoeren.' } };
+      }
+    },
+  };
+}
+export type BookingService = ReturnType<typeof createBookingService>;
