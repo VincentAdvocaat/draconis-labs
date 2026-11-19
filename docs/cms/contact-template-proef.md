@@ -32,4 +32,6 @@ Geen oorspronkelijke Studio-bestanden, klantdatabase of live website gewijzigd. 
 
 ## Onafhankelijke review
 
-Wordt aangevuld na de review van de PR-head met GPT-6 Astra op medium.
+PR [40](https://github.com/VincentAdvocaat/draconis-labs/pull/40) onafhankelijk beoordeeld door `/root/review_pr40`, GPT-6 Astra op medium. Eén P2 over de ontbrekende Viteproxy voor preview-assets is geverifieerd, door GPT-6.1 Sol low opgelost en door dezelfde reviewer gesloten op `3fe4da5a4ad4228e8ded4aa4e8b8718aefd7eb5d`. Akkoord, geen resterende noodzakelijke bevindingen. Zelfstandig 31 initiële tests en 8 herreviewtests groen. Zie [volledig rapport](review-pr40.md).
+
+Deze contactfixture is geen echte site-import. Extra templates en een algemeen adapterframework zijn niet gebouwd. Voorgestelde volgende oorspronkelijke CMS-stap is CMS-09, consistente back-up en offline restore van fictieve data op nieuwe opslag. Werkelijke klantimport en omschakeling blijven afzonderlijke opdrachten.
