@@ -13,7 +13,7 @@ interface AttemptRow {
 
 export class CmsRepository {
   readonly db: Database.Database;
-  constructor(databasePath: string, private media?: CmsMedia) {
+  constructor(databasePath: string, private media?: CmsMedia, private mediaUnavailable = false) {
     mkdirSync(dirname(databasePath), { recursive: true });
     this.db = new Database(databasePath);
     this.db.pragma('foreign_keys = ON');
@@ -69,7 +69,8 @@ export class CmsRepository {
   private insertRevision(websiteId: string, parent: string | null, values: Values, actor: string,
     previousImage: Values['image'] = null): string {
     const id = randomUUID();
-    if (values.image && !this.media) throw new CmsError(409, 'Media-adapter niet ingeschakeld');
+    if (values.image && !this.media) throw new CmsError(this.mediaUnavailable ? 503 : 409,
+      this.mediaUnavailable ? 'Mediaopslag niet beschikbaar. Herstel de mediamap en herstart de proef.' : 'Media-adapter niet ingeschakeld');
     const mediaRevision = this.media?.register(websiteId, id, values.image ?? null, previousImage ?? null,
       parent ? this.mediaRevision(websiteId, parent) : null) ?? null;
     this.db.prepare(`INSERT INTO cms_revisions

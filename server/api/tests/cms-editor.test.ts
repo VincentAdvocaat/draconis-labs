@@ -98,6 +98,15 @@ const pageA = { revisionId: 'revision-A', pageVersion: 1, values: { title: 'Revi
 const pageB = { ...pageA, revisionId: 'revision-B', pageVersion: 2, values: { title: 'Revisie B', intro: '' } };
 
 describe('CMS editor recovery and selected revision', () => {
+  it('shows the media dependency failure from preview without blaming the token or changing text', async () => {
+    const ui = editorHarness();
+    ui.results.push({ status: 200, body: pageA }); await ui.open();
+    ui.results.push({ status: 503, body: { message: 'Mediaopslag niet beschikbaar. Herstel de mediamap en herstart de proef.' } });
+    await ui.action(ui.button('Privépreview openen'));
+    expect(ui.error()).toContain('Mediaopslag niet beschikbaar');
+    expect(ui.title().props.value).toBe('Revisie A');
+  });
+
   it('keeps the same publication key when retrying the same selected revision after network loss', async () => {
     const ui = editorHarness();
     ui.results.push({ status: 200, body: pageA }); await ui.open();

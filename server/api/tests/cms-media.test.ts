@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -23,10 +23,12 @@ afterEach(async () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
-async function start() {
+async function start(viaPointer = false) {
   const fixture = createMediaFixture(); fixtures.push(fixture);
   const root = mkdtempSync(join(tmpdir(), 'cms-media-test-')); roots.push(root);
-  const running = await buildCmsApp({ runtimeRoot: root, credentials, seed: true, enableMedia: true, mediaRoot: fixture.root });
+  if (viaPointer) writeFileSync(join(root, 'media-root.json'), JSON.stringify({ root: fixture.root }));
+  const running = await buildCmsApp({ runtimeRoot: root, credentials, seed: true, enableMedia: true,
+    ...(viaPointer ? {} : { mediaRoot: fixture.root }) });
   apps.push(running);
   return { ...running, fixture, root };
 }
@@ -45,8 +47,75 @@ async function publish(running: Awaited<ReturnType<typeof start>>, selected: Pag
   return running.app.inject({ method: 'POST', url: base + '/releases', headers: { ...headers, 'idempotency-key': key },
     payload: { revisionId: selected.revisionId, expectedActiveVersion: selected.activeVersion } });
 }
+function imageUrl(html: string): string {
+  const source = /<img src="([^"]+)"/.exec(html)?.[1];
+  if (!source) throw new Error('Expected image in public HTML');
+  return `/sites/demo-cms/${source}`;
+}
+async function closeApp(app: Awaited<ReturnType<typeof buildCmsApp>>['app']) {
+  await app.close(); apps.splice(apps.findIndex((running) => running.app === app), 1);
+}
 
 describe('CMS and reviewed M0 media integration', () => {
+  it('keeps the old HTML image URL bound to its published release after a new imageless release activates', async () => {
+    const running = await start();
+    const selected = await save(running, await page(running), image());
+    const first = await publish(running, selected, 'immutable-image-one');
+    const oldHtml = (await running.app.inject('/sites/demo-cms/index.html')).body;
+    const url = imageUrl(oldHtml);
+    const oldBytes = (await running.app.inject(url)).rawPayload;
+    const next = await save(running, await page(running), null);
+    expect((await publish(running, next, 'immutable-image-two')).statusCode).toBe(200);
+    const retained = await running.app.inject(url);
+    expect(retained.statusCode).toBe(200);
+    expect(retained.rawPayload).toEqual(oldBytes);
+    expect(url).toContain(first.json().releaseId);
+    expect((await running.app.inject('/sites/demo-cms/index.html')).body).not.toContain('<img');
+    expect((await running.app.inject(url.replace('demo-cms', 'demo-other'))).statusCode).toBe(404);
+    expect((await running.app.inject(url.replace(first.json().releaseId, '00000000-0000-0000-0000-000000000000'))).statusCode).toBe(404);
+    const pending = running.repository.begin('demo-cms', { revisionId: next.revisionId, expectedActiveVersion: 2 }, 'not-published-yet', 'test');
+    expect((await running.app.inject(url.replace(first.json().releaseId, pending.attempt.releaseId))).statusCode).toBe(404);
+  });
+
+  it('reopens the persisted media pointer and keeps published copies available if that root is temporarily absent', async () => {
+    const running = await start(true);
+    const selected = await save(running, await page(running), image());
+    expect((await publish(running, selected, 'pointer-publish-one')).statusCode).toBe(200);
+    await save(running, await page(running), image({ fileVersion: 2 }));
+    const html = (await running.app.inject('/sites/demo-cms/index.html')).body;
+    const url = imageUrl(html);
+    const originalBytes = (await running.app.inject(url)).rawPayload;
+    await closeApp(running.app);
+    let reopened = await buildCmsApp({ runtimeRoot: running.root, credentials, enableMedia: true });
+    apps.push(reopened);
+    let state = (await reopened.app.inject({ url: base + '/pages/home', headers })).json();
+    expect(state.values.image.fileVersion).toBe(2); expect(state.activeVersion).toBe(1);
+    expect((await reopened.app.inject({ url: `${base}/previews/${state.revisionId}`, headers })).statusCode).toBe(200);
+    await closeApp(reopened.app);
+    const missing = running.fixture.root + '-absent';
+    writeFileSync(join(running.root, 'media-root.json'), JSON.stringify({ root: missing }));
+    reopened = await buildCmsApp({ runtimeRoot: running.root, credentials, enableMedia: true });
+    apps.push(reopened);
+    expect((await reopened.app.inject('/sites/demo-cms/index.html')).body).toBe(html);
+    expect((await reopened.app.inject(url)).rawPayload).toEqual(originalBytes);
+    const preview = await reopened.app.inject({ url: `${base}/previews/${state.revisionId}`, headers });
+    expect(preview.statusCode).toBe(503); expect(preview.body).toContain('Mediaopslag');
+    const refusedSave = await reopened.app.inject({ method: 'PUT', url: base + '/pages/home/draft', headers,
+      payload: { expectedVersion: state.pageVersion, values: { ...state.values, title: 'Must fail' } } });
+    expect(refusedSave.statusCode).toBe(503);
+    const refusedPublish = await reopened.app.inject({ method: 'POST', url: base + '/releases',
+      headers: { ...headers, 'idempotency-key': 'missing-root-publish' },
+      payload: { revisionId: state.revisionId, expectedActiveVersion: state.activeVersion } });
+    expect(refusedPublish.statusCode).toBe(422); expect(refusedPublish.json().errorCode).toBe('media_unavailable');
+    expect(JSON.parse(readFileSync(join(running.root, 'media-root.json'), 'utf8')).root).toBe(missing);
+    await closeApp(reopened.app);
+    writeFileSync(join(running.root, 'media-root.json'), JSON.stringify({ root: running.fixture.root }));
+    reopened = await buildCmsApp({ runtimeRoot: running.root, credentials, enableMedia: true });
+    apps.push(reopened);
+    state = (await reopened.app.inject({ url: base + '/pages/home', headers })).json();
+    expect((await reopened.app.inject({ url: `${base}/previews/${state.revisionId}`, headers })).statusCode).toBe(200);
+  });
+
   it('renders an authenticated embedded derivative, exports only public bytes and pins version 1 while draft changes to 2', async () => {
     const running = await start();
     let selected = await save(running, await page(running), image());
@@ -60,18 +129,18 @@ describe('CMS and reviewed M0 media integration', () => {
     expect(published.statusCode).toBe(200);
     const releaseId = published.json().releaseId;
     const output = await running.app.inject('/sites/demo-cms/index.html');
-    expect(output.body).toContain('src="media/hero.png"'); expect(output.body).not.toContain('data:image');
-    const bytes = await running.app.inject('/sites/demo-cms/media/hero.png');
+    expect(output.body).toContain(`src="media/${releaseId}/hero.png"`); expect(output.body).not.toContain('data:image');
+    const bytes = await running.app.inject(imageUrl(output.body));
     expect(bytes.statusCode).toBe(200); expect(bytes.headers['content-type']).toBe('image/png');
     const manifestText = readFileSync(join(running.root, 'releases', 'demo-cms', releaseId, 'release.json'), 'utf8');
     const manifest = JSON.parse(manifestText);
     expect(manifest.media.references[0].fileVersion).toBe(1);
-    expect(manifest.files['media/hero.png']).toBe(createHash('sha256').update(bytes.rawPayload).digest('hex'));
+    expect(manifest.files[`media/${releaseId}/hero.png`]).toBe(createHash('sha256').update(bytes.rawPayload).digest('hex'));
     expect(manifestText).not.toContain('private'); expect(manifestText).not.toContain(token);
     selected = await save(running, await page(running), image({ fileVersion: 2 }));
     expect(selected.values.image?.fileVersion).toBe(2);
     expect(JSON.parse(readFileSync(join(running.root, 'releases', 'demo-cms', releaseId, 'release.json'), 'utf8')).media.references[0].fileVersion).toBe(1);
-    expect((await running.app.inject('/sites/demo-cms/media/hero.png')).rawPayload).toEqual(bytes.rawPayload);
+    expect((await running.app.inject(imageUrl(output.body))).rawPayload).toEqual(bytes.rawPayload);
     expect((await running.app.inject('/sites/demo-cms/private/original.png')).statusCode).toBe(404);
   });
 

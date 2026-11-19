@@ -14,12 +14,18 @@ export interface BuildHooks {
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
 
 export class CmsService {
-  constructor(readonly repository: CmsRepository, readonly releasesRoot: string, private hooks: BuildHooks = {}, readonly media?: CmsMedia) {}
+  constructor(readonly repository: CmsRepository, readonly releasesRoot: string, private hooks: BuildHooks = {},
+    readonly media?: CmsMedia, private mediaUnavailable = false) {}
+
+  private requireMedia(): void {
+    if (!this.media) throw new CmsError(this.mediaUnavailable ? 503 : 409,
+      this.mediaUnavailable ? 'Mediaopslag niet beschikbaar. Herstel de mediamap en herstart de proef.' : 'Media-adapter niet ingeschakeld');
+  }
 
   preview(websiteId: string, revisionId: string): string {
     const values = this.repository.revision(websiteId, revisionId);
     const mediaRevision = this.repository.mediaRevision(websiteId, revisionId);
-    if (mediaRevision && !this.media) throw new CmsError(409, 'Media-adapter niet ingeschakeld');
+    if (mediaRevision) this.requireMedia();
     return render(values, mediaRevision ? this.media!.preview(websiteId, mediaRevision) : undefined);
   }
 
@@ -30,10 +36,10 @@ export class CmsService {
     try {
       await this.hooks.beforeBuild?.();
       const mediaRevision = this.repository.mediaRevision(websiteId, input.revisionId);
-      if (mediaRevision && !this.media) throw new CmsError(409, 'Media-adapter niet ingeschakeld');
+      if (mediaRevision) this.requireMedia();
       const image = mediaRevision ? this.media!.resolve(websiteId, mediaRevision, attempt.releaseId) : undefined;
       const html = render(this.repository.revision(websiteId, input.revisionId),
-        image ? { src: 'media/hero.png', alt: image.alt } : undefined);
+        image ? { src: `media/${attempt.releaseId}/hero.png`, alt: image.alt } : undefined);
       const siteRoot = join(this.releasesRoot, websiteId);
       const staging = join(siteRoot, `.staging-${randomUUID()}`);
       const complete = join(siteRoot, attempt.releaseId);
@@ -41,12 +47,12 @@ export class CmsService {
       await writeFile(join(staging, 'index.html'), html, { flag: 'wx', flush: true });
       const files: Record<string, string> = { 'index.html': sha256(html) };
       if (image) {
-        await mkdir(join(staging, 'media'));
-        await writeFile(join(staging, 'media', 'hero.png'), image.bytes, { flag: 'wx', flush: true });
-        files['media/hero.png'] = createHash('sha256').update(image.bytes).digest('hex');
+        await mkdir(join(staging, 'media', attempt.releaseId), { recursive: true });
+        await writeFile(join(staging, 'media', attempt.releaseId, 'hero.png'), image.bytes, { flag: 'wx', flush: true });
+        files[`media/${attempt.releaseId}/hero.png`] = createHash('sha256').update(image.bytes).digest('hex');
       }
       const manifest = JSON.stringify({ schemaVersion: 1, websiteId, releaseId: attempt.releaseId,
-        revisionId: input.revisionId, template: 'plain-page@2', files,
+        revisionId: input.revisionId, template: 'plain-page@3', files,
         ...(image ? { media: image.manifest } : {}) });
       await writeFile(join(staging, 'release.json'), manifest, { flag: 'wx', flush: true });
       if (sha256(await readFile(join(staging, 'index.html'), 'utf8')) !== sha256(html)) {
@@ -59,22 +65,35 @@ export class CmsService {
       return activated;
     } catch (error) {
       // A failure after a committed activation cannot downgrade or undo the published release.
-      this.repository.finish(attempt, 'failed', error instanceof MediaContractError ? 'media_not_publishable' : 'build_failed');
+      this.repository.finish(attempt, 'failed', error instanceof MediaContractError ? 'media_not_publishable'
+        : error instanceof CmsError && error.statusCode === 503 ? 'media_unavailable' : 'build_failed');
       return this.repository.attempt(websiteId, attempt.releaseId);
     }
   }
 
   async publicHtml(websiteId: string): Promise<string> {
-    return (await this.publicBytes(websiteId, 'index.html')).toString('utf8');
-  }
-
-  async publicBytes(websiteId: string, file: 'index.html' | 'media/hero.png'): Promise<Buffer> {
-    // Never accept a request path as a filesystem path. All three segments are server-controlled.
-    if (!['demo-cms', 'demo-other'].includes(websiteId)) throw new CmsError(404, 'Website niet gevonden');
+    this.publicSite(websiteId);
     const active = this.repository.active(websiteId);
     if (!active.activeReleaseId) throw new CmsError(404, 'Nog geen gepubliceerde pagina');
+    return (await this.releaseBytes(websiteId, active.activeReleaseId, 'index.html')).toString('utf8');
+  }
+
+  private publicSite(websiteId: string): void {
+    if (!['demo-cms', 'demo-other'].includes(websiteId)) throw new CmsError(404, 'Website niet gevonden');
+  }
+
+  async publicImage(websiteId: string, releaseId: string): Promise<Buffer> {
+    this.publicSite(websiteId);
+    if (!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(releaseId)) throw new CmsError(404, 'Publicatie niet gevonden');
+    return this.releaseBytes(websiteId, releaseId, `media/${releaseId}/hero.png`);
+  }
+
+  private async releaseBytes(websiteId: string, releaseId: string, file: string): Promise<Buffer> {
+    // Only successful retained releases are public. Never expose a complete but failed build.
+    const attempt = this.repository.attempt(websiteId, releaseId);
+    if (attempt.status !== 'published') throw new CmsError(404, 'Publicatie niet beschikbaar');
     try {
-      const root = join(this.releasesRoot, websiteId, active.activeReleaseId);
+      const root = join(this.releasesRoot, websiteId, releaseId);
       const manifest = JSON.parse(await readFile(join(root, 'release.json'), 'utf8')) as { files: Record<string, string> };
       if (!manifest.files[file]) throw new CmsError(404, 'Bestand niet opgenomen in deze publicatie');
       const bytes = await readFile(join(root, file));

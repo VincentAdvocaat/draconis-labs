@@ -42,6 +42,7 @@ function App() {
       const body = await result.json().catch(() => ({ message: 'Verzoek mislukt' }));
       throw new ApiError(result.status, body.errorCode === 'media_not_publishable'
         ? 'Afbeelding is niet publiceerbaar. Controleer alt-tekst, gereedstatus en rechten.'
+        : body.errorCode === 'media_unavailable' ? 'Mediaopslag niet beschikbaar. Herstel de mediamap en herstart de proef.'
         : body.message ?? body.errorCode ?? `Verzoek mislukt (${result.status})`);
     }
     return result.json() as Promise<T>;
@@ -93,7 +94,10 @@ function App() {
     if (!page) return;
     void perform(async (current) => {
       const response = await fetch(`${base}/previews/${page.revisionId}`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!response.ok) throw new ApiError(response.status, 'Preview niet beschikbaar. Controleer je token.');
+      if (!response.ok) {
+        const problem = await response.json().catch(() => ({ message: 'Preview niet beschikbaar' }));
+        throw new ApiError(response.status, problem.message ?? 'Preview niet beschikbaar');
+      }
       const html = await response.text();
       if (!current()) return;
       setPreview(html); setStatus('Privépreview van de opgeslagen conceptversie.');

@@ -8,6 +8,7 @@ import { cmsModule } from './index.js';
 import { CmsRepository } from './repository.js';
 import { CmsService, type BuildHooks } from './service.js';
 import { CmsMedia } from './media.js';
+import { CmsError } from './model.js';
 
 const credentialSchema = z.array(z.object({
   name: z.string().min(1).max(80),
@@ -51,13 +52,21 @@ export async function buildCmsApp(options: CmsAppOptions) {
   const unlock = lockRuntime(root);
   let repository: CmsRepository | undefined;
   let media: CmsMedia | undefined;
+  let mediaUnavailable = false;
   const app = Fastify({ logger: false, bodyLimit: 16_384 });
   try {
-    if (options.enableMedia) media = new CmsMedia(root, options.mediaRoot);
-    repository = new CmsRepository(join(root, 'cms.db'), media);
+    if (options.enableMedia) {
+      try { media = new CmsMedia(root, options.mediaRoot); }
+      catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+        // Keep the existing pointer untouched. Public release copies have no media-store dependency.
+        mediaUnavailable = true;
+      }
+    }
+    repository = new CmsRepository(join(root, 'cms.db'), media, mediaUnavailable);
     repository.reconcile();
     if (options.seed) repository.seed();
-    const service = new CmsService(repository, join(root, 'releases'), options.hooks, media);
+    const service = new CmsService(repository, join(root, 'releases'), options.hooks, media, mediaUnavailable);
     app.addHook('onClose', async () => { repository!.close(); media?.close(); unlock(); });
     app.addHook('onSend', async (_request, reply, payload) => {
       reply.header('X-Content-Type-Options', 'nosniff');
@@ -67,7 +76,8 @@ export async function buildCmsApp(options: CmsAppOptions) {
     app.setErrorHandler((error, _request, reply) => {
       if (error instanceof ZodError) return reply.code(400).send({ message: 'Ongeldige invoer', issues: error.issues });
       const status = (error as { statusCode?: number }).statusCode ?? 500;
-      return reply.code(status).send({ message: status >= 500 ? 'Interne serverfout' : (error as Error).message });
+      return reply.code(status).send({ message: error instanceof CmsError ? error.message
+        : status >= 500 ? 'Interne serverfout' : (error as Error).message });
     });
     const mod = cmsModule(service, credentials);
     await app.register(mod.register, { prefix: `/api/v1${mod.prefix}` });
@@ -76,9 +86,10 @@ export async function buildCmsApp(options: CmsAppOptions) {
       reply.header('Content-Security-Policy', "default-src 'none'; img-src 'self'; frame-ancestors 'self'; form-action 'none'; base-uri 'none'");
       return reply.type('text/html; charset=utf-8').send(await service.publicHtml((request.params as { websiteId: string }).websiteId));
     });
-    app.get('/sites/:websiteId/media/hero.png', async (request, reply) => {
+    app.get('/sites/:websiteId/media/:releaseId/hero.png', async (request, reply) => {
       reply.header('Cache-Control', 'no-store');
-      return reply.type('image/png').send(await service.publicBytes((request.params as { websiteId: string }).websiteId, 'media/hero.png'));
+      const { websiteId, releaseId } = request.params as { websiteId: string; releaseId: string };
+      return reply.type('image/png').send(await service.publicImage(websiteId, releaseId));
     });
     if (options.uiRoot) {
       const uiRoot = resolve(options.uiRoot);
