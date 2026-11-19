@@ -1,0 +1,10 @@
+{
+  "id": "cms",
+  "name": "CMS-proef",
+  "description": "Fictieve pagina's als concept bewerken en lokaal publiceren.",
+  "version": "0.1.0",
+  "owner": "draconis-labs",
+  "launchUrl": "http://127.0.0.1:3016",
+  "permissions": ["cms.draft.read", "cms.draft.write", "cms.release.publish"],
+  "environments": [{ "name": "local", "baseUrl": "http://127.0.0.1:3016" }]
+}

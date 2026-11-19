@@ -6,6 +6,7 @@ Ontwerp van 19 november 2026. Deze PR bevat alleen ontwerp; de beschreven module
 - [Architectuur en gebruik](architectuur.md) legt pagina's, drafts, rollen, publicatie en modulegrenzen vast.
 - [Backlog en verificatie](backlog.md) bevat afhankelijke bouwstappen, migratie en herstel.
 - [Eerste bouwopdracht](eerste-bouwopdracht.md) is een afgebakende lokale demonstratie met fictieve tekst.
+- [Lokale tekstproef](lokale-proef.md) documenteert de afzonderlijke CMS-01-implementatie en haar start-/testcommando's.
 
 De bestaande sites blijven hun huidige ASP.NET Core CMS gebruiken. Labs krijgt eerst een geïsoleerde CMS-proef binnen zijn bestaande app/API-structuur. Daarna toetsen we de adapter en migratie op een fictieve kopie. Een productiemigratie, merge of deployment vraagt een aparte opdracht van de orchestrator.
 
