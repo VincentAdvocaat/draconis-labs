@@ -18,6 +18,7 @@ function harness() {
   const elements = new Map<string, Element>();
   const el = (id: string) => { if (!elements.has(id)) elements.set(id, new Element()); return elements.get(id)!; };
   el('site').value = 'fixture-alpha'; el('token').value = 'test-token';
+  el('categoryEnMissing').checked = true;
   const pending: Array<{ path: string; resolve: (value: unknown) => void; fail: () => void }> = [];
   const context = vm.createContext({ URLSearchParams, URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} },
     document: { getElementById: el, createElement: () => new Element(), querySelectorAll: () => [...elements.values()] }, Option: Element,
