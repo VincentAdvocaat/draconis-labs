@@ -28,4 +28,6 @@ Browseracceptatie gebruikte uitsluitend fictieve gegevens op gescheiden eigen op
 
 Dirty-close/async/retry en alle oude fixturevarianten zijn via de bestaande component/integratietests gecontroleerd; de browseracceptatie claimt geen onderschepte verloren commitresponse. Dit is een gecombineerde lokale fixture, geen productie-integratie met gedeelde authenticatie, back-up/restore, klantimport of deployment.
 
-Onafhankelijke integratiereview volgt op de exacte PR-head. Daarna worden rapport/SHA/reviewer-id hier en bij de PR vastgelegd.
+Onafhankelijke integratiereview PR37 akkoord op `fb9c22d407a50fcc020d792a94261510019d65ad`, reviewer `/root/review_pr37`, GPT-6 Astra medium. Geen noodzakelijke bevindingen. Reviewer draaide zelf API306, PlannerUI20, shared18, beide startupsmokes en8CLIchecks groen. [Volledig rapport](review-pr37.json). De latere gebruikershandleiding, mainmergeplan en reviewregistratie zijn alleen documentatie.
+
+Gebruik de [zelfstandige demo-handleiding](gebruikersdemo.md) om de fictieve modules vanuit deze checkout te starten. Het [mainmergeplan](mainmergeplan.md) is een afzonderlijk voorstel; mainmerge, externe opvolging, branchverwijdering en deployment zijn niet uitgevoerd.

@@ -103,3 +103,8 @@ Werk nooit direct op `main`. Gebruik worktrees en PR's (ook voor agents):
 ```
 
 Policy: `.cursor/rules/worktrees-and-branches.mdc`
+
+
+## Gezamenlijke lokale demo
+
+De tijdelijke integratie bevat de gereviewde Planner-, CMS- en catalogusmodules. Zie de [gebruikersdemo](docs/integratie/gebruikersdemo.md), het [integratiebewijs](docs/integratie/README.md) en het afzonderlijke [mainmergeplan](docs/integratie/mainmergeplan.md). Dit gebruikt uitsluitend eigen synthetische opslag; mainmerge en deployment zijn nog niet uitgevoerd.
