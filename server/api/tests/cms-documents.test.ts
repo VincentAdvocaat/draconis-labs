@@ -74,6 +74,39 @@ function publish(running: Running, choice: Awaited<ReturnType<typeof plan>>, key
 }
 
 describe('CMS pages, blocks and complete site snapshots', () => {
+  it('permits a slug change after a failed first publication without freezing an unpublished route', async () => {
+    let fail = true;
+    const running = await start({ hooks: { beforeBuild: async () => { if (fail) throw new Error('Simulated build failure'); } } });
+    let doc = await create(running, 'unpublished'); doc = await save(running, doc, text(doc));
+    expect((await publish(running, await plan(running), 'failed-first-route')).statusCode).toBe(422);
+    doc = await save(running, doc, { ...doc.content, slug: 'corrected' });
+    fail = false;
+    expect((await publish(running, await plan(running), 'corrected-first-route')).statusCode).toBe(200);
+    expect((await running.app.inject('/sites/demo-cms/corrected.html')).statusCode).toBe(200);
+    expect((await running.app.inject('/sites/demo-cms/unpublished.html')).statusCode).toBe(404);
+  });
+
+  it('preserves the first published URL when a slug rename races a pending first build', async () => {
+    let entered!: () => void; let release!: () => void;
+    const ready = new Promise<void>((r) => { entered = r; }); const held = new Promise<void>((r) => { release = r; });
+    const running = await start({ hooks: { beforeBuild: async () => { entered(); await held; } } });
+    let doc = await create(running, 'original'); doc = await save(running, doc, text(doc, 'First published text'));
+    const pending = publish(running, await plan(running), 'first-url-build'); await ready;
+    try {
+      const rename = await running.app.inject({ method: 'PUT', url: `${base}/documents/${doc.pageId}/draft`, headers: editor,
+        payload: { expectedVersion: doc.version, content: { ...doc.content, slug: 'renamed' } } });
+      expect(rename.statusCode).toBe(409);
+      expect((await running.app.inject({ method: 'POST', url: base + '/documents', headers: editor,
+        payload: { title: 'Another document', slug: 'original' } })).statusCode).toBe(409);
+      doc = await save(running, doc, text(doc, 'Newer text draft during build'));
+    } finally { release(); }
+    expect((await pending).statusCode).toBe(200);
+    expect((await running.app.inject('/sites/demo-cms/original.html')).body).toContain('First published text');
+    expect((await publish(running, await plan(running), 'second-url-build')).statusCode).toBe(200);
+    expect((await running.app.inject('/sites/demo-cms/original.html')).body).toContain('Newer text draft during build');
+    expect((await running.app.inject('/sites/demo-cms/renamed.html')).statusCode).toBe(404);
+  });
+
   it('activates exactly one of two site publishers against the same active version', async () => {
     let entered = 0; let both!: () => void; let release!: () => void;
     const ready = new Promise<void>((r) => { both = r; }); const held = new Promise<void>((r) => { release = r; });

@@ -127,8 +127,7 @@ export class CmsDocuments {
       const prior = this.get(websiteId, pageId);
       if (prior.version !== input.expectedVersion) throw new CmsError(409, 'Paginaconcept gewijzigd. Haal de nieuwste versie op.');
       this.assertSlug(websiteId, input.content.slug, pageId);
-      if (prior.content.slug !== input.content.slug && this.wasPublished(websiteId, pageId))
-        throw new CmsError(409, 'Een gepubliceerde slug wijzigen vereist een redirect en valt buiten deze stap');
+      this.assertPinnedSlug(websiteId, pageId, input.content.slug);
       const previousMedia = this.revision(websiteId, pageId, prior.revisionId).mediaRevisionId;
       const revision = this.insert(websiteId, pageId, prior.revisionId, input.content, previousMedia, this.references(prior.content), actor);
       const result = this.repository.db.prepare(`UPDATE cms_documents SET slug=?,revision_id=?,version=version+1
@@ -141,6 +140,17 @@ export class CmsDocuments {
     const snapshots = this.repository.db.prepare(`SELECT s.snapshot FROM cms_site_snapshots s JOIN cms_attempts a ON a.id=s.release_id
       WHERE a.website_id=? AND a.status='published'`).all(websiteId) as Array<{ snapshot: string }>;
     return snapshots.some((row) => (JSON.parse(row.snapshot) as SiteSnapshot).pages.some((page) => page.pageId === pageId));
+  }
+  private assertPinnedSlug(websiteId: string, pageId: string, slug: string): void {
+    // begin captures snapshots and save checks their route identity under the same
+    // CMS IMMEDIATE writer lock. Text drafts remain editable during a pending build.
+    const snapshots = this.repository.db.prepare(`SELECT s.snapshot FROM cms_site_snapshots s JOIN cms_attempts a ON a.id=s.release_id
+      WHERE a.website_id=? AND a.status IN ('building','published')`).all(websiteId) as Array<{ snapshot: string }>;
+    for (const row of snapshots) {
+      const pinned = (JSON.parse(row.snapshot) as SiteSnapshot).pages.find((page) => page.pageId === pageId);
+      if (pinned && pinned.content.slug !== slug)
+        throw new CmsError(409, 'De slug staat vast tijdens en na publicatie. Wijzigen vereist een redirect en valt buiten deze stap');
+    }
   }
   private revision(websiteId: string, pageId: string, revisionId: string) {
     const row = this.repository.db.prepare('SELECT content,media_revision_id FROM cms_document_revisions WHERE website_id=? AND page_id=? AND id=?')

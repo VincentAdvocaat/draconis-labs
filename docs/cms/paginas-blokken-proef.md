@@ -10,7 +10,7 @@ Opslaan maakt een onveranderlijke revisie. Een save met een verouderde versie ge
 
 Publiceren vraagt eerst een volledige paginaselectie op. De interface toont de gekozen revisies en versies; de server vergelijkt alle pagina's opnieuw in de snapshottransactie. Een ontbrekende selectie geeft 428, een gewijzigde selectie 409. De release bewaart alle gekozen inhoud en verwijzingen vóór de asynchrone build. Latere draftwijzigingen komen niet in die release. Een netwerkretry gebruikt dezelfde idempotencykey en dezelfde selectie.
 
-De gepubliceerde home blijft `index.html`; nieuwe pagina's krijgen `<slug>.html`. Alleen veilige kleine ASCII-slugs zijn toegestaan. Gereserveerde route- en Windowsnamen en dubbele slugs worden geweigerd. Zodra een pagina eenmaal gepubliceerd is, staat de slug vast. Slugwijzigingen met redirects vragen een volgende opdracht.
+De gepubliceerde home blijft `index.html`; nieuwe pagina's krijgen `<slug>.html`. Alleen veilige kleine ASCII-slugs zijn toegestaan. Gereserveerde route- en Windowsnamen en dubbele slugs worden geweigerd. Een snapshot met status `building` of `published` bindt de pagina aan zijn slug. Daardoor kan ook tijdens de eerste build geen andere slug worden opgeslagen. Nieuwe tekstconcepten blijven wel mogelijk. Na een mislukte eerste poging zonder eerdere publicatie kan de slug weer wijzigen. Slugwijzigingen met redirects vragen een volgende opdracht.
 
 ## Opslag en behoud
 
@@ -22,7 +22,7 @@ Na alle bestandswrites en de laatste asynchrone hook valideert de release alle a
 
 ## Verificatie
 
-Alle 89 API- en componenttests slagen, evenals workspace-typecheck, lint, build en `git diff --check`. De nieuwe tests dekken onder meer migratie van bestaande home en media, veilige en unieke slugs, schemavalidatie, blokvolgorde, HTML-encoding, tenantgrenzen, concurrente saves en activaties, volledige vastgelegde snapshots, idempotente retries en ingetrokken rechten vlak vóór activatie. De componenttests draaien de echte editorhandlers en controleren onder andere ongelezen nieuwere revisies en retries na een verloren antwoord.
+De API- en componenttests dekken onder meer migratie van bestaande home en media, veilige en unieke slugs, schemavalidatie, blokvolgorde, HTML-encoding, tenantgrenzen, concurrente saves en activaties, volledige vastgelegde snapshots, idempotente retries en ingetrokken rechten vlak vóór activatie. Een gerichte regressietest houdt de eerste build vast en probeert ondertussen de slug te wijzigen en de oude slug te hergebruiken. De componenttests draaien de echte editorhandlers en controleren onder andere ongelezen nieuwere revisies en retries na een verloren antwoord. Workspace-typecheck, lint, build en `git diff --check` horen bij de controles van deze PR.
 
 De browserproef heeft een nieuwe pagina aangemaakt, twee tekstblokken verplaatst, een echte lokale PNG geüpload, rechten expliciet vrijgegeven en de hele site gepubliceerd. Daarna is een nieuwer paginaconcept opgeslagen en het serverproces via het normale script herstart. De home bleef behouden; het nieuwe concept en de oudere gepubliceerde pagina bleven afzonderlijk bestaan. De publieke pagina toont de gekozen volgorde, SEO-titel en geschoonde afbeelding. Bewijsscreenshots staan uitsluitend in de genegeerde lokale fixturemap.
 
