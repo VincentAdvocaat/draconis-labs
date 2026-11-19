@@ -48,8 +48,9 @@ export class LocalUploadService {
     const file = this.db.prepare('SELECT variants FROM files WHERE website=? AND asset=? AND version=1')
       .get(website, id) as { variants: string } | undefined;
     if (job.state === 'ready' && !file) throw new UploadError(404, 'Upload asset metadata was purged');
+    const asset = this.db.prepare('SELECT rights FROM assets WHERE website=? AND id=?').get(website, id) as { rights: string } | undefined;
     return { assetId: id, fileVersion: 1, state: job.state, error: job.error,
-      rights: 'unknown', variants: file ? JSON.parse(file.variants) as PublicVariant[] : [] };
+      rights: asset?.rights ?? 'unknown', variants: file ? JSON.parse(file.variants) as PublicVariant[] : [] };
   }
   async upload(website: string, bytes: Buffer, filename: string, mime: string) {
     if (this.busy) throw new UploadError(429, 'One image processor at a time');

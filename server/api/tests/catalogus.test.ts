@@ -7,6 +7,7 @@ import { MediaFixtureStore } from '../src/media-fixture/storage.js';
 import { CatalogService } from '../src/catalogus/service.js';
 import { buildCatalogApp } from '../src/catalogus/app.js';
 import type { ItemInput } from '../src/catalogus/contracts.js';
+import { LocalUploadService } from '../src/media-upload/service.js';
 
 const site = 'fixture-alpha';
 const input: ItemInput = { expectedVersion: 0, title: 'Rood proefbeeld', slug: 'rood-proefbeeld',
@@ -112,6 +113,18 @@ describe('persisted catalog and portfolio module', () => {
     const memory = new Database(':memory:');
     try { expect(() => new MediaFixtureStore(fixture.root, [site], memory)).toThrow('must belong'); }
     finally { memory.close(); }
+  });
+
+  it('reports persisted rights in upload status after explicit approval or blocking', async () => {
+    const uploads = new LocalUploadService(fixture.root);
+    try {
+      const result = await uploads.upload(site, readFileSync(join(fixture.root, 'public', site, 'photo', '1', 'tiny.png')), 'fixture.png', 'image/png');
+      expect(result.rights).toBe('unknown');
+      service.setRights(site, result.assetId, decision);
+      expect(uploads.status(site, result.assetId).rights).toBe('cleared');
+      service.setRights(site, result.assetId, { ...decision, expectedVersion: 2, status: 'blocked' });
+      expect(uploads.status(site, result.assetId).rights).toBe('blocked');
+    } finally { uploads.close(); }
   });
 });
 
