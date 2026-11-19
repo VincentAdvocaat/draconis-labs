@@ -130,7 +130,9 @@ export class MediaFixtureStore {
   private verifyVariant(variant: PublicVariant) {
     const path = resolve(this.root, variant.path);
     const rel = relative(this.root, path);
-    if (!variant.path.startsWith('public/') || isAbsolute(rel) || rel === '..' || rel.startsWith(`..${sep}`))
+    const publicRelative = relative(resolve(this.root, 'public'), path);
+    if (!variant.path.startsWith('public/') || !publicRelative || isAbsolute(publicRelative) ||
+        publicRelative === '..' || publicRelative.startsWith(`..${sep}`))
       throw new MediaContractError(409, 'Invalid public variant path');
     // Reject symlink components, including the file, before opening fixture bytes.
     let current = this.root;
