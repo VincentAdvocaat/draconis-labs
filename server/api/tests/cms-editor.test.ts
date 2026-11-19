@@ -133,15 +133,15 @@ function editorHarness() {
 const pageA = { revisionId: 'revision-A', pageVersion: 1, values: { title: 'Revisie A', intro: '' }, activeReleaseId: null, activeVersion: 0 };
 const pageB = { ...pageA, revisionId: 'revision-B', pageVersion: 2, values: { title: 'Revisie B', intro: '' } };
 
-async function openImageEnglish(needsUpdate=true) {
+async function openImageEnglish(needsUpdate=true, unsaved=false) {
   const ui=editorHarness();ui.results.push({status:200,body:{...pageA,pagesEnabled:true}});await ui.open();
   const content={schemaVersion:1,locale:'nl',title:'NL image',slug:'nl-image',seoTitle:'NL image',seoDescription:'',blocks:[]};
   ui.results.push({status:201,body:{pageId:'page-one',revisionId:'nl-one',version:1,content,published:false}},
     {status:200,body:{activeVersion:0,activeReleaseId:null,pages:[]}});
   await ui.action(ui.button('Nieuwe pagina aanmaken'));
-  const english={pageId:'page-one',revisionId:'en-one',version:1,structure:'source-one',savedStructure:needsUpdate?'old-source':'source-one',supported:true,needsUpdate,
-    sourceBlocks:[{blockId:'image-one',type:'image'}],sourceImages:[{blockId:'image-one',assetId:'photo',fileVersion:1,usage:'block-image-one',decorative:false}],
-    content:{...content,locale:'en',title:'English image',blocks:[{blockId:'image-one',type:'image',altText:'Saved English alt',caption:'Saved English caption'}]}};
+  const english={pageId:'page-one',revisionId:unsaved?null:'en-one',version:unsaved?0:1,structure:'source-one',savedStructure:needsUpdate?'old-source':'source-one',supported:true,needsUpdate,
+    sourceBlocks:[{blockId:'image-one',type:'image'},...(unsaved?[{blockId:'existing-text',type:'text'}]:[])],sourceImages:[{blockId:'image-one',assetId:'photo',fileVersion:1,usage:'block-image-one',decorative:false}],
+    content:{...content,locale:'en',title:'English image',blocks:[{blockId:'image-one',type:'image',altText:'Saved English alt',caption:'Saved English caption'},...(unsaved?[{blockId:'existing-text',type:'text',heading:null,body:null}]:[])]}};
   ui.results.push({status:200,body:english});await ui.action(ui.button('English bewerken'));
   return {ui,english};
 }
@@ -259,6 +259,27 @@ describe('CMS editor recovery and selected revision', () => {
     await ui.action(ui.button('EN-concept opslaan'));
     expect(JSON.parse(ui.requests.at(-1)!.init.body!)).toMatchObject({expectedVersion:1,expectedStructure:'source-two',confirmSourceChange:true,
       content:{blocks:[{blockId:'new-text',type:'text',heading:null,body:null},{blockId:'image-one',type:'image',altText:'Saved English alt',caption:'My unsaved caption'}]}});
+  });
+
+  it('requires explicit alignment after source recovery for the first unsaved English draft', async () => {
+    const {ui,english}=await openImageEnglish(false,true);
+    await ui.action(ui.field('EN-bloktekst 2'),'onChange',{target:{value:'My first body'}});
+    await ui.action(ui.field('EN-alt-tekst'),'onChange',{target:{value:'My first alt'}});
+    await ui.action(ui.field('EN-bijschrift'),'onChange',{target:{value:'My first caption'}});
+    const latest={...english,structure:'source-two',needsUpdate:false,
+      sourceBlocks:[{blockId:'new-text',type:'text'},...english.sourceBlocks]};
+    ui.results.push({status:409,body:{message:'Source changed'}},{status:200,body:latest});
+    await ui.action(ui.button('EN-concept opslaan'));
+    await ui.action(ui.button('Actuele NL-bron laden met behoud van EN-invoer'));
+    expect(ui.field('EN-bijschrift').props.value).toBe('My first caption');
+    expect(ui.button('EN-concept opslaan').props.disabled).toBe(true);
+    await ui.action(ui.button('EN-structuur en beeldbinding bevestigen'));
+    ui.results.push({status:200,body:{...latest,revisionId:'en-one',version:1}});
+    await ui.action(ui.button('EN-concept opslaan'));
+    expect(JSON.parse(ui.requests.at(-1)!.init.body!)).toMatchObject({expectedVersion:0,expectedStructure:'source-two',confirmSourceChange:true,
+      content:{blocks:[{blockId:'new-text',type:'text',heading:null,body:null},
+        {blockId:'image-one',type:'image',altText:'My first alt',caption:'My first caption'},
+        {blockId:'existing-text',type:'text',heading:null,body:'My first body'}]}});
   });
 
   it('does not offer source-only recovery when another editor saved English content', async () => {
