@@ -15,7 +15,8 @@ export class LocalUploadService {
   private busy = false;
   private readonly db: Database.Database;
   readonly root: string;
-  constructor(root: string) {
+  constructor(root: string, private readonly removeDirectory: (path: string) => void =
+    path => { rmSync(path, { recursive: true, force: true }); }) {
     this.root = assertFixtureRoot(root);
     this.db = new Database(join(this.root, 'media.sqlite'));
     this.db.pragma('foreign_keys = ON');
@@ -46,6 +47,7 @@ export class LocalUploadService {
     if (!job) throw new UploadError(404, 'Upload job not found');
     const file = this.db.prepare('SELECT variants FROM files WHERE website=? AND asset=? AND version=1')
       .get(website, id) as { variants: string } | undefined;
+    if (job.state === 'ready' && !file) throw new UploadError(404, 'Upload asset metadata was purged');
     return { assetId: id, fileVersion: 1, state: job.state, error: job.error,
       rights: 'unknown', variants: file ? JSON.parse(file.variants) as PublicVariant[] : [] };
   }
@@ -67,7 +69,7 @@ export class LocalUploadService {
   private async process(job: Job) {
     const paths = this.paths(job.website, job.id);
     try {
-      rmSync(paths.staging, { recursive: true, force: true });
+      this.removeDirectory(paths.staging);
       mkdirSync(paths.staging, { recursive: true });
       const encoded = await processImage(readFileSync(paths.original), job.filename, job.mime);
       const variants: PublicVariant[] = [];
@@ -78,7 +80,7 @@ export class LocalUploadService {
           bytes: variant.bytes.length, width: variant.width, height: variant.height, checksum: checksum(variant.bytes) });
       }
       mkdirSync(dirname(paths.publicDir), { recursive: true });
-      rmSync(paths.publicDir, { recursive: true, force: true });
+      this.removeDirectory(paths.publicDir);
       renameSync(paths.staging, paths.publicDir);
       this.db.transaction(() => {
         this.db.prepare("INSERT INTO assets(website,id,rights) VALUES(?,?,'unknown')").run(job.website, job.id);
@@ -86,18 +88,25 @@ export class LocalUploadService {
         this.db.prepare("UPDATE upload_jobs SET state='ready',error=NULL WHERE id=?").run(job.id);
       })();
     } catch (error) {
-      rmSync(paths.staging, { recursive: true, force: true });
-      rmSync(paths.publicDir, { recursive: true, force: true });
-      const message = error instanceof UploadError ? error.message : 'Local processing failed';
+      let cleanupFailed = false;
+      for (const path of [paths.staging, paths.publicDir]) {
+        try { this.removeDirectory(path); } catch { cleanupFailed = true; }
+      }
+      const originalMessage = error instanceof UploadError ? error.message : 'Local processing failed';
+      const message = cleanupFailed ? `${originalMessage}; cleanup incomplete, temporary files retained` : originalMessage;
       this.db.prepare("UPDATE upload_jobs SET state='failed',error=? WHERE id=?").run(message, job.id);
-      throw error instanceof UploadError ? error : new UploadError(422, message);
+      throw new UploadError(error instanceof UploadError ? error.statusCode : 422, message);
     }
   }
   async recover() {
     const jobs = this.db.prepare("SELECT * FROM upload_jobs WHERE state='processing' ORDER BY rowid").all() as Job[];
     for (const job of jobs) {
       try { await this.process(job); }
-      catch { /* Persistent failed status is available; continue recovering the next job. */ }
+      catch {
+        const status = this.db.prepare('SELECT state FROM upload_jobs WHERE id=?').get(job.id) as { state: string } | undefined;
+        if (status?.state !== 'failed') throw new UploadError(500, 'Recovery could not persist a failed job; local intervention required');
+        // A durable failed status, including incomplete cleanup, permits the next job to recover.
+      }
     }
   }
 }
