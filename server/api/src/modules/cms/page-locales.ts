@@ -1,3 +1,5 @@
+import {portfolioSelectionSchema,portfolioLabelsSchema} from './portfolio-schema.js';
+import type {CmsPortfolio} from './portfolio.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { validateContentField, CONTENT_PUBLICATION_RULES_V1 } from '@draconis/shared';
@@ -14,6 +16,7 @@ export const englishContentSchema = z.object({ schemaVersion: z.literal(1), loca
   blocks: z.array(z.discriminatedUnion('type',[
     z.object({blockId:z.string().uuid(),type:z.literal('text'),heading:optionalText(200),body:optionalText(10_000)}).strict(),
     z.object({blockId:z.string().uuid(),type:z.literal('image'),altText:optionalText(2000),caption:optionalText(1000)}).strict(),
+    z.object({blockId:z.string().uuid(),type:z.literal('portfolio'),selection:portfolioSelectionSchema.nullable(),labels:portfolioLabelsSchema}).strict(),
   ])).min(1).max(16),
 }).strict().refine((content) => Buffer.byteLength(JSON.stringify(content)) <= 100_000, 'Pagina maximaal 100 KB');
 export const localeSaveSchema = z.object({ expectedVersion: z.number().int().nonnegative(),
@@ -22,7 +25,7 @@ export type EnglishContent = z.infer<typeof englishContentSchema>;
 interface ImageBinding {blockId:string;assetId:string;fileVersion:number;usage:string;decorative:boolean}
 interface Row { revision_id: string; version: number; content: string; structure: string; source_binding_json:string|null;media_revision_id:string|null }
 export class CmsPageLocales {
-  constructor(private repository: CmsRepository, private source: (site: string, page: string) => DocumentDto, private media?:CmsMedia) {
+  constructor(private repository: CmsRepository, private source: (site: string, page: string) => DocumentDto, private media?:CmsMedia,private portfolio?:CmsPortfolio) {
     repository.db.transaction(() => repository.db.exec(`
       CREATE TABLE IF NOT EXISTS cms_locale_revisions(id TEXT PRIMARY KEY, website_id TEXT NOT NULL,
         page_id TEXT NOT NULL, locale TEXT NOT NULL CHECK(locale='en'), content TEXT NOT NULL, structure TEXT NOT NULL,
@@ -56,16 +59,15 @@ export class CmsPageLocales {
     const row = this.repository.db.prepare(`SELECT h.revision_id,h.version,r.content,r.structure,r.source_binding_json,r.media_revision_id FROM cms_locale_heads h
       JOIN cms_locale_revisions r ON r.id=h.revision_id WHERE h.website_id=? AND h.page_id=? AND h.locale='en'`).get(site, page) as Row | undefined;
     const content: EnglishContent = row ? JSON.parse(row.content) : { schemaVersion: 1, locale: 'en', title: null, slug: null,
-      seoTitle: null, seoDescription: null, blocks: source.content.blocks.flatMap<EnglishContent['blocks'][number]>((block) => block.type==='text'?[{blockId:block.blockId,type:'text',heading:null,body:null}]:block.type==='image'?[{blockId:block.blockId,type:'image',altText:null,caption:null}]:[]) };
+      seoTitle: null, seoDescription: null, blocks: source.content.blocks.flatMap<EnglishContent['blocks'][number]>((block) => block.type==='text'?[{blockId:block.blockId,type:'text',heading:null,body:null}]:block.type==='image'?[{blockId:block.blockId,type:'image',altText:null,caption:null}]:block.type==='portfolio'?[{blockId:block.blockId,type:'portfolio',selection:null,labels:block.labels}]:[]) };
     return { pageId: page, locale: 'en' as const, defaultLocale: 'nl' as const, revisionId: row?.revision_id ?? null,
       version: row?.version ?? 0, structure, savedStructure: row?.structure ?? structure,
-      needsUpdate: !!row && row.structure !== structure, supported: source.content.blocks.every((block) => block.type === 'text'||block.type==='image'),
+      needsUpdate: !!row && row.structure !== structure, supported: true,
       sourceImages:this.bindings(source), sourceBlocks: source.content.blocks.map(({ blockId, type }) => ({ blockId, type })), content };
   }
   save(site: string, page: string, input: z.infer<typeof localeSaveSchema>, actor: string) {
     return this.repository.db.transaction(() => {
       const current = this.get(site, page);
-      if (!current.supported) throw new CmsError(409, 'Portfolio-EN wordt nog niet ondersteund. De NL-publicatie blijft beschikbaar.');
       if (current.version !== input.expectedVersion || current.structure !== input.expectedStructure)
         throw new CmsError(409, 'Taalversie of NL-blokstructuur gewijzigd. Jouw invoer blijft bewaard; laad de actuele structuur.');
       if(current.needsUpdate&&!input.confirmSourceChange)throw new CmsError(409,'Bevestig eerst de bijgewerkte NL-structuur en beeldbinding; je EN-invoer blijft behouden.');
@@ -81,6 +83,11 @@ export class CmsPageLocales {
       if (slug && this.repository.db.prepare(`SELECT page_id FROM cms_locale_heads WHERE website_id=? AND locale='en' AND slug=? AND page_id<>?`).get(site, slug, page))
         throw new CmsError(409, 'Deze EN-slug bestaat al binnen de website');
       const id = randomUUID();
+      for(const block of input.content.blocks)if(block.type==='portfolio'&&block.selection){
+        if(block.selection.localeContext.locale!=='en')throw new CmsError(400,'Kies expliciet een EN-catalogussnapshot');
+        if(!this.portfolio)throw new CmsError(503,'Catalogus niet beschikbaar');
+        this.portfolio.pin(site,page,id,{blockId:block.blockId,type:'portfolio',...block.selection,labels:block.labels});
+      }
       const bindings=current.sourceImages;
       const refs=this.references(input.content,bindings);
       const previous=this.repository.db.prepare('SELECT content,source_binding_json,media_revision_id FROM cms_locale_revisions WHERE website_id=? AND id=?')
@@ -133,6 +140,12 @@ export class CmsPageLocales {
     return { ...content, title: content.title!, slug: content.slug!, seoTitle: content.seoTitle!, seoDescription: content.seoDescription ?? '',
       blocks: content.blocks.map((block) => {
         if(block.type==='text')return {...block,heading:block.heading??'',body:block.body!};
+        if(block.type==='portfolio'){
+          if(!block.selection||block.selection.localeContext.locale!=='en')throw new CmsError(400,'Kies expliciet een EN-catalogussnapshot');
+          for(const values of [block.labels.heading,block.labels.empty])if(!validateContentField(values,context,CONTENT_PUBLICATION_RULES_V1.title).valid)
+            throw new CmsError(400,'Vul portfolio-kop en lege-staattekst rechtstreeks in EN in');
+          return {blockId:block.blockId,type:'portfolio' as const,...block.selection,labels:block.labels};
+        }
         const reference=this.references(content,bindings).find((item)=>item.usage===bindings.find((binding)=>binding.blockId===block.blockId)?.usage)!;
         if(reference.decorative ? block.altText!=='' : !validateContentField({en:block.altText},context,CONTENT_PUBLICATION_RULES_V1.alt).valid)
           throw new CmsError(400,'Vul betekenisvolle EN-alt rechtstreeks in; decoratief gebruik vereist expliciet lege alt.');

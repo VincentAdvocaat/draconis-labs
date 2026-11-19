@@ -40,7 +40,7 @@ export class CmsPortfolio {
       kind: attemptId ? 'release' : 'draft', slot: block.blockId, ...(attemptId ? { attemptId } : {}) },
       ref: block.ref, checksum: block.checksum, localeContext: block.localeContext });
   }
-  render(website: string, pageId: string, revisionId: string, block: Block, attemptId?: string) {
+  render(website: string, pageId: string, revisionId: string, block: Block, attemptId?: string, absolutePaths=false) {
     const pin = this.pin(website, pageId, revisionId, block, attemptId);
     const output = this.consumer.materialize(this.media.websiteScope(website), pin.pinId);
     const files: Array<{ path: string; bytes: Buffer }> = [];
@@ -59,9 +59,13 @@ export class CmsPortfolio {
       // lowercase UUID even when callers reuse or uppercase their block UUID.
       const path = attemptId ? `media/${attemptId}/portfolio-${pin.pinId}-${item.itemId.toLowerCase()}.${extension}` : '';
       if (attemptId) files.push({ path, bytes: image.bytes });
-      const src = attemptId ? path : `data:${image.mime};base64,${image.bytes.toString('base64')}`;
+      const src = attemptId ? (absolutePaths?`/sites/${website}/${path}`:path) : `data:${image.mime};base64,${image.bytes.toString('base64')}`;
       const alt = item.media.decorative ? '' : item.resolvedMedia.altText[block.localeContext.locale];
-      return `<article><h3>${encode(item.title)}</h3><p>${encode(item.description)}</p><img src="${encode(src)}" alt="${encode(alt ?? '')}" width="${image.width}" height="${image.height}"></article>`;
+      const language=(field:'title'|'description'|'alt')=>{
+        const source=item.fieldSources?.[field];
+        return source?.isFallback&&source.sourceLocale?` lang="${encode(source.sourceLocale)}"`:'';
+      };
+      return `<article><h3${language('title')}>${encode(item.title)}</h3><p${language('description')}>${encode(item.description)}</p><img${language('alt')} src="${encode(src)}" alt="${encode(alt ?? '')}" width="${image.width}" height="${image.height}"></article>`;
     }).join('') + '</section>';
     return { html, files };
   }

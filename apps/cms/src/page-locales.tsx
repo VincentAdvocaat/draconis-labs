@@ -1,7 +1,8 @@
+import type {PortfolioSelection,PortfolioBlock} from './documents';
 import {createCmsTranslator, type UiLocale} from './i18n';
 export interface EnglishContent {
   schemaVersion: 1; locale: 'en'; title: string | null; slug: string | null; seoTitle: string | null; seoDescription: string | null;
-  blocks: Array<{blockId:string;type:'text';heading:string|null;body:string|null}|{blockId:string;type:'image';altText:string|null;caption:string|null}>;
+  blocks: Array<{blockId:string;type:'text';heading:string|null;body:string|null}|{blockId:string;type:'image';altText:string|null;caption:string|null}|{blockId:string;type:'portfolio';selection:PortfolioSelection|null;labels:NonNullable<PortfolioBlock['labels']>}>;
 }
 export interface EnglishDto {
   pageId: string; revisionId: string | null; version: number; structure: string; savedStructure: string;
@@ -11,9 +12,9 @@ export interface LocaleChoice {
   pageId: string; locale: 'en'; revisionId: string; version: number; structure: string;
   title: string | null; slug: string | null; needsUpdate: boolean; supported: boolean;
 }
-export function EnglishEditor({record, draft, onChange, busy, onSave, onPreview, dirty, uiLocale = 'nl',onAlign,sourceConfirmed=false}: {
+export function EnglishEditor({record, draft, onChange, busy, onSave, onPreview, dirty, uiLocale = 'nl',onAlign,sourceConfirmed=false,portfolioSelections=[],onLoadPortfolio}: {
   uiLocale?: UiLocale; record: EnglishDto; draft: EnglishContent; onChange: (content: EnglishContent) => void; busy: boolean;
-  onAlign?:()=>void;sourceConfirmed?:boolean;onSave: () => void; onPreview: () => void; dirty: boolean;
+  portfolioSelections?:PortfolioSelection[];onLoadPortfolio?:()=>void;onAlign?:()=>void;sourceConfirmed?:boolean;onSave: () => void; onPreview: () => void; dirty: boolean;
 }) {
   const {copy: t, text} = createCmsTranslator(uiLocale);
   const field = (label: string, value: string | null, change: (value: string | null) => void, max: number, multiline = false, disabled=false) =>
@@ -27,7 +28,7 @@ export function EnglishEditor({record, draft, onChange, busy, onSave, onPreview,
         <button onClick={() => {onChange({...draft, blocks: record.sourceBlocks.flatMap<EnglishContent['blocks'][number]>(({blockId,type}) => {
           const existing=draft.blocks.find((block)=>block.blockId===blockId&&block.type===type);
           if(existing)return [existing];
-          return type==='text'?[{blockId,type:'text',heading:null,body:null}]:type==='image'?[{blockId,type:'image',altText:null,caption:null}]:[];
+          return type==='text'?[{blockId,type:'text',heading:null,body:null}]:type==='image'?[{blockId,type:'image',altText:null,caption:null}]:type==='portfolio'?[{blockId,type:'portfolio',selection:null,labels:{heading:{en:null},empty:{en:null}}}]:[];
         })});onAlign?.();}}>{t.alignEnglish}</button></aside>}
       {field(t.englishTitle, draft.title, (title) => onChange({...draft, title}), 200)}
       {field(t.englishSlug, draft.slug, (slug) => onChange({...draft, slug}), 80)}
@@ -36,6 +37,16 @@ export function EnglishEditor({record, draft, onChange, busy, onSave, onPreview,
       {draft.blocks.map((block,index)=>block.type==='text'?<fieldset key={block.blockId}><legend>{t.englishTextBlock} {index+1}</legend>
         {field(text('englishHeading',{number:index+1}),block.heading,(heading)=>onChange({...draft,blocks:draft.blocks.map((item)=>item.blockId===block.blockId?{...block,heading}:item)}),200)}
         {field(text('englishBody',{number:index+1}),block.body,(body)=>onChange({...draft,blocks:draft.blocks.map((item)=>item.blockId===block.blockId?{...block,body}:item)}),10_000,true)}
+      </fieldset>:block.type==='portfolio'?<fieldset key={block.blockId}><legend>{t.portfolio} {index+1}</legend>
+        <p>{t.pageLanguage} {draft.locale} {t.blockLanguage} {block.selection?.localeContext.locale??t.none}</p>
+        <p>{t.snapshot} {block.selection?.ref.snapshotId??t.none} · {t.checksum} {block.selection?.checksum??t.none}</p>
+        <p>{t.portfolioContext} {block.selection?.localeContext.defaultLocale??t.none} · {t.fallback} {block.selection?.localeContext.fallbackLocale??t.none}</p>
+        <button onClick={onLoadPortfolio}>{t.loadSnapshots}</button>
+        {portfolioSelections.filter((selection)=>selection.localeContext.locale==='en').map((selection)=><p key={selection.ref.snapshotId}>
+          {selection.ref.snapshotId} · {selection.localeContext.locale} · {t.fallback} {selection.localeContext.fallbackLocale??t.none}
+          <button onClick={()=>onChange({...draft,blocks:draft.blocks.map((item)=>item.blockId===block.blockId?{...block,selection:{ref:selection.ref,checksum:selection.checksum,localeContext:selection.localeContext}}:item)})}>{text('chooseSnapshot',{locale:'en'})}</button>
+        </p>)}
+        {(['nl','en'] as const).map((locale)=>(['heading','empty'] as const).map((key)=>field(`${key==='heading'?t.portfolioHeading:t.portfolioEmpty} ${locale}`,block.labels[key][locale]??null,(value)=>onChange({...draft,blocks:draft.blocks.map((item)=>item.blockId===block.blockId?{...block,labels:{...block.labels,[key]:{...block.labels[key],[locale]:value}}}:item)}),500)))}
       </fieldset>:<fieldset key={block.blockId}><legend>{t.englishImageBlock} {index+1}</legend>
         <p>{t.englishSourceImage} {record.sourceImages?.find((image)=>image.blockId===block.blockId)?.assetId} {t.versionInline} {record.sourceImages?.find((image)=>image.blockId===block.blockId)?.fileVersion}</p>
         <p>{record.sourceImages?.find((image)=>image.blockId===block.blockId)?.decorative?t.englishDecorativeImage:t.englishMeaningfulImage}</p>

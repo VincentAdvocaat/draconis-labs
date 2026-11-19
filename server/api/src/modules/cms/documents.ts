@@ -3,7 +3,6 @@ import { randomUUID, createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { contentLocaleContextSchema, localizedTextValuesSchema } from '@draconis/shared';
 import type { CmsPortfolio } from './portfolio.js';
 import { mediaReferenceSchema, type MediaReference } from '../../media-fixture/contracts.js';
 import { CmsError, encode, type ReleaseInput } from './model.js';
@@ -18,13 +17,8 @@ const textBlock = z.object({ blockId: z.string().uuid(), type: z.literal('text')
   heading: z.string().max(200), body: z.string().max(10_000) }).strict();
 const imageBlock = z.object({ blockId: z.string().uuid(), type: z.literal('image'),
   reference: mediaReferenceSchema, caption: z.string().max(1000) }).strict();
-export const portfolioBlockSchema = z.object({ blockId: z.string().uuid(), type: z.literal('portfolio'),
-  ref: z.object({ websiteId: z.string(), collectionId: z.literal('portfolio'), snapshotId: z.string().uuid() }).strict(),
-  checksum: z.string().regex(/^[a-f0-9]{64}$/), localeContext: contentLocaleContextSchema,
-  labels: z.object({ heading: localizedTextValuesSchema, empty: localizedTextValuesSchema }).strict()
-    .refine((labels) => Object.values(labels).every((values) => Object.values(values).every((value) => value == null || value.length <= 500)), 'Bloktekst maximaal 500 tekens')
-    .default(() => ({ heading: { nl: 'Portfolio', en: 'Portfolio' }, empty: { nl: 'Er zijn nog geen projecten.', en: 'No projects yet.' } })),
-}).strict();
+import {portfolioBlockSchema} from './portfolio-schema.js';
+export {portfolioBlockSchema} from './portfolio-schema.js';
 export const documentContentSchema = z.object({
   schemaVersion: z.literal(1), locale: z.literal('nl'), title: z.string().trim().min(1).max(200),
   slug: documentSlugSchema, seoTitle: z.string().trim().min(1).max(200), seoDescription: z.string().max(1000),
@@ -79,7 +73,7 @@ export class CmsDocuments {
         INSERT OR IGNORE INTO cms_migrations VALUES(3);
       `);
     })();
-    this.locales = new CmsPageLocales(repository, (site, page) => this.get(site, page), media);
+    this.locales = new CmsPageLocales(repository, (site, page) => this.get(site, page), media, portfolio);
     repository.setSiteSnapshots(this);
   }
 
@@ -227,7 +221,12 @@ export class CmsDocuments {
       if(!this.uploads)throw new CmsError(503,'Mediaopslag niet beschikbaar voor privépreview');
       images.set(ref.usage,{...this.uploads.preview(websiteId,ref),alt:ref.decorative?'':ref.altText.en??''});
     }
-    return this.render(content,images);
+    const portfolio=new Map<string,string>();
+    for(const block of content.blocks)if(block.type==='portfolio'){
+      if(!this.portfolio)throw new CmsError(503,'Catalogus niet beschikbaar');
+      portfolio.set(block.blockId,this.portfolio.render(websiteId,pageId,revisionId,block).html);
+    }
+    return this.render(content,images,'',portfolio);
   }
   previewShared(websiteId: string, input: {pageId: string; revisionId: string; locale: 'nl'|'en'; sharedRevisionId: string; sharedVersion: number}) {
     if (!this.shared) throw new CmsError(503,'Navigatietekst niet beschikbaar');
@@ -315,7 +314,7 @@ export class CmsDocuments {
       const portfolio = new Map<string, string>();
       for (const block of page.content.blocks) if (block.type === 'portfolio') {
         if (!this.portfolio) throw new CmsError(503, 'Catalogus niet beschikbaar');
-        const result = this.portfolio.render(websiteId, page.pageId, page.revisionId, block, releaseId);
+        const result = this.portfolio.render(websiteId, page.pageId, page.revisionId, block, releaseId, page.content.locale==='en');
         portfolio.set(block.blockId, result.html); files.push(...result.files);
       }
       for (const image of resolved.get(page.file) ?? []) {

@@ -212,6 +212,23 @@ describe('CMS editor recovery and selected revision', () => {
     finish({status: 200, body: pageA}); await pending; await ui.settle();
     expect(ui.status()).toBe('Draft version 1 loaded.'); expect(ui.requests).toHaveLength(1);
   });
+  it('selects EN catalog context explicitly and preserves portfolio input through source recovery',async()=>{
+    const ui=editorHarness();ui.results.push({status:200,body:{...pageA,pagesEnabled:true}});await ui.open();
+    const labels={heading:{nl:'NL heading',en:'Saved heading'},empty:{nl:'NL empty',en:'Saved empty'}};
+    const selection={ref:{websiteId:'fixture-alpha',collectionId:'portfolio',snapshotId:'snapshot-en'},checksum:'checksum-en',localeContext:{defaultLocale:'nl',locale:'en',fallbackLocale:'nl'}};
+    const content={schemaVersion:1,locale:'nl',title:'NL portfolio',slug:'nl-portfolio',seoTitle:'NL portfolio',seoDescription:'',blocks:[{blockId:'portfolio-one',type:'portfolio',...selection,labels}]};
+    ui.results.push({status:201,body:{pageId:'page-one',revisionId:'nl-one',version:1,content,published:false}},{status:200,body:{activeVersion:0,activeReleaseId:null,pages:[]}});await ui.action(ui.button('Nieuwe pagina aanmaken'));
+    const english={pageId:'page-one',revisionId:null,version:0,structure:'source-one',savedStructure:'source-one',supported:true,needsUpdate:false,sourceBlocks:[{blockId:'portfolio-one',type:'portfolio'}],content:{...content,locale:'en',blocks:[{blockId:'portfolio-one',type:'portfolio',selection:null,labels}]}};
+    ui.results.push({status:200,body:english});await ui.action(ui.button('English bewerken'));
+    ui.results.push({status:200,body:[{...selection,itemCount:1},{...selection,ref:{...selection.ref,snapshotId:'snapshot-nl'},localeContext:{defaultLocale:'nl',locale:'nl'}}]});await ui.action(ui.button('Portfolio-snapshots ophalen'));
+    await ui.action(ui.button('Snapshot en kiezen'));await ui.action(ui.field('Portfolio-kop en'),'onChange',{target:{value:'My unsaved portfolio heading'}});
+    const latest={...english,structure:'source-two',sourceBlocks:[{blockId:'new-text',type:'text'},...english.sourceBlocks]};ui.results.push({status:409,body:{message:'Source changed'}},{status:200,body:latest});await ui.action(ui.button('EN-concept opslaan'));
+    await ui.action(ui.button('Actuele NL-bron laden met behoud van EN-invoer'));expect(ui.button('EN-concept opslaan').props.disabled).toBe(true);await ui.action(ui.button('EN-structuur en beeldbinding bevestigen'));
+    expect(ui.field('Portfolio-kop en').props.value).toBe('My unsaved portfolio heading');
+    ui.results.push({status:200,body:{...latest,version:1,revisionId:'en-one',needsUpdate:false}});await ui.action(ui.button('EN-concept opslaan'));
+    expect(JSON.parse(ui.requests.at(-1)!.init.body!)).toMatchObject({expectedVersion:0,expectedStructure:'source-two',confirmSourceChange:true,content:{blocks:[{blockId:'new-text',type:'text'},{blockId:'portfolio-one',type:'portfolio',selection,labels:{heading:{en:'My unsaved portfolio heading'}}}]}});
+  });
+
   it('requires explicit source confirmation even when image translations are unchanged', async () => {
     const ui=editorHarness();ui.results.push({status:200,body:{...pageA,pagesEnabled:true}});await ui.open();
     const content={schemaVersion:1,locale:'nl',title:'NL image',slug:'nl-image',seoTitle:'NL image',seoDescription:'',
