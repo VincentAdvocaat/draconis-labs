@@ -25,7 +25,7 @@ Invoke-RestMethod -Method Post `
   -Headers $uploadHeaders -ContentType 'image/jpeg' -InFile 'C:\pad\voorbeeld.jpg'
 ```
 
-De response is `201` met `assetId`, `fileVersion=1`, `state=ready`, `rights=unknown` en de volledige publieke variantset met bytes, afmetingen en SHA-256. Vraag dezelfde status op met een geauthenticeerde `GET /websites/fixture-alpha/media/{assetId}`. `fixture-beta` is de tweede expliciete testwebsite. De probe-token geeft toegang tot beide fictieve websites; dit is geen productie-identiteit of rollenmodel.
+De response is `201` met `assetId`, `fileVersion=1`, `state=ready`, `rights=unknown` en de volledige publieke variantset met bytes, afmetingen en SHA-256. Vraag dezelfde status op met een geauthenticeerde `GET /websites/fixture-alpha/media/{assetId}`. Een gefaalde job is na herstart met dezelfde foutmelding zichtbaar. `POST /websites/fixture-alpha/media/{assetId}/retry`, met bearer-token en zonder body, probeert alleen een failed-job opnieuw uit de bewaarde private bron. Asset-ID en fileVersion blijven gelijk. Een ready-job geeft 409; een job van een andere website geeft 404. De processor bewaakt ook tijdens retry één actieve verwerking. `fixture-beta` is de tweede expliciete testwebsite. De probe-token geeft toegang tot beide fictieve websites; dit is geen productie-identiteit of rollenmodel.
 
 De module accepteert een raw binary body, geen multipartformulier. MIME is JPEG/PNG/WebP en `x-media-filename` moet een bijpassende extensie hebben, zonder paden of controltekens. Alle routes vereisen de exacte bearer-token. Cookie-auth wordt niet gebruikt. Elk verzoek met een Origin-header of een cross-site Sec-Fetch-Site-header wordt geweigerd. Er is geen CORS-toestemming en geen browser-UI. Dit maakt de proef via CLI bruikbaar zonder dat een willekeurige website een schrijfrecht krijgt.
 
@@ -69,3 +69,5 @@ De tests omvatten breedtes 1/200/320/640, JPEG/WebP/PNG, transparantie, GPS/ori�
 De onafhankelijke review in chat `01a1f4b2-2034-78d1-9027-c3d069152e19` vond P2 over cleanup die failed-persistentie kon overslaan. De foutafhandeling is aangepast zoals hierboven; de gerichte regressietest dekt dit. Het optionele P3-advies voor clientabort is ook getest. Daarnaast is metadata-purge/status voorafgaand aan de volgende module-integratie gecorrigeerd. Deze fixes gaan gericht terug naar dezelfde reviewchat.
 
 Volgende functionele stap is M2 bibliotheekbeheer met rechtenmetadata en een veilige picker. Catalogus en portfolio blijven aparte fasen. Deze uploadproef is nog niet aangesloten op echte klantwebsites of de CMS-pagina-editor.
+
+Een HTTP-verwerkingsfout na jobregistratie geeft assetId en fileVersion terug, zodat de medewerker de failed-status ook na herstart kan opvragen en dezelfde job expliciet kan herstellen. Een afwijzing voor een ongeldige envelope maakt geen job.

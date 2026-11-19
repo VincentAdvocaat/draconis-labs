@@ -82,12 +82,15 @@ describe('local HTTP upload and real image processor', () => {
     expect((await upload(await image(), '../source.png')).statusCode).toBe(400);
     expect((await upload(Buffer.from('<svg/>'))).statusCode).toBe(415);
     const bad = Buffer.from('89504e470d0a1a0a000000', 'hex');
-    expect((await upload(bad)).statusCode).toBe(422);
+    const failure = await upload(bad);
+    expect(failure.statusCode).toBe(422);
     const db = new Database(join(fixture.root, 'media.sqlite'));
     try {
       const jobs = db.prepare('SELECT * FROM upload_jobs').all() as { id: string; state: string }[];
       expect(jobs).toHaveLength(1);
       expect(jobs[0].state).toBe('failed');
+      expect(failure.json()).toMatchObject({ assetId: jobs[0].id, fileVersion: 1 });
+      expect((await app.inject({ url: `/websites/${website}/media/${jobs[0].id}`, headers: auth })).json().state).toBe('failed');
       expect(existsSync(join(fixture.root, 'public', website, jobs[0].id, '1'))).toBe(false);
       expect(db.prepare('SELECT * FROM assets WHERE id=?').get(jobs[0].id)).toBeUndefined();
     } finally { db.close(); }
@@ -215,6 +218,13 @@ describe('local HTTP upload and real image processor', () => {
       expect(db.prepare('SELECT * FROM assets WHERE id=?').get(first)).toBeUndefined();
     } finally { service.close(); db.close(); }
     app = await buildUploadApp(fixture.root, token);
+    const afterRestart = await app.inject({ url: `/websites/${website}/media/${first}`, headers: auth });
+    expect(afterRestart.json()).toMatchObject({ state: 'failed', variants: [], error: expect.stringContaining('cleanup incomplete') });
+    const retry = await app.inject({ method: 'POST', url: `/websites/${website}/media/${first}/retry`, headers: auth });
+    expect(retry.statusCode).toBe(200);
+    expect(retry.json()).toMatchObject({ assetId: first, fileVersion: 1, state: 'ready', rights: 'unknown' });
+    expect((await app.inject({ method: 'POST', url: `/websites/${website}/media/${first}/retry`, headers: auth })).statusCode).toBe(409);
+    expect((await app.inject({ method: 'POST', url: `/websites/fixture-beta/media/${first}/retry`, headers: auth })).statusCode).toBe(404);
   });
 
   it('reopens ready jobs and recovers an interrupted job from the private source idempotently', async () => {

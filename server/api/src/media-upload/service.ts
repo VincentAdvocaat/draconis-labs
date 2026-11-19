@@ -62,7 +62,11 @@ export class LocalUploadService {
     mkdirSync(paths.privateDir, { recursive: true });
     writeFileSync(paths.original, bytes, { flag: 'wx' });
     this.db.prepare("INSERT INTO upload_jobs VALUES(?,?,?,?,'processing',NULL)").run(id, website, filename, mime);
-    await this.process({ id, website, filename, mime, state: 'processing', error: null });
+    try { await this.process({ id, website, filename, mime, state: 'processing', error: null }); }
+    catch (error) {
+      if (error instanceof UploadError) throw new UploadError(error.statusCode, error.message, id);
+      throw error;
+    }
     return this.status(website, id);
     } finally { this.busy = false; }
   }
@@ -108,5 +112,19 @@ export class LocalUploadService {
         // A durable failed status, including incomplete cleanup, permits the next job to recover.
       }
     }
+  }
+
+  async retryFailed(website: string, id: string) {
+    this.authorizeWebsite(website);
+    if (this.busy) throw new UploadError(429, 'One image processor at a time');
+    const job = this.db.prepare('SELECT * FROM upload_jobs WHERE website=? AND id=?').get(website, id) as Job | undefined;
+    if (!job) throw new UploadError(404, 'Upload job not found');
+    if (job.state !== 'failed') throw new UploadError(409, 'Only a failed upload can be retried');
+    this.busy = true;
+    try {
+      this.db.prepare("UPDATE upload_jobs SET state='processing',error=NULL WHERE id=?").run(id);
+      await this.process(job);
+      return this.status(website, id);
+    } finally { this.busy = false; }
   }
 }
