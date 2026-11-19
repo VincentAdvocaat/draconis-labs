@@ -10,6 +10,7 @@ import { MediaContractError } from '../media-fixture/contracts.js';
 import { itemInputSchema, localeVariantInputSchema, withdrawalSchema, type CatalogItem, type CatalogRef, type CatalogSnapshot } from './contracts.js';
 import { MediaRightsService } from '../media-upload/rights.js';
 import { CatalogLocales } from './locales.js';
+import { MediaLibrary } from './library.js';
 
 export class CatalogService {
   private readonly db: Database.Database;
@@ -65,6 +66,14 @@ export class CatalogService {
     return this.db.prepare(`SELECT a.id AS assetId,a.metadata_version AS metadataVersion,a.rights,
       f.version AS fileVersion,f.state FROM assets a JOIN files f ON f.website=a.website AND f.asset=a.id
       WHERE a.website=? AND a.archived=0 ORDER BY a.id,f.version`).all(website);
+  }
+  library(website: string, input: unknown) {
+    this.authorize(website);
+    return new MediaLibrary(this.db).list(website, input);
+  }
+  libraryDetail(website: string, assetId: string) {
+    this.authorize(website);
+    return new MediaLibrary(this.db).detail(website, assetId);
   }
   setRights(website: string, assetId: string, input: unknown) {
     this.authorize(website);
