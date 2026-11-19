@@ -11,7 +11,8 @@
     "lint": "oxlint src tests",
     "test": "vitest run",
     "openapi:update": "tsx scripts/update-openapi-snapshot.ts",
-    "smoke:start": "node scripts/smoke-start.mjs"
+    "smoke:start": "node scripts/smoke-start.mjs",
+    "planner:data": "tsx scripts/planner-snapshots.ts"
   },
   "dependencies": {
     "@draconis/shared": "workspace:*",
