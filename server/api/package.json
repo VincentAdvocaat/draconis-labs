@@ -15,7 +15,8 @@
     "planner:data": "tsx scripts/planner-snapshots.ts",
     "planner:channel": "tsx scripts/create-public-channel.ts",
     "start:public": "node --import tsx dist/public.js",
-    "smoke:public": "node scripts/smoke-public.mjs"
+    "smoke:public": "node scripts/smoke-public.mjs",
+    "demo:local": "node scripts/demo-local.mjs"
   },
   "dependencies": {
     "@draconis/shared": "workspace:*",

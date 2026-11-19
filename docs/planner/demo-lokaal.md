@@ -9,6 +9,27 @@ onderscheiden lokale functionaliteit van de nog open cloud- en release-eisen.
 
 ## Web starten
 
+Voor een nieuwe fictieve productdemo kan de volledige lokale opstelling met
+één commando worden gestart vanuit de worktree `feature/planner-keyboard-demo`:
+
+```powershell
+corepack pnpm install --frozen-lockfile
+corepack pnpm build
+corepack pnpm --filter @draconis/api demo:local
+```
+
+Dit controleert eerst poorten 3041 tot en met 3044, maakt een nieuwe eigen
+tempmap met SQLite-database en kanaal en start de twee API's en twee
+ontwikkelpagina's. De console toont beide URLs en het gegevenspad. Ctrl+C
+stopt uitsluitend de vier eigen processen; gegevens blijven bewaard. Elke
+nieuwe uitvoering maakt een nieuwe demo. Gebruik voor hervatten met dezelfde
+gegevens de afzonderlijke terminals hieronder met het bewaarde databasepad
+en de kanaal-URL uit `demo.json`. Maak het kanaal daarbij niet opnieuw aan.
+De publieke ontwikkelserver gebruikt een afzonderlijke dependencycache.
+
+Voorbereiding van een toekomstige installer-/upgradeproef staat in
+[het draaiboek](installatie-upgradeproef.md).
+
 Open PowerShell in de Planner-worktree. Deze eerste terminal blijft de API
 draaien. Het uitgeprinte databasepad is het eigen demobestand; bewaar dat voor
 een volgende start met dezelfde gegevens.

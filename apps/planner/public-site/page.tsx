@@ -17,10 +17,20 @@ function PublicBookingForm({client}:{client:PublicBookingClient}){
   const [contact,setContact]=useState<ContactInput>({name:'',email:'',phone:''});
   const [busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[error,setError]=useState('');
   const pending=useRef<PublicReservation|null>(null),alive=useRef(true);
+  const mainRef=useRef<HTMLElement>(null),focusResult=useRef(false);
+  useEffect(()=>{
+    if(busy)return;
+    if(confirmation)mainRef.current?.querySelector<HTMLElement>('h1')?.focus();
+    else if(error)mainRef.current?.querySelector<HTMLElement>('[role="alert"]')?.focus();
+    else if(focusResult.current){
+      (mainRef.current?.querySelector<HTMLElement>('input[type="radio"]')??mainRef.current?.querySelector<HTMLElement>('[data-offers-heading]'))?.focus();
+    }
+    focusResult.current=false;
+  },[busy,confirmation,error,offers]);
   useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
   async function lookup(clearError=true){
     setBusy(true);if(clearError)setError('');
-    try{const result=await client.availability(postcode,date);if(alive.current){setOffers(result);setSlotId('');}}
+    try{const result=await client.availability(postcode,date);if(alive.current){focusResult.current=true;setOffers(result);setSlotId('');}}
     catch(e){if(alive.current)setError(e instanceof Error?e.message:String(e));}
     finally{if(alive.current)setBusy(false);}
   }
@@ -41,15 +51,15 @@ function PublicBookingForm({client}:{client:PublicBookingClient}){
       setError(e instanceof Error?e.message:String(e));
     }finally{if(alive.current)setBusy(false);}
   }
-  if(confirmation)return <main className="public-booking"><p className="demo">Lokale demonstratie</p><h1>Uw afspraak is bevestigd</h1>
+  if(confirmation)return <main className="public-booking" ref={mainRef}><p className="demo">Lokale demonstratie</p><h1 tabIndex={-1}>Uw afspraak is bevestigd</h1>
     <p>{confirmation.window.zone} · {confirmation.window.date}</p><h2>{confirmation.window.daypart}: {confirmation.window.startTime}–{confirmation.window.endTime}</h2><p>Tijdzone: {confirmation.window.timezone}</p>
     <p>Bewaar uw bevestigingsreferentie:</p><code className="reference">{confirmation.reference}</code><p>In deze demonstratie wordt geen e-mail verstuurd.</p>
     <button onClick={()=>{try{sessionStorage.removeItem(storageKey);}catch{/* No saved receipt. */}setConfirmation(null);setOffers(null);setSlotId('');}}>Nog een afspraak maken</button>
   </main>;
   const locked=busy||uncertain;
-  return <main className="public-booking"><p className="demo">Lokale demonstratie · fictieve gebieden</p><h1>Plan een onderhoudsafspraak</h1>
+  return <main className="public-booking" ref={mainRef}><p className="demo">Lokale demonstratie · fictieve gebieden</p><h1>Plan een onderhoudsafspraak</h1>
     <p>Kies een aangeboden tijdvak. De getoonde tijden zijn het venster dat u wordt toegezegd.</p>
-    {error&&<p role="alert">{error}</p>}
+    {error&&<p role="alert" tabIndex={-1}>{error}</p>}
     {busy&&<p role="status">Even wachten…</p>}
     {uncertain&&<p>De uitkomst is nog onbekend. <button disabled={busy} onClick={()=>void submit()}>Dezelfde aanvraag opnieuw proberen</button></p>}
     <form onSubmit={e=>{e.preventDefault();void lookup();}}><fieldset disabled={locked}>
@@ -57,7 +67,7 @@ function PublicBookingForm({client}:{client:PublicBookingClient}){
       <p className="hint">Alleen democodes 0001 AA tot en met 0005 AA. Dit is geen echte geografische dekking.</p>
       <label>Datum <input type="date" required value={date} onChange={e=>{setDate(e.target.value);setOffers(null);setSlotId('');}}/></label><button>Beschikbare tijdvakken zoeken</button>
     </fieldset></form>
-    {offers&&<section aria-label="Tijdvak kiezen"><h2>{offers.channelName} · {offers.zone}</h2>
+    {offers&&<section aria-label="Tijdvak kiezen"><h2 data-offers-heading tabIndex={-1}>{offers.channelName} · {offers.zone}</h2>
       {offers.slots.length?<form onSubmit={e=>{e.preventDefault();void submit();}}><fieldset disabled={locked}>
         <legend>Tijdvak op {offers.date}</legend>
         {offers.slots.map(slot=><label className="time-window" key={slot.id}><input type="radio" name="slot" required checked={slotId===slot.id} onChange={()=>setSlotId(slot.id)}/><span>{slot.window.daypart} · {slot.window.startTime}–{slot.window.endTime} · {slot.remaining} beschikbaar</span></label>)}

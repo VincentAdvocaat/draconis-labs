@@ -18,6 +18,19 @@ export function Bookings({ client, section }: { client: BookingClient; section: 
   const sequence = useRef(0), alive = useRef(true);
   const invalidate = useCallback(() => { sequence.current++; }, []);
   const pending = useRef<{ key: string; execute: (key: string) => Promise<unknown> } | null>(null);
+  const mainRef = useRef<HTMLElement>(null), returnFocus = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (busy || loading) return;
+    if (error) {
+      mainRef.current?.querySelector<HTMLElement>('[role="alert"]')?.focus();
+      returnFocus.current = null;
+    } else if (returnFocus.current) {
+      const target = returnFocus.current;
+      if (target.isConnected && !target.matches(':disabled')) target.focus();
+      else mainRef.current?.querySelector<HTMLElement>('[data-contact-heading], h1')?.focus();
+      returnFocus.current = null;
+    }
+  }, [busy, loading, error]);
   useEffect(() => { alive.current = true; return () => { alive.current = false; invalidate(); }; }, [invalidate]);
   const reload = useCallback(async () => {
     const generation = ++sequence.current; setLoading(true);
@@ -38,6 +51,7 @@ export function Bookings({ client, section }: { client: BookingClient; section: 
 
   async function executePending() {
     const command = pending.current; if (!command) return;
+    returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setBusy(true); setError('');
     try {
       await command.execute(command.key);
@@ -65,14 +79,14 @@ export function Bookings({ client, section }: { client: BookingClient; section: 
     if (!slot) throw new Error('Kies eerst een dagdeel.');
     return bookingInstant(slot.date, arrivalTime, slot.timezone);
   }
-  return <main className="bookings">
+  return <main className="bookings" ref={mainRef}>
     <p className="booking-mode">Werkruimte {client.workspaceId} · Lokale opslag · {LOCAL_BOOKING_POLICY.timezone}</p>
     <div aria-live="polite">{loading && <p>Gegevens laden…</p>}</div>
-    {error && <p role="alert">{error}</p>}
+    {error && <p role="alert" tabIndex={-1}>{error}</p>}
     {uncertain ? <p>De uitkomst is nog onbekend. <button disabled={busy} onClick={() => void executePending()}>Dezelfde handeling opnieuw proberen</button></p> : <button disabled={busy} onClick={() => { setError(''); void reload(); }}>Verversen</button>}
     {section === 'contacts' ? <div className="booking-columns">
       <section aria-label="Relaties zoeken">
-        <h1>Relaties</h1>
+        <h1 tabIndex={-1}>Relaties</h1>
         <label>Zoeken <input value={query} disabled={disabled} onChange={e => setQuery(e.target.value)} /></label>
         <label><input type="checkbox" checked={archived} disabled={disabled} onChange={e => setArchived(e.target.checked)} /> Ook gearchiveerde relaties</label>
         <button disabled={disabled} onClick={() => { setSelected(''); setCard(null); setDraft(emptyContact); }}>Nieuwe relatie</button>
@@ -80,7 +94,7 @@ export function Bookings({ client, section }: { client: BookingClient; section: 
         {!loading && !contacts.length && <p>Geen relaties gevonden.</p>}
       </section>
       <section aria-label="Klantkaart">
-        <h2>{card?.contact.name ?? 'Nieuwe relatie'}</h2>
+        <h2 data-contact-heading tabIndex={-1}>{card?.contact.name ?? 'Nieuwe relatie'}</h2>
         <form onSubmit={e => { e.preventDefault(); if (selected && !card) return; command(async key => {
           if (card) return client.contacts.update(card.contact.id, { ...draft, version: card.contact.version }, key);
           const contact = await client.contacts.create(draft, key); if (alive.current) setSelected(contact.id); return contact;
@@ -100,7 +114,7 @@ export function Bookings({ client, section }: { client: BookingClient; section: 
         </>}
       </section>
     </div> : <>
-      <h1>Afspraken</h1>
+      <h1 tabIndex={-1}>Afspraken</h1>
       <label>Werkgebied <select value={zoneId} disabled={disabled || loading} onChange={e => { setZoneId(e.target.value); setSlotId(''); setArrivalTime(''); }}>{zones.map(zone => <option key={zone.id} value={zone.id}>{zone.name}</option>)}</select></label>
       <details><summary>Fictieve postcodevoorbeelden</summary>
         <p>Alleen demonstratiecodes; deze indeling zegt niets over echte geografische dekking.</p>

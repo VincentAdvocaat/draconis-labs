@@ -47,11 +47,13 @@ it('retains the exact unknown command/key across navigation and retries without 
   const name=document.querySelector('input[maxlength="160"]') as HTMLInputElement;
   await change(name,'Nieuwe demo'); await submit('Relatie opslaan');
   expect(name.closest('fieldset')!.disabled).toBe(true);
+  expect(document.activeElement).toBe(document.querySelector('[role="alert"]'));
   await click(button('Taken')); await click(button('Relaties'));
   await click(button('Dezelfde handeling opnieuw proberen'));
   expect(client.contacts.create).toHaveBeenCalledTimes(2);
   expect(vi.mocked(client.contacts.create).mock.calls[1]).toEqual(vi.mocked(client.contacts.create).mock.calls[0]);
   expect(document.querySelector('[role="alert"]')).toBeNull();
+  expect(client.contacts.update).not.toHaveBeenCalled();
 });
 
 it('moves to another date with the original appointment version and a separate internal arrival',async()=>{
@@ -116,4 +118,23 @@ it('shows a capacity conflict and submits the current slot version',async()=>{
   await submit('Dagdeelcapaciteit opslaan');
   expect(client.slots.capacity).toHaveBeenCalledWith('slot-'+today(),{capacity:0,version:1},expect.any(String));
   expect(document.querySelector('[role="alert"]')!.textContent).toContain('lager worden dan de bezetting');
+  expect(document.activeElement).toBe(document.querySelector('[role="alert"]'));
+});
+
+it('returns focus to contact save after its disabled fieldset finishes saving',async()=>{
+  const {client}=fixture();let resolve!:(contact:Contact)=>void;
+  client.contacts.create=vi.fn(()=>new Promise<Contact>(done=>{resolve=done;}));
+  await act(async()=>root.render(<Bookings client={client} section="contacts"/>));
+  await change(document.querySelector('input[maxlength="160"]')!,'Nieuwe demo');
+  const save=button('Relatie opslaan');save.focus();
+  await submit('Relatie opslaan');
+  expect(save.matches(':disabled')).toBe(true);
+  // Browsers drop focus when a fieldset becomes disabled; jsdom needs this explicitly.
+  document.body.tabIndex=-1;document.body.focus();
+  expect(document.activeElement).toBe(document.body);
+  await act(async()=>resolve(person));
+  expect(document.activeElement).toBe(save);
+  expect(save.matches(':disabled')).toBe(false);
+  expect(client.contacts.create).toHaveBeenCalledTimes(1);
+  expect(client.contacts.update).not.toHaveBeenCalled();
 });

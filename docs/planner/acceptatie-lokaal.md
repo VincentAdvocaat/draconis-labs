@@ -4,6 +4,12 @@ Stand 19 november 2026, na de lokale PL-31/32-proef. De PR-reeks is gestapeld
 en niet gemerged. Deze matrix beschrijft bewijs op de bestaande Windows-
 ontwikkelwerkplek met fictieve gegevens. Zij accepteert geen cloudrelease.
 
+De [toetsenbordvervolgstap](toetsenbord-demo.md) voegt concrete dialog-, fout-
+en bevestigingsfocuscontroles toe, met 155 tests en een gezamenlijke lokale
+start. Het [installatiedraaiboek](installatie-upgradeproef.md) is voorbereid;
+installatie en uninstall zijn niet uitgevoerd. De ongemergde keten blijft
+#9 → #12 → #15 → #20 → #23 → #28 → #30 → #33 plus deze vervolgstap.
+
 | Onderdeel | Lokale uitkomst en bewijs | Resterend |
 | --- | --- | --- |
 | Bestaande taken, historie, voorkeuren en herhaling | Gedeelde kern en SQLite via HTTP en desktop; contract- en regressietests. [PL-11](pl11-lokale-client.md), [atomiciteit](pl13-sqlite-atomiciteit.md) | PostgreSQL en volledige dagelijks-gebruikacceptatie |
