@@ -24,7 +24,7 @@ child.stderr.on('data', data => { log = (log + data).slice(-5000); });
 const ended = once(child, 'close');
 const base = `http://127.0.0.1:${port}`;
 async function request(path, method = 'GET', body) {
-  const response = await fetch(base + path, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  const response = await fetch(base + path, { method, headers: { 'Content-Type': 'application/json' }, ...(method !== 'GET' && body ? { body: JSON.stringify(body) } : {}) });
   assert(response.ok, `${method} ${path}: ${response.status}`);
   return response.json();
 }
