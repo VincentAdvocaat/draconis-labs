@@ -54,6 +54,7 @@ export class CmsService {
     if (!start.created) return start.attempt;
     const attempt = start.attempt;
     try {
+      this.documents?.preparePortfolio(websiteId, attempt.releaseId);
       await this.hooks.beforeBuild?.();
       const output = this.documents ? this.documents.build(websiteId, attempt.releaseId)
         : this.legacyBuild(websiteId, input, attempt.releaseId);
@@ -80,7 +81,7 @@ export class CmsService {
       // (including ready, exact variants/hash and current approval) from pointer activation.
       // Multiple independent writer processes need a shared transaction/lock protocol.
       output.revalidate();
-      const activated = this.repository.activate(attempt);
+      const activated = output.activate ? output.activate(() => this.repository.activate(attempt)) : this.repository.activate(attempt);
       await this.hooks.afterActivate?.();
       return activated;
     } catch (error) {
@@ -107,7 +108,7 @@ export class CmsService {
   async publicImage(websiteId: string, releaseId: string, filename = 'hero.png'): Promise<Buffer> {
     this.publicSite(websiteId);
     if (!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(releaseId)) throw new CmsError(404, 'Publicatie niet gevonden');
-    if (!/^(?:hero|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})\.(png|jpg|webp)$/.test(filename)) throw new CmsError(404, 'Afbeelding niet gevonden');
+    if (!/^(?:hero|portfolio-[a-f0-9-]+|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})\.(png|jpg|webp)$/.test(filename)) throw new CmsError(404, 'Afbeelding niet gevonden');
     return this.releaseBytes(websiteId, releaseId, `media/${releaseId}/${filename}`);
   }
 

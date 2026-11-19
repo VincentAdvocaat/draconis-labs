@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import './style.css';
 import { DocumentEditor, documentCopy } from './documents';
-import type { DocumentContent, DocumentDto, SitePlan, DocumentImageReference } from './documents';
+import type { PortfolioSelection, DocumentContent, DocumentDto, SitePlan, DocumentImageReference } from './documents';
 
 interface ImageReference {
   assetId: string; fileVersion: number; usage: 'hero'; altText: Record<string, string>; decorative: boolean;
@@ -41,6 +41,7 @@ function App() {
   const [uploadStatus, setUploadStatus] = useState<UploadStatus | null>(null);
   const [rightsTarget, setRightsTarget] = useState<RightsMetadata | null>(null);
   const [rightsDecision, setRightsDecision] = useState({ owner: '', source: '', basis: '', confirmed: false });
+  const [portfolioSelections, setPortfolioSelections] = useState<PortfolioSelection[]>([]);
   const [overview, setOverview] = useState<SitePlan | null>(null);
   const [newPage, setNewPage] = useState({ title: '', slug: '' });
   const [selectedDocument, setSelectedDocument] = useState<DocumentDto | null>(null);
@@ -74,7 +75,7 @@ function App() {
     setPage(null); setPreview(''); setAttempt(null); setDraftConflict(null);
     setPendingChoice(null); setPublicationConflict(false); setError(''); setBusy(false);
     setFile(null); setUploadJobId(''); setUploadStatus(null);
-    setOverview(null); setSelectedDocument(null); setDocumentDraft(null); setDocumentConflict(null); invalidateSiteChoice();
+    setPortfolioSelections([]); setOverview(null); setSelectedDocument(null); setDocumentDraft(null); setDocumentConflict(null); invalidateSiteChoice();
     setNewPage({ title: '', slug: '' });
     resetRights();
     setStatus('Open de pagina met dit token.');
@@ -386,7 +387,8 @@ function App() {
         </aside>}
       </fieldset>}
       {selectedDocument && documentDraft && <DocumentEditor draft={documentDraft} onChange={changeDocument} busy={busy} dirty={documentDirty}
-        onSave={saveDocument} onPreview={previewDocument} availableImage={availableImage} />}
+        onSave={saveDocument} onPreview={previewDocument} availableImage={availableImage} portfolioSelections={portfolioSelections}
+        onLoadPortfolio={() => { if (busy) return; void perform(async (current) => { const selections = await request<PortfolioSelection[]>('/portfolio-snapshots'); if (current()) setPortfolioSelections(selections); }); }} />}
       {documentConflict && <aside><p>{dc.conflict}</p><p>{documentConflict.content.title}</p>
         <button disabled={busy} onClick={() => { if (busy) return; setSelectedDocument(documentConflict); setDocumentDraft(documentConflict.content);
           setDocumentConflict(null); setPreview(''); resetRights(); invalidateSiteChoice(); }}>{dc.latest}</button></aside>}

@@ -53,6 +53,10 @@ export function cmsModule(service: CmsService, credentials: LocalCredential[]): 
       }));
       if (service.documents) {
         const documents = service.documents;
+        app.get('/websites/:websiteId/portfolio-snapshots', async (request) => {
+          if (!documents.portfolio) throw new CmsError(503, 'Catalogus niet beschikbaar');
+          return documents.portfolio.selections(parameters(request).websiteId);
+        });
         app.get('/websites/:websiteId/site-plan', async (request) => documents.plan(parameters(request).websiteId));
         app.post('/websites/:websiteId/documents', async (request, reply) => {
           const actor = authorize(request);

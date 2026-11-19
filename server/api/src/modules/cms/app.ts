@@ -11,6 +11,7 @@ import { CmsMedia } from './media.js';
 import { CmsError } from './model.js';
 import { CmsUploads } from './upload.js';
 import { UploadError } from '../../media-upload/processor.js';
+import { CmsPortfolio } from './portfolio.js';
 import { CmsDocuments } from './documents.js';
 
 const credentialSchema = z.array(z.object({
@@ -30,6 +31,7 @@ export interface CmsAppOptions {
   mediaRoot?: string;
   enableUploads?: boolean;
   enablePages?: boolean;
+  enablePortfolio?: boolean;
 }
 
 function lockRuntime(root: string): () => void {
@@ -59,6 +61,7 @@ export async function buildCmsApp(options: CmsAppOptions) {
   let media: CmsMedia | undefined;
   let mediaUnavailable = false;
   let uploads: CmsUploads | undefined;
+  let portfolio: CmsPortfolio | undefined;
   const app = Fastify({ logger: false, bodyLimit: 16_384, requestTimeout: 30_000, connectionTimeout: 10_000 });
   try {
     if (options.enableMedia) {
@@ -73,9 +76,10 @@ export async function buildCmsApp(options: CmsAppOptions) {
     if (options.enableUploads && media) { uploads = new CmsUploads(media); await uploads.recover(); }
     repository.reconcile();
     if (options.seed) repository.seed();
-    const documents = options.enablePages ? new CmsDocuments(repository, media, uploads) : undefined;
+    if (options.enablePortfolio && media) portfolio = new CmsPortfolio(media, repository);
+    const documents = options.enablePages ? new CmsDocuments(repository, media, uploads, portfolio) : undefined;
     const service = new CmsService(repository, join(root, 'releases'), options.hooks, media, mediaUnavailable, uploads, options.enableUploads, documents);
-    app.addHook('onClose', async () => { repository!.close(); uploads?.close(); media?.close(); unlock(); });
+    app.addHook('onClose', async () => { portfolio?.close(); repository!.close(); uploads?.close(); media?.close(); unlock(); });
     app.addHook('onSend', async (_request, reply, payload) => {
       reply.header('X-Content-Type-Options', 'nosniff');
       reply.header('Referrer-Policy', 'no-referrer');
@@ -120,6 +124,7 @@ export async function buildCmsApp(options: CmsAppOptions) {
     await app.ready();
     return { app, repository, service, media, uploads, documents };
   } catch (error) {
+    portfolio?.close();
     if (repository) repository.close();
     uploads?.close();
     media?.close();

@@ -1,7 +1,9 @@
 export interface DocumentImageReference { assetId: string; fileVersion: number; usage: string; altText: Record<string, string>; decorative: boolean }
 export interface TextBlock { blockId: string; type: 'text'; heading: string; body: string }
 export interface ImageBlock { blockId: string; type: 'image'; reference: DocumentImageReference; caption: string }
-export interface DocumentContent { schemaVersion: 1; locale: 'nl'; title: string; slug: string; seoTitle: string; seoDescription: string; blocks: Array<TextBlock | ImageBlock> }
+export interface PortfolioSelection { ref: {websiteId: string; collectionId: 'portfolio'; snapshotId: string}; checksum: string; localeContext: {locale: 'nl' | 'en'; fallbackLocale?: 'nl' | 'en'}; itemCount?: number }
+export interface PortfolioBlock extends PortfolioSelection { blockId: string; type: 'portfolio' }
+export interface DocumentContent { schemaVersion: 1; locale: 'nl'; title: string; slug: string; seoTitle: string; seoDescription: string; blocks: Array<TextBlock | ImageBlock | PortfolioBlock> }
 export interface DocumentDto { pageId: string; revisionId: string; version: number; content: DocumentContent; published: boolean }
 export interface SitePlan { activeReleaseId: string | null; activeVersion: number; pages: Array<{ pageId: string; revisionId: string; version: number; title: string; file: string }> }
 
@@ -35,9 +37,9 @@ const en: Copy = {
 };
 export const documentCopy: Record<'nl' | 'en', Copy> = { nl, en };
 
-export function DocumentEditor({ draft, onChange, busy, dirty, onSave, onPreview, availableImage }: {
+export function DocumentEditor({ draft, onChange, busy, dirty, onSave, onPreview, availableImage, portfolioSelections = [], onLoadPortfolio }: {
   draft: DocumentContent; onChange: (value: DocumentContent) => void; busy: boolean; dirty: boolean;
-  onSave: () => void; onPreview: () => void; availableImage: DocumentImageReference | null;
+  onSave: () => void; onPreview: () => void; availableImage: DocumentImageReference | null; portfolioSelections?: PortfolioSelection[]; onLoadPortfolio?: () => void;
 }) {
   const t = documentCopy.nl;
   const move = (position: number, offset: number) => {
@@ -50,11 +52,11 @@ export function DocumentEditor({ draft, onChange, busy, dirty, onSave, onPreview
     <label>{t.slug}<input value={draft.slug} maxLength={80} onChange={(event) => onChange({ ...draft, slug: event.target.value })} /></label>
     <label>{t.seoTitle}<input value={draft.seoTitle} maxLength={200} onChange={(event) => onChange({ ...draft, seoTitle: event.target.value })} /></label>
     <label>{t.seoDescription}<textarea rows={2} value={draft.seoDescription} maxLength={1000} onChange={(event) => onChange({ ...draft, seoDescription: event.target.value })} /></label>
-    {draft.blocks.map((block, index) => <fieldset key={block.blockId}><legend>{block.type === 'text' ? t.text : t.image} {index + 1}</legend>
+    {draft.blocks.map((block, index) => <fieldset key={block.blockId}><legend>{block.type === 'text' ? t.text : block.type === 'image' ? t.image : 'Portfolio'} {index + 1}</legend>
       {block.type === 'text' ? <>
         <label>{t.heading}<input value={block.heading} maxLength={200} onChange={(event) => onChange({ ...draft, blocks: draft.blocks.map((item) => item.blockId === block.blockId ? { ...block, heading: event.target.value } : item) })} /></label>
         <label>{t.body}<textarea rows={4} value={block.body} maxLength={10_000} onChange={(event) => onChange({ ...draft, blocks: draft.blocks.map((item) => item.blockId === block.blockId ? { ...block, body: event.target.value } : item) })} /></label>
-      </> : <>
+      </> : block.type === 'portfolio' ? <p>Snapshot {block.ref.snapshotId} · {block.localeContext.locale} · fallback {block.localeContext.fallbackLocale ?? 'geen'} · checksum {block.checksum}</p> : <>
         <label className="check"><input type="checkbox" checked={block.reference.decorative} onChange={(event) => onChange({ ...draft, blocks: draft.blocks.map((item) => item.blockId === block.blockId ? { ...block,
           reference: { ...block.reference, decorative: event.target.checked, altText: event.target.checked ? { nl: '' } : block.reference.altText } } : item) })} />{t.decorative}</label>
         <label>{t.alt}<input value={block.reference.altText.nl ?? ''} maxLength={2000} disabled={block.reference.decorative} onChange={(event) => onChange({ ...draft, blocks: draft.blocks.map((item) => item.blockId === block.blockId ? { ...block,
@@ -70,6 +72,18 @@ export function DocumentEditor({ draft, onChange, busy, dirty, onSave, onPreview
         if (!availableImage) return; const blockId = crypto.randomUUID();
         onChange({ ...draft, blocks: [...draft.blocks, { blockId, type: 'image', reference: { ...availableImage, usage: `block-${blockId}` }, caption: '' }] });
       }}>{t.addImage}</button></div>
+    {onLoadPortfolio && <fieldset><legend>Gepinde portfolio-snapshot</legend>
+      <button onClick={onLoadPortfolio}>Portfolio-snapshots ophalen</button>
+      {portfolioSelections.map((selection) => <p key={selection.ref.snapshotId}>
+        {selection.ref.snapshotId} · {selection.localeContext.locale} · fallback {selection.localeContext.fallbackLocale ?? 'geen'} · {selection.itemCount} items · checksum {selection.checksum}
+        <button disabled={draft.blocks.length >= 16 && !draft.blocks.some((block) => block.type === 'portfolio')} onClick={() => {
+          const prior = draft.blocks.find((block) => block.type === 'portfolio');
+          const block = { blockId: prior?.blockId ?? crypto.randomUUID(), type: 'portfolio' as const,
+            ref: selection.ref, checksum: selection.checksum, localeContext: selection.localeContext };
+          onChange({ ...draft, blocks: prior ? draft.blocks.map((item) => item.blockId === prior.blockId ? block : item) : [...draft.blocks, block] });
+        }}>Snapshot {selection.localeContext.locale} kiezen</button>
+      </p>)}
+    </fieldset>}
     <div className="actions"><button disabled={!dirty} onClick={onSave}>{t.save}</button><button disabled={dirty} className="secondary" onClick={onPreview}>{t.preview}</button></div>
   </fieldset>;
 }

@@ -2,6 +2,8 @@ import { randomUUID, createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
+import { contentLocaleContextSchema } from '@draconis/shared';
+import type { CmsPortfolio } from './portfolio.js';
 import { mediaReferenceSchema, type MediaReference } from '../../media-fixture/contracts.js';
 import { CmsError, encode, type ReleaseInput } from './model.js';
 import type { CmsRepository } from './repository.js';
@@ -15,16 +17,21 @@ const textBlock = z.object({ blockId: z.string().uuid(), type: z.literal('text')
   heading: z.string().max(200), body: z.string().max(10_000) }).strict();
 const imageBlock = z.object({ blockId: z.string().uuid(), type: z.literal('image'),
   reference: mediaReferenceSchema, caption: z.string().max(1000) }).strict();
+export const portfolioBlockSchema = z.object({ blockId: z.string().uuid(), type: z.literal('portfolio'),
+  ref: z.object({ websiteId: z.string(), collectionId: z.literal('portfolio'), snapshotId: z.string().uuid() }).strict(),
+  checksum: z.string().regex(/^[a-f0-9]{64}$/), localeContext: contentLocaleContextSchema }).strict();
 export const documentContentSchema = z.object({
   schemaVersion: z.literal(1), locale: z.literal('nl'), title: z.string().trim().min(1).max(200),
   slug: documentSlugSchema, seoTitle: z.string().trim().min(1).max(200), seoDescription: z.string().max(1000),
-  blocks: z.array(z.discriminatedUnion('type', [textBlock, imageBlock])).min(1).max(16),
+  blocks: z.array(z.discriminatedUnion('type', [textBlock, imageBlock, portfolioBlockSchema])).min(1).max(16),
 }).strict().superRefine((content, context) => {
   if (Buffer.byteLength(JSON.stringify(content)) > 100_000) context.addIssue({ code: 'custom', message: 'Pagina mag maximaal 100 KB beslaan' });
   if (new Set(content.blocks.map((block) => block.blockId)).size !== content.blocks.length)
     context.addIssue({ code: 'custom', message: 'Blok-ID moet uniek zijn' });
   if (content.blocks.filter((block) => block.type === 'image').length > 1)
     context.addIssue({ code: 'custom', message: 'Deze stap ondersteunt één afbeeldingsblok per pagina' });
+  if (content.blocks.filter((block) => block.type === 'portfolio').length > 1)
+    context.addIssue({ code: 'custom', message: 'Maximaal één portfolioblok per pagina' });
   for (const block of content.blocks) if (block.type === 'image' && block.reference.usage !== `block-${block.blockId}`)
     context.addIssue({ code: 'custom', message: 'Beeldgebruik moet bij het stabiele blok-ID horen' });
 });
@@ -35,11 +42,11 @@ export interface DocumentDto { pageId: string; revisionId: string; version: numb
 interface SnapshotPage { pageId: string; revisionId: string; version: number; file: string;
   content: DocumentContent; mediaRevisionId: string | null }
 export interface SiteSnapshot { schemaVersion: 1; websiteId: string; pages: SnapshotPage[] }
-export interface RenderedSite { files: Array<{ path: string; bytes: Buffer }>; metadata: Record<string, unknown>; revalidate: () => void }
+export interface RenderedSite { files: Array<{ path: string; bytes: Buffer }>; metadata: Record<string, unknown>; revalidate: () => void; activate?: (callback: () => import('./model.js').Attempt) => import('./model.js').Attempt }
 interface DocumentRow { id: string; revision_id: string; version: number; content: string; media_revision_id: string | null }
 
 export class CmsDocuments {
-  constructor(private repository: CmsRepository, private media?: CmsMedia, private uploads?: CmsUploads) {
+  constructor(private repository: CmsRepository, private media?: CmsMedia, private uploads?: CmsUploads, readonly portfolio?: CmsPortfolio) {
     const db = repository.db;
     db.transaction(() => {
       db.exec(`
@@ -118,6 +125,10 @@ export class CmsDocuments {
         mediaRevision = id;
       }
     }
+    for (const block of content.blocks) if (block.type === 'portfolio') {
+      if (!this.portfolio) throw new CmsError(503, 'Catalogus niet beschikbaar');
+      this.portfolio.pin(websiteId, pageId, id, block);
+    }
     this.repository.db.prepare('INSERT INTO cms_document_revisions VALUES(?,?,?,?,?,?,?,?)')
       .run(id, websiteId, pageId, parent, JSON.stringify(content), mediaRevision, actor, new Date().toISOString());
     return id;
@@ -187,10 +198,10 @@ export class CmsDocuments {
     if (!row) throw new CmsError(404, 'Website-snapshot niet gevonden');
     return JSON.parse(row.snapshot) as SiteSnapshot;
   }
-  private render(content: DocumentContent, images: Map<string, { src: string; alt: string }>, navigation = ''): string {
+  private render(content: DocumentContent, images: Map<string, { src: string; alt: string }>, navigation = '', portfolio = new Map<string, string>()): string {
     const blocks = content.blocks.map((block) => block.type === 'text'
       ? `<section>${block.heading ? `<h2>${encode(block.heading)}</h2>` : ''}<p>${encode(block.body).replace(/\n/g, '<br>')}</p></section>`
-      : `<figure><img src="${encode(images.get(block.reference.usage)!.src)}" alt="${encode(images.get(block.reference.usage)!.alt)}" width="160" height="160">` +
+      : block.type === 'portfolio' ? portfolio.get(block.blockId) ?? '' : `<figure><img src="${encode(images.get(block.reference.usage)!.src)}" alt="${encode(images.get(block.reference.usage)!.alt)}" width="160" height="160">` +
         (block.caption ? `<figcaption>${encode(block.caption)}</figcaption>` : '') + '</figure>').join('');
     return '<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       `<title>${encode(content.seoTitle)}</title><meta name="description" content="${encode(content.seoDescription)}"></head><body>` +
@@ -203,7 +214,18 @@ export class CmsDocuments {
       if (!this.uploads) throw new CmsError(503, 'Mediaopslag niet beschikbaar voor privépreview');
       images.set(ref.usage, this.uploads.preview(websiteId, ref));
     }
-    return this.render(content, images);
+    const portfolio = new Map<string, string>();
+    for (const block of content.blocks) if (block.type === 'portfolio') {
+      if (!this.portfolio) throw new CmsError(503, 'Catalogus niet beschikbaar');
+      portfolio.set(block.blockId, this.portfolio.render(websiteId, pageId, revisionId, block).html);
+    }
+    return this.render(content, images, '', portfolio);
+  }
+  preparePortfolio(websiteId: string, releaseId: string): void {
+    for (const page of this.snapshot(websiteId, releaseId).pages) for (const block of page.content.blocks) if (block.type === 'portfolio') {
+      if (!this.portfolio) throw new CmsError(503, 'Catalogus niet beschikbaar');
+      this.portfolio.pin(websiteId, page.pageId, page.revisionId, block, releaseId);
+    }
   }
   build(websiteId: string, releaseId: string): RenderedSite {
     const snapshot = this.snapshot(websiteId, releaseId);
@@ -237,16 +259,23 @@ export class CmsDocuments {
     const nav = '<nav>' + snapshot.pages.map((page) => `<a href="${encode(page.file)}">${encode(page.content.title)}</a>`).join(' ') + '</nav>';
     for (const page of snapshot.pages) {
       const images = new Map<string, { src: string; alt: string }>();
+      const portfolio = new Map<string, string>();
+      for (const block of page.content.blocks) if (block.type === 'portfolio') {
+        if (!this.portfolio) throw new CmsError(503, 'Catalogus niet beschikbaar');
+        const result = this.portfolio.render(websiteId, page.pageId, page.revisionId, block, releaseId);
+        portfolio.set(block.blockId, result.html); files.push(...result.files);
+      }
       for (const image of resolved.get(page.pageId) ?? []) {
         const name = page.pageId === 'home' ? `hero.${image.extension}` : `${page.pageId}.${image.extension}`;
         const path = `media/${releaseId}/${name}`;
         images.set(image.reference.usage, { src: path, alt: image.alt }); files.push({ path, bytes: image.bytes });
       }
-      files.push({ path: page.file, bytes: Buffer.from(this.render(page.content, images, nav)) });
+      files.push({ path: page.file, bytes: Buffer.from(this.render(page.content, images, nav, portfolio)) });
     }
     return { files, metadata: { schemaVersion: snapshot.schemaVersion, pages: snapshot.pages.map((page) => ({
       pageId: page.pageId, revisionId: page.revisionId, version: page.version, file: page.file,
       mediaRevisionId: page.mediaRevisionId, media: this.references(page.content),
-    })) }, revalidate: () => { validate(); } };
+      portfolio: page.content.blocks.filter((block) => block.type === 'portfolio'),
+    })) }, activate: (callback) => this.portfolio ? this.portfolio.activate(websiteId, releaseId, callback) : callback(), revalidate: () => { validate(); } };
   }
 }
