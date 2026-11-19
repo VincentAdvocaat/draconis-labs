@@ -1,6 +1,6 @@
 # Gezamenlijke CMS-acceptatiematrix
 
-Stand op 19 november 2026 na onafhankelijke sluiting van PR31 op codecommit `71833ec4e07d6512cdf2f9bd7b73be6021fa8fc7`. Dit beschrijft lokale proeven met fictieve gegevens. Er is niets samengevoegd of uitgerold.
+Stand op 19 november 2026 na onafhankelijke sluiting van PR32 op codecommit `cbf5c544902bb04a42ce7a336fbffa25c95b8c98`. Dit beschrijft lokale proeven met fictieve gegevens. Er is niets samengevoegd of uitgerold.
 
 | Criterium | Bewijs en status |
 | --- | --- |
@@ -16,7 +16,7 @@ Stand op 19 november 2026 na onafhankelijke sluiting van PR31 op codecommit `718
 | Eerste vaste publieke navigatiebindings | PR31 onafhankelijk gereviewd en P2-herreview gesloten op `71833ec4`: bestaande taalkeuze-aria-label en endoniemen via CMS-velden, migratie 5, revisie/CAS, exacte preview en expliciete shared releasepin. |
 | Alle publieke tekst centraal redigeerbaar | De huidige lokale navigatiebindings zijn aangesloten. Andere echte templates, footer en formulier-/linklabels waar aanwezig vragen nog inventaris/aansluiting. Geen claim van algemene template- of productievolledigheid. |
 | Minimale CMS22-tekstpagina | PR27 onafhankelijk gereviewd op `f9538988`: dezelfde pagina-/blok-ID's, handmatige EN-titel/slug/SEO/tekst, EN-route/taalnav, expliciete publicatie en structuur-CAS. Legacy `/en.html` blijft bewerkbaar. |
-| EN-afbeelding per gebruik | Implementatie en lokale proef gereed, onafhankelijke review loopt. NL-bronbinding, EN-alt/bijschrift, expliciete bronbevestiging en immutable revisies. Zie [proef](engelse-afbeelding-proef.md). |
+| EN-afbeelding per gebruik | PR32 onafhankelijk gereviewd op `cbf5c544`; drie noodzakelijke editorbevindingen opgelost en herreview gesloten. NL-bronbinding, EN-alt/bijschrift, expliciete bronbevestiging en immutable revisies. Zie [proef](engelse-afbeelding-proef.md). |
 | Volledige CMS22 contenttalen | Nog open: portfolio en home, meer talen, uitgebreidere fallbackdiagnostiek en localeconfiguratie. Eerste tekstvertical heeft expliciet geen fallback en bewaart leeg/ontbrekend. |
 | CMS-bediening NL/EN | PR29 onafhankelijk gereviewd op `69b43c54`, geen noodzakelijke fixes. Getypeerde namespace, eigen tabbladkeuze, bestaande schermen/status/foutcodes en statebehoud. Nederlandse bevestiging verduidelijkt op `7b77a7b8`; 16 relevante tests groen. |
 | Bestaande klanten importeren | Open: reproduceerbare bron, fictieve migratievergelijking, dry-run/idempotency, herstelproef en expliciete aansluiting. |
@@ -24,7 +24,7 @@ Stand op 19 november 2026 na onafhankelijke sluiting van PR31 op codecommit `718
 
 De centrale tekstcriteria uit [centrale tekstredactie](centrale-tekstredactie.md) blijven leidend. Een taalstap is pas compleet wanneer de redacteur bestaande zichtbare tekst zonder codewijziging kan bewerken, de gekozen locale in preview en release overeenkomt en een nieuwer concept de actieve publicatie niet verandert.
 
-De volgende acceptatiekeuze gaat over de bestaande CMS-bediening. Typed NL/EN-keys voor knoppen, formulierlabels en statusberichten staan los van de redactionele websitevelden. Ze lossen het centrale website-tekstdoel niet op. Daarvoor moet een afzonderlijke beheerde tekstcatalogus de nog vaste publieke taalkeuzelabels en templatebindings inventariseren, per locale redigeerbaar maken en via immutable shared revisies met de site publiceren. Footer- en formulierlabels worden pas opgenomen waar ze werkelijk bestaan. Portfolio-varianten binnen volledige EN-pagina's blijven een afzonderlijke open blokkade; de huidige tekstpagina mag ze niet laten verdwijnen.
+De lokale publieke renderer gebruikt nu beheerde paginatitels voor navigatielinks, pagina-/SEO-velden, tekstblokken, beeld-alt/bijschrift, portfolio-kop/leegstaat en gepinde catalogusitemvelden. De taalkeuzekop en endoniemen staan in de gedeelde navigatierevisie. In deze renderer zijn geen footer, formulier of extra vaste linklabels aanwezig. Daarvoor is dus geen nieuwe tekstbinding gebouwd. Aansluiting van echte klanttemplates en hun eventuele vaste teksten blijft open, evenals EN voor home en portfolio binnen een volledige EN-pagina. Een catalogusitem bewerken gebeurt in de catalogus; het CMS kiest een immutable snapshot. Dit is nog geen bewijs dat alle tekst van een echte klantwebsite centraal is aangesloten.
 
 Teststand PR27: volledige 123 API/componenttests en 15 shared-tests plus workspacechecks groen. De review vond één legacy-slugregressie. Na fix slagen de 16 relevante tests bij implementatie en gerichte herreview; de extra upgradefixture brengt het API-totaal op 124. Typecheck/lint/diffcheck zijn na de codefix opnieuw groen. Browser op 3022 bewees handmatige EN-invoer, selectie, preview, taalnav, SEO en normale herstart.
 

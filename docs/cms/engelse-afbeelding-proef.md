@@ -14,11 +14,19 @@ Migratie 6 voegt nullable bronbinding- en mediarevisiekolommen toe. Bestaande te
 
 ## Verificatie
 
-- 146 API/componenttests en 15 shared-tests groen.
+- Volledige API/component-suite na fixes: 150 tests groen. Shared-suite: 15 tests groen.
 - Workspace typecheck, lint en build groen.
 - Zes nieuwe API-tests bewijzen gescheiden NL/EN-alt en bijschrift, retained media, bronwijziging en expliciete bevestiging, oude previews/releases, async freeze, nullable velden, decoratieve alt, override-afwijzing, rechtenwijziging tijdens build en migratie van oude tekst-only EN.
 - Componenttest bewijst bevestiging bij ongewijzigde vertalingen en de daadwerkelijke savepayload.
 - Browser op poort 3025: echt synthetisch PNG geüpload, fictieve rechten expliciet vrijgegeven, NL- en EN-teksten ingevuld, EN-privatepreview en expliciete navigatie-/EN-publicatieselectie. Publieke EN-afbeelding toont eigen alt en bijschrift.
 - Echte serverprocesherstart: actieve EN-pagina behoudt het gepubliceerde bijschrift, terwijl het later opgeslagen concept `Unpublished English caption after restart` afzonderlijk terugkomt. Runtime en screenshot staan uitsluitend in de genegeerde lokale fixturemap.
 
-Onafhankelijke review volgt op de gereedgemaakte PR. Geen merge of deployment uitgevoerd.
+## Review en herstel
+
+PR32 heeft een onafhankelijke alleen-lezen review door `/root/review_pr32`, GPT-6 Astra medium. Initiële remote head `fa2fe7e47db5bbb23ea916c1255a56b588721dad`. Twee noodzakelijke P2-editorfouten waren reproduceerbaar: verwerpen wiste de bronbevestiging niet; herstel na een gelijktijdige NL-bronwijziging bood alleen overname die lokale EN-invoer overschreef.
+
+Fixsubagent `/root/fix_pr32_editor`, GPT-6.1 Sol low, verifieerde beide met rode echte-handlerregressies. Commit `491f0e1efd49551052ba10a876a23e7b7eba2f45` reset bevestiging bij verwerpen en biedt uitsluitend bij ongewijzigde EN-revisie een bronherstelactie met behoud van de lokale draft. Daarna blijft expliciete bevestiging nodig. Een echte gelijktijdige EN-revisiewijziging houdt de afzonderlijke overnamekeuze.
+
+Herreview op die SHA sloot beide oorspronkelijke reproducties en vond een P2-grensgeval: het eerste EN-concept zonder opgeslagen revisie kreeg na bronherstel geen uitlijnknop, omdat de server dan needsUpdate false teruggeeft. Commit `cbf5c544902bb04a42ce7a336fbffa25c95b8c98` markeert geladen gewijzigde bron lokaal als uit te lijnen. Regressie bewijst version 0, behoud van dirty alt/bijschrift/body, toevoeging van nieuw bronblok en actuele structure met confirmSourceChange true. De 31 gerichte tests, CMS/API typecheck, lint en diffcheck slagen. De browser bevestigde de herstelroute voor een bestaande revisie met een werkelijk gewijzigd bronasset, zichtbare versie 2, behouden dirty caption en Save pas na bevestigen.
+
+Volledige rapporten, gecontroleerde SHA's, reviewer-id en afsluitstatus staan in de PR-body. Afsluitende herreview op `cbf5c544902bb04a42ce7a336fbffa25c95b8c98` is akkoord. Reviewer draaide opnieuw 31 gerichte tests. Alle drie P2-bevindingen gesloten; geen resterende noodzakelijke bevindingen. Geen merge of deployment uitgevoerd.
