@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createMediaFixture } from '../src/media-fixture/fixture.js';
 import { buildUploadApp } from '../src/media-upload/app.js';
 import { MAX_BYTES, processImage, validateEnvelope } from '../src/media-upload/processor.js';
+import { LocalUploadService } from '../src/media-upload/service.js';
 import type { PublicVariant } from '../src/media-fixture/contracts.js';
 
 const website = 'fixture-alpha';
@@ -161,6 +162,59 @@ describe('local HTTP upload and real image processor', () => {
     } finally { finish(); }
     expect(await firstResponse).toBe(201);
     expect((await upload(bytes)).statusCode).toBe(201);
+  });
+
+  it('releases admission after a client aborts a partially streamed body', async () => {
+    let entered!: () => void;
+    const admitted = new Promise<void>(resolve => { entered = resolve; });
+    let aborted!: () => void;
+    const abortSeen = new Promise<void>(resolve => { aborted = resolve; });
+    app.addHook('preParsing', async (request, _reply, payload) => {
+      if (request.headers['x-test-abort'] === 'true') entered();
+      return payload;
+    });
+    app.addHook('onRequestAbort', async (_request) => { aborted(); });
+    const address = await app.listen({ host: '127.0.0.1', port: 0 });
+    const req = httpRequest(`${address}/websites/${website}/media`, {
+      method: 'POST', headers: { ...headers(), 'x-test-abort': 'true' },
+    });
+    req.on('error', () => { /* Expected ECONNRESET after client abort. */ });
+    req.write(Buffer.from('89504e470d0a1a0a', 'hex'));
+    await admitted;
+    req.destroy();
+    await abortSeen;
+    expect((await upload(await image())).statusCode).toBe(201);
+  });
+
+  it('does not report ready variants after explicit M0 metadata purge', async () => {
+    const uploaded = (await upload(await image())).json();
+    fixture.store.purge(website, uploaded.assetId, 1, true);
+    expect((await app.inject({ url: `/websites/${website}/media/${uploaded.assetId}`, headers: auth })).statusCode).toBe(404);
+  });
+
+  it('persists failed independently of cleanup errors and continues recovering the next job', async () => {
+    await app.close();
+    const first = randomUUID();
+    const second = randomUUID();
+    const db = new Database(join(fixture.root, 'media.sqlite'));
+    for (const id of [first, second]) {
+      const dir = join(fixture.root, 'private', website, id);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, 'source'), await image());
+      db.prepare("INSERT INTO upload_jobs VALUES(?,?,?,?,'processing',NULL)").run(id, website, 'photo.png', 'image/png');
+    }
+    const { rmSync } = await import('node:fs');
+    const service = new LocalUploadService(fixture.root, path => {
+      if (path.includes(first)) throw Object.assign(new Error('simulated storage lock'), { code: 'EPERM' });
+      rmSync(path, { recursive: true, force: true });
+    });
+    try {
+      await service.recover();
+      expect(service.status(website, first)).toMatchObject({ state: 'failed', variants: [], error: expect.stringContaining('cleanup incomplete') });
+      expect(service.status(website, second).state).toBe('ready');
+      expect(db.prepare('SELECT * FROM assets WHERE id=?').get(first)).toBeUndefined();
+    } finally { service.close(); db.close(); }
+    app = await buildUploadApp(fixture.root, token);
   });
 
   it('reopens ready jobs and recovers an interrupted job from the private source idempotently', async () => {
