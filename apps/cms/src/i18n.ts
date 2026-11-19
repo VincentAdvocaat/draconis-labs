@@ -50,7 +50,7 @@ const uiNl = {
   "tokenChanged": "Token aangepast. Je invoer blijft bewaard; probeer opslaan opnieuw of open de nieuwste versie.",
   "confirmOpen": "Je hebt onopgeslagen tekst. Nieuwste opgeslagen versie openen?",
   "confirmSite": "Je hebt onopgeslagen wijzigingen. Wisselen naar de andere website?",
-  "confirmDiscardEnglish": "Je hebt onopgeslagen EN-tekst. Actuele EN-versie openen en deze invoer vervangen?",
+  "confirmDiscardEnglish": "Je hebt onopgeslagen EN-tekst. Lokale invoer verwerpen en teruggaan naar de geladen EN-versie?",
   "loadedDraft": "Conceptversie {version} geladen.",
   "savedDraft": "Conceptversie {version} opgeslagen. De publieke pagina blijft ongewijzigd.",
   "draftConflict": "Versieconflict. Jouw invoer staat nog in de velden.",

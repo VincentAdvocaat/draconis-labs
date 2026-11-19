@@ -76,7 +76,7 @@
   ],
   [
     "confirmDiscardEnglish",
-    "Je hebt onopgeslagen EN-tekst. Actuele EN-versie openen en deze invoer vervangen?",
+    "Je hebt onopgeslagen EN-tekst. Lokale invoer verwerpen en teruggaan naar de geladen EN-versie?",
     "You have unsaved English text. Discard this input and return to the loaded English version?"
   ],
   [
