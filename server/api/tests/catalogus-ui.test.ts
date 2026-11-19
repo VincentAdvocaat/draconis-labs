@@ -98,7 +98,7 @@ function browserHarness() {
   });
   vm.runInContext(adminHtml.match(/<script>([\s\S]*?)<\/script>/)![1], context);
   return { el, sent, context, get stored() { return stored; },
-    externalCategoryUpdate() { categories[0].version++; },
+    externalCategoryUpdate() { categories[0].version++; categories[0].labels.nl = 'Actueel algemeen'; },
     externalUpdate() { stored = { ...stored, version: 2, title: 'Nieuwe titel', slug: 'nieuw', description: 'Nieuw',
       metadata: { year: 2026 }, media: { ...stored.media, fileVersion: 2, altText: { nl: 'Nieuw alt' }, decorative: true } }; },
     async selectVersionOne() { await el('load').onclick!(); el('items').value = 'item-1'; el('items').onchange!(); },
@@ -272,6 +272,50 @@ describe('actual admin script optimistic form binding', () => {
 });
 
 describe('category editor preserves item and category drafts', () => {
+  it('recovers the category binding after conflict through explicit reload and cancel', async () => {
+    const browser = browserHarness(); await browser.selectVersionOne();
+    browser.el('categories').value = 'algemeen'; browser.el('categories').onchange!();
+    browser.el('categoryNl').value = 'Pending rename'; browser.externalCategoryUpdate();
+    await browser.el('saveCategory').onclick!();
+    expect(browser.el('message').textContent).toContain('version conflict');
+    await browser.el('load').onclick!(); await browser.el('cancelCategory').onclick!();
+    expect(browser.el('categoryNl').value).toBe('Actueel algemeen');
+    browser.el('categoryNl').value = 'Recovered rename'; await browser.el('saveCategory').onclick!();
+    expect(browser.sent.at(-1)).toMatchObject({ expectedVersion: 2, labels: { nl: 'Recovered rename' } });
+    expect(browser.el('message').textContent).not.toContain('version conflict');
+  });
+
+  it('preserves a category draft and its stale version during the internal item-save refresh', async () => {
+    const browser = browserHarness(); await browser.selectVersionOne();
+    browser.el('categories').value = 'algemeen'; browser.el('categories').onchange!();
+    browser.el('categoryNl').value = 'Pending rename'; browser.externalCategoryUpdate();
+    await browser.el('save').onclick!();
+    expect(browser.el('categories').value).toBe('algemeen');
+    expect(browser.el('categoryNl').value).toBe('Pending rename');
+    await browser.el('saveCategory').onclick!();
+    expect(browser.sent.at(-1)).toMatchObject({ expectedVersion: 1 });
+    expect(browser.el('message').textContent).toContain('version conflict');
+  });
+
+  it.each(['cancel', 'save'])('blocks site changes before resetting drafts and permits switching after %s', async action => {
+    const browser = browserHarness(); await browser.selectVersionOne();
+    browser.el('categories').value = 'algemeen'; browser.el('categories').onchange!();
+    browser.el('categoryNl').value = 'Pending rename'; browser.el('title').value = 'Pending item';
+    browser.el('asset').value = '1';
+    browser.el('site').value = 'fixture-beta'; browser.el('site').onchange!();
+    expect(browser.el('site').value).toBe('fixture-alpha');
+    expect(browser.el('categoryNl').value).toBe('Pending rename');
+    expect(browser.el('title').value).toBe('Pending item'); expect(browser.el('asset').value).toBe('1');
+    expect(browser.el('message').textContent).toContain('eerst op of annuleer');
+    expect(browser.el('categoryMessage').textContent).toBe(browser.el('message').textContent);
+    await browser.el(action === 'cancel' ? 'cancelCategory' : 'saveCategory').onclick!();
+    browser.el('site').value = 'fixture-beta'; browser.el('site').onchange!();
+    expect(browser.el('site').value).toBe('fixture-beta'); expect(browser.el('title').value).toBe('');
+    expect(browser.el('categoryNl').value).toBe('');
+    browser.el('categoryNl').value = 'New pending'; browser.el('site').value = 'fixture-alpha'; browser.el('site').onchange!();
+    expect(browser.el('site').value).toBe('fixture-beta');
+  });
+
   it('creates a category without replacing pending NL/EN item values or advancing the visible item version', async () => {
     const browser = browserHarness(); await browser.selectVersionOne(); await browser.el('loadLocale').onclick!();
     browser.el('title').value = 'Unsaved NL'; browser.el('enTitle').value = 'Unsaved EN';

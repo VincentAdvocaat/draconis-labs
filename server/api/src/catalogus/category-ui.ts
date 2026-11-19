@@ -8,7 +8,7 @@ export const categoryMarkup = `<fieldset><legend>${copy.heading}</legend><p>${co
 <label><input id="confirmCategoryDelete" type="checkbox">${copy.confirm}</label><button id="removeCategory">${copy.remove}</button><p id="categoryMessage" role="status"></p></fieldset>`;
 
 export const categoryScript = `
-let categories=[],editingCategory;
+let categories=[],editingCategory,categorySite=site();
 const categoryText=${JSON.stringify(copy)};
 function categoryReport(id,action){const run=report(action,categoryText.saved);return async()=>{await run();el('categoryMessage').textContent=el('message').textContent;el(id).focus()}}
 function fillCategoryEditor(){el('categoryNl').value=editingCategory?.labels.nl??'';el('categoryEn').value=editingCategory?.labels.en??'';el('categoryEnMissing').checked=editingCategory?.labels.en==null;el('confirmCategoryDelete').checked=false}
@@ -29,5 +29,5 @@ el('categories').onchange=()=>{if(categoryFormChanged()){el('categories').value=
 el('saveCategory').onclick=categoryReport('saveCategory',async()=>{const saved=await api('/catalogus/api/'+site()+'/categories'+(editingCategory?'/'+editingCategory.categoryId:''),json(editingCategory?'PUT':'POST',{expectedVersion:editingCategory?.version??0,labels:{nl:el('categoryNl').value,en:el('categoryEnMissing').checked?null:el('categoryEn').value}}));await refreshCategories(saved.categoryId)});
 el('archiveCategory').onclick=categoryReport('archiveCategory',async()=>{if(!editingCategory)throw Error(categoryText.pick);requireCleanCategory();await api('/catalogus/api/'+site()+'/categories/'+editingCategory.categoryId+'/archive',json('POST',{expectedVersion:editingCategory.version}));await refreshCategories(editingCategory.categoryId)});
 el('removeCategory').onclick=categoryReport('removeCategory',async()=>{if(!editingCategory)throw Error(categoryText.pick);requireCleanCategory();if(!el('confirmCategoryDelete').checked)throw Error(categoryText.confirm);await api('/catalogus/api/'+site()+'/categories/'+editingCategory.categoryId,json('DELETE',{expectedVersion:editingCategory.version}));await refreshCategories()});
-const categorySiteChange=el('site').onchange;el('site').onchange=()=>{categorySiteChange();categories=[];editingCategory=undefined;renderCategories('algemeen');fillCategoryEditor();el('categoryMessage').textContent=''};
+const categorySiteChange=el('site').onchange;el('site').onchange=()=>{if(categoryFormChanged()){el('site').value=categorySite;el('message').textContent=categoryText.unsaved;el('categoryMessage').textContent=categoryText.unsaved;return}categorySiteChange();categorySite=site();categories=[];editingCategory=undefined;renderCategories('algemeen');fillCategoryEditor();el('categoryMessage').textContent=''};
 `;
