@@ -1,0 +1,115 @@
+# Planner voor servicebedrijven
+
+Ontwerpvoorstel, 19 november 2026. Zie de [uitvoerbare backlog](backlog.md).
+
+## Eerste productversie
+
+Een planner bij een servicebedrijf kan een klant opzoeken of toevoegen, een afspraak in een vrij dagdeel plaatsen, die afspraak verzetten of annuleren en een dagdeel blokkeren. Op de klantkaart staan eerdere en komende afspraken. Een terugkerende klant kiest de planner opnieuw uit het klantenbestand. Automatische afspraakreeksen vallen buiten deze versie.
+
+De bestaande takenweergave blijft een herkenbaar onderdeel van dezelfde Planner, naast Afspraken en Relaties. Web en Windows gebruiken dezelfde React-weergaven. Op Windows kiest de gebruiker expliciet een lokale werkruimte of meldt zich aan voor een cloudwerkruimte. De werkruimte en opslagmodus blijven zichtbaar in de navigatie. In lokale modus werken ook eerste start, zoeken en schrijven zonder internet of account. In cloudmodus zien web en Windows dezelfde actuele data. Bij verbindingsverlies meldt Windows dat de cloud onbereikbaar is en biedt de app opnieuw proberen aan. Wisselen van modus selecteert een andere werkruimte, zonder gegevensoverdracht of uitgestelde writes.
+
+Gebruik een fictief onderhoudsbedrijf in de demo. In versie één werkt het met één impliciet werkgebied, twee configureerbare dagdelen en één afspraak per beschikbaar dagdeel. De planner kan bijvoorbeeld 08:00–12:00 aan de klant toezeggen en intern 09:15 registreren. De eerste versie ondersteunt handmatig plannen. Daarna volgen vijf fictieve zones met eigen capaciteit, publiek boeken en Outlook. Routeoptimalisatie, generieke integratieflows, CMS en shops vallen buiten het product. Outlook is een vaste Planner-functie met een afgebakende kalenderkoppeling. Daarmee blijft de scope buiten generieke procesintegratie.
+
+## Bestaande Planner
+
+Onderzocht op GitHub-main `6daaef13d3a7d3a30c429a05e32555dd9f9e9a9b`. De oorspronkelijke lokale main stond op `8691861`, vier commits achterop. Die gebruikt direct de onversiede routes. Op de onderzochte main gebruikt de UI `/api/v1/planner`. De server levert de onversiede routes als alias. Het bestaande beleid noemt 31 december 2026 als sunset. [React-client](../../apps/planner/src/api.ts), [Fastify-compositie](../../server/api/src/core/compose.ts), [API-versiebeleid](../api/versioning.md).
+
+| Onderdeel | Wat de onderzochte code doet | Gevolg voor het ontwerp |
+| --- | --- | --- |
+| React/Vite en pnpm 11.10.0 | `App.tsx` importeert één concrete fetch-client. `packages/ui` levert basiselementen. | Stuur de keuze van client bij het opstarten. Hergebruik weergaven, tokens en componenten. [App](../../apps/planner/src/App.tsx), [entrypoint](../../apps/planner/src/main.tsx), [workspace](../../package.json) |
+| Fastify en TypeScript-contracten | De registry registreert Planner en System. De OpenAPI-snapshot test v1. Een architectuurtest verbiedt rechtstreekse imports tussen API-modules. | Volg de bestaande samenstelling voor HTTP. Verbind functies via samenstelling en expliciete use cases. Registreer nieuwe productroutes uitsluitend onder v1. [Registry](../../server/api/src/core/index.ts), [architectuurtest](../../server/api/tests/architecture.test.ts), [contracttest](../../server/api/tests/openapi-contract.test.ts) |
+| Taken | Model met lanes, posities, prioriteit, labels, geplande datum, deadline, tijdzone, herhaling, historie en versie. Een taakupdate controleert een optionele versie vooraf en werkt daarna het record bij. | Houd taken en afspraken aparte entiteiten. Behoud taakgedrag en maak de taakmutatie atomair bij de overgang naar meerdere writers. [Contract](../../packages/shared/src/index.ts), [taakservice](../../server/api/src/modules/planner/service.ts), [datumfuncties](../../packages/shared/src/scheduling.ts) |
+| Opslag | better-sqlite3 en Drizzle gebruiken één databaseobject, WAL, opstart-DDL en conditionele kolommen. Taken hebben geen werkruimte. Voorkeuren gebruiken het vaste record `default`. | Maak database en transactiegrens injecteerbaar, voeg versiebeheer aan schema's toe en borg werkruimtefilters. [Database](../../server/api/src/core/db.ts), [schema](../../server/api/src/modules/planner/schema.ts), [voorkeuren](../../server/api/src/modules/planner/preferences.ts) |
+| Identiteit | Bearer-agentkeys leveren een makernaam op. Ontbrekende Bearer valt terug op `user`; lijst en voorkeuren hebben geen werkruimteautorisatie. | Cloud heeft een verplichte authenticatie- en autorisatielaag voor alle privéfuncties, inclusief bestaande taken. [Actor](../../server/api/src/core/auth.ts), [routes](../../server/api/src/modules/planner/routes.ts), [HTTP-tests](../../server/api/tests/http.test.ts) |
+
+## Modulegrenzen
+
+Gebruik één repository, één webapp, één Windows-shell en één cloud-API. Laat de samenstelling de modules aan elkaar koppelen en gebruik gewone TypeScript-functies en interfaces voor de grenzen die een tweede runtime nodig hebben.
+
+| Functie | Eigenaarschap en afhankelijkheden |
+| --- | --- |
+| Planner | Productnaam en navigatie. De interne onderdelen **Taken** en **Afspraken** hebben elk eigen regels en records. Afspraken roept Relaties aan om een klantreferentie te valideren en Capaciteit om een plek te reserveren. De afsprakenhistorie hoort bij Afspraken. |
+| Relaties | Klantkaart, zoeken, contactgegevens en archiveren. De klantkaart toont de afsprakenhistorie via een samengestelde read-use-case. Relaties hoeft daardoor geen Afspraken-repository te importeren. |
+| Capaciteit | Dagdelen, rooster, blokkades en beschikbare plekken. Levert een reserveringsoperatie aan Afspraken, samen binnen één databasetransactie. |
+| Werkgebieden | Start in fase twee als configuratie binnen Capaciteit. Beheert zones en expliciete postcodekeuze. Een afzonderlijke module is pas nodig als een tweede functie zelfstandig dezelfde gebiedsindeling gebruikt. |
+| Boekingen | Publiek kanaal in fase drie. Heeft eigen beperkte invoer, publieke antwoorden en bevestiging. Roept dezelfde reserveer-use-case aan als de medewerker en gebruikt dezelfde afspraakrecords. |
+| Integraties | In fase vier een Planner-specifieke Graph-adapter rond afspraakgebeurtenissen. Afspraken kent Graph niet. |
+
+## Uitvoering per omgeving
+
+| Omgeving | Weg van scherm naar opslag |
+| --- | --- |
+| Website | React → HTTP via dezelfde origin → Fastify v1 → TypeScript-use-cases → Drizzle/PostgreSQL |
+| Windows cloud | Verpakte React-UI → beperkte preload-API → hoofdproces → dezelfde Fastify v1 via HTTPS |
+| Windows lokaal | Dezelfde verpakte UI → dezelfde preload-API → hoofdproces → dezelfde TypeScript-use-cases → Drizzle/SQLite in de per-gebruiker appdata |
+| Bestaande lokale ontwikkelmodus | Web-UI → lokale Fastify → SQLite. Houd de bestaande dev-start beschikbaar en laat beide taakroutes dezelfde use-cases aanspreken. |
+
+De UI gebruikt getypeerde aanroepen voor taken, contacten, afspraken en beschikbaarheid, met dezelfde foutcodes over HTTP en IPC. Deel schema's via `packages/shared`. Haal de use cases die Fastify en Windows lokaal samen gebruiken naar bijvoorbeeld `packages/planner-core`. Het core-package importeert geen Fastify, Electron, Drizzle of browser-API's. Het ontvangt opslagpoorten, transactie, klok en actor bij de aanroep. De SQLite-adapter wordt gedeeld tussen de lokale API en Windows. De Postgres-adapter blijft op de server. Gebruik aparte SQL-migratiereeksen per dialect en dezelfde gedragstests voor beide. [Drizzle-migraties](https://orm.drizzle.team/docs/migrations).
+
+De nieuwe client stuurt alle zakelijke aanroepen naar `/api/v1/workspaces/{workspaceId}` met daaronder `/tasks`, `/tasks/{taskId}`, `/history`, `/preferences`, `/appointments`, `/contacts`, `/availability` en `/blocks`. Fastify autoriseert de werkruimte uit het pad en vertaalt de uitkomst naar HTTP. Gebruik expliciete request- en responseschema's met foutcodes als `VERSION_CONFLICT`, `SLOT_FULL` en `SLOT_BLOCKED`. Vereis voor wijzigen en annuleren van afspraken een versie.
+
+Ieder venster kiest zijn eigen werkruimte. Elke aanroep neemt de gekozen werkruimte mee op het moment dat de gebruiker de handeling start. Na wisselen toont de client alleen gegevens en responses die bij de actieve werkruimte horen. De desktopbridge geeft het werkruimte-ID door bij elk commando, valideert payload en afzender in het hoofdproces en controleert in lokale modus of het ID bij de geopende lokale opslag hoort. Gebruik een sandbox, context isolation en lokaal gebundelde assets. Eenmalige OAuth-loopback voor aanmelden staat los van dataverkeer. [Electron-beveiliging](https://www.electronjs.org/docs/latest/tutorial/security), [RFC 8252](https://datatracker.ietf.org/doc/html/rfc8252).
+
+### Cloudidentiteit en isolatie
+
+Gebruik OIDC voor medewerkers. De website houdt een serversessie bij met een Secure/HttpOnly-cookie en CSRF-bescherming voor writes. Windows gebruikt Authorization Code met PKCE in de systeembrowser, als public client. Bewaar de tokens in het hoofdproces en bescherm opgeslagen tokens met de Windows-voorziening via Electron. Fastify valideert ondertekening, issuer, audience, geldigheid en benodigde scopes voor desktop-access tokens. Koppel accounts aan een stabiel gevalideerd identiteitskenmerk per provider en verifieer in de proef of web en desktop dezelfde gebruiker eenduidig kunnen vinden. Een lokaal profiel gebruikt de Windows-sessie en krijgt alleen toegang tot de lokale werkruimte. [OpenID Connect](https://openid.net/specs/openid-connect-core-1_0.html), [RFC 8252](https://datatracker.ietf.org/doc/html/rfc8252), [Electron safeStorage](https://www.electronjs.org/docs/latest/api/safe-storage).
+
+De server controleert het lidmaatschap per verzoek. Begin met eigenaar voor inrichting en planner voor klant- en afspraakbeheer. Neem `workspace_id` op in elke zakelijke tabel, elke query en samengestelde relaties. Een afspraak mag alleen naar een klant en slot in dezelfde werkruimte wijzen. Een onbekende werkruimte of een vreemd record geeft dezelfde 404. Sla Planner-voorkeuren op per gebruiker en werkruimte. In lokale modus gebruikt de app hiervoor de identiteit van het lokale profiel.
+
+Alleen de compatibiliteitsroutes onder `/api/v1/planner` en de alias zonder versienummer gebruiken de ingestelde standaardwerkruimte van de gebruiker of agentkey. Een keuze in de UI wijzigt die standaard niet. Een cloud-agentkey krijgt een werkruimte, taakscopes en een intrekbare registratie. Het bestaande anonieme dev-gedrag blijft beperkt tot lokale ontwikkeling. Cloud draait met één HTTPS-origin voor web en API en krijgt DB-toegang via serveridentiteit of serversecret, een aparte migratierol en een minimaal bevoegde runtime-rol.
+
+## Datamodel, tijd en capaciteit
+
+| Record | Minimale gegevens en regels |
+| --- | --- |
+| `workspace`, `membership` | Werkruimte-ID, naam, IANA-tijdzone en lidmaatschap met rol. Lokale modus maakt één werkruimte aan. |
+| `contact` | UUID, werkruimte, naam, optioneel e-mail/telefoon, status actief/gearchiveerd. De planner selecteert bestaande klanten expliciet. Een gedeeld nummer of e-mailadres mag bij meerdere klanten voorkomen. |
+| `slot` | Werkruimte, werkgebied of impliciet standaardgebied, lokale datum, dagdeel-ID, begintijd/eindtijd, capaciteit. Unieke sleutel per werkruimte, werkgebied, datum en dagdeel. Maak concrete rijen voor een afgebakende boekingshorizon en verleng die vanuit het rooster. Bewaar bestaande tijdvakken ook als dagdeelconfiguratie later wijzigt. |
+| `block` | Werkruimte, slot-ID, reden voor medewerkers en actor. Eerste versie sluit het hele dagdeel. Blokkeren van een bezet dagdeel vereist eerst verplaatsen of annuleren van de bestaande afspraak. |
+| `appointment` | UUID, werkruimte, klant en slot, status gepland/geannuleerd/uitgevoerd, bron, versie, aanmaak- en wijzigtijd. Bewaar het toegezegde klanttijdvak met tijdzone als snapshot. Intern aankomstmoment is optioneel en valt binnen het toegezegde venster. Uitgevoerd houdt de gebruikte capaciteit van het tijdvak bezet. |
+| `appointment_event` | Werkruimte, afspraak, actor, tijd en wijziging bij plannen, verplaatsen, afronden en annuleren. Bewaar oude en nieuwe tijdvakken bij verplaatsen. Houd contactdetails buiten auditpayloads. |
+| `command_receipt` | Werkruimte, actor of publiek kanaal, bewerking, idempotentiesleutel, hash van canonieke invoer en uitkomstreferentie. Unieke sleutel per combinatie. |
+| `zone`, `booking_channel`, `calendar_connection` | Later. Zone met unieke postcode-toewijzing. Publiek kanaal met ondoorzichtige ID en configuratie. Kalenderverbinding met doelagenda en koppeling van Planner-ID aan Graph-event-ID. |
+
+Bewaar lokale datum, werkruimtetijdzone en de opgeloste UTC-grenzen van het tijdvak. Kies voor de eerste versie dagdelen binnen één kalenderdag en intervallen inclusief begin en exclusief eind. Controleer ongeldige kalenderdatums en niet-bestaande of dubbelzinnige lokale tijden bij het aanmaken van een slot. Valideer een intern aankomstmoment met expliciete UTC-offset bij een dubbelzinnige lokale tijd. Gebruik een aparte publieke projectie met alleen aangeboden of toegezegde klanttijden. De publieke API, bevestigingen en een eventueel klantgericht kalenderbericht bevatten geen interne aankomsttijd, route, notitie of andere klantgegevens.
+
+### Gelijktijdige wijzigingen
+
+Een beschikbare plek op het scherm is een momentopname. Schrijven valideert opnieuw en commit in één transactie. Maak de slotrij vooraf aan. Alle schrijvers die een slot wijzigen, inclusief blokkades, capaciteitswijzigingen en Graph-blokkades indien die later worden geactiveerd, gebruiken dezelfde slottransactie.
+
+1. Begin in PostgreSQL een transactie op Read Committed. Bij SQLite start je met `BEGIN IMMEDIATE` en behandel je `SQLITE_BUSY` met begrensde herpogingen. Claim de idempotentiesleutel via een unieke insert vóór de slotcontrole. Bij een dubbele aanvraag wacht de tweede transactie zo nodig op de eerste en leest zij daarna de opgeslagen uitkomst. Gelijke sleutels met andere invoer geven 409.
+2. Vergrendel in PostgreSQL de bestaande slotrij met `SELECT … FOR UPDATE`. Bij verplaatsen vergrendel je beide slots in vaste sleutelvolgorde. Controleer daarna met afzonderlijke reads of bronslot en afspraakversie nog kloppen. Lees ook blokkades en bezetting opnieuw. Een verplaatsing binnen hetzelfde slot telt de eigen afspraak niet opnieuw. Een verlaging onder de bezetting geeft een conflict. Een volle bestemming laat de oorspronkelijke reservering intact.
+3. Schrijf afspraak, geschiedenis, eventuele bevestigingsopdracht en idempotentie-uitkomst samen weg. Bij een rollback vervalt ook de claim op de sleutel. Herhaal een write na een tijdelijke fout met dezelfde sleutel. Bij capaciteitsconflict ververst de UI de lijst en kiest de gebruiker opnieuw.
+
+Toets dit op beide databases met onafhankelijke verbindingen. Bij twee deelnemers voor één plek slaagt precies één reservering. Test ook reserveren tegenover blokkeren, tegen elkaar in verplaatsen, dezelfde request tweemaal, en een geannuleerd slot dat opnieuw vrijkomt voor boeken. [PostgreSQL-transacties](https://www.postgresql.org/docs/current/transaction-iso.html), [PostgreSQL locking-clausules](https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE), [SQLite-transacties](https://www.sqlite.org/lang_transaction.html).
+
+## Taakmigratie en herstel
+
+### Atomaire taakmutaties
+
+PostgreSQL serialiseert taakmutaties per werkruimte door eerst de werkruimterij te vergrendelen. SQLite begint met `BEGIN IMMEDIATE`. Controleer daarna de taakversie op de actuele rij. Werk taak en relevante lane-volgorde bij en maak per overgang naar `done` maximaal één opvolgtaak aan, allemaal in dezelfde transactie. Een versiemismatch geeft 409. Bestaande compatibiliteitsroutes accepteren een PATCH zonder versie en passen de wijziging onder dezelfde lock toe op de actuele rij. De nieuwe werkruimtegebonden PATCH vereist een versie.
+
+Toets op SQLite en PostgreSQL met onafhankelijke verbindingen. Twee afrondingen met dezelfde verwachte versie leveren één succes, één 409 en één opvolgtaak op. Twee compatibiliteitsaanroepen zonder versie mogen slagen en maken samen hoogstens één opvolgtaak. Een geïnjecteerde fout na het invoegen van de opvolgtaak rolt de parentwijziging, opvolgtaak en eventuele herordening terug. [Bestaande taakservice](../../server/api/src/modules/planner/service.ts), [bestaande herhaaltaak](../../server/api/src/modules/planner/task-mapper.ts).
+
+### Datamigratie en herstel
+
+1. Leg een oud en een actueel SQLite-schema vast als testfixture met fictieve taken. Inventariseer aantallen, schema, labels, recurrence-parentrelaties, versies, posities, data en voorkeuren. Maak voor omzetting een consistente snapshot via de SQLite Backup API. [SQLite Backup API](https://www.sqlite.org/backup.html).
+2. Breng de lokale database bij eerste start via genummerde migraties naar het nieuwe schema. Wijs bestaande records aan één vooraf bepaalde werkruimte toe. Importeer een bestaande ontwikkel- of installatiedatabase expliciet vanuit een geselecteerde snapshot. Houd SQLite op lokale schijf en houd databasebestanden uit de installerlocatie en gedeelde mappen. [SQLite WAL](https://www.sqlite.org/wal.html).
+3. Voor cloud doet een operator een eenmalige, herhaalbare import in een expliciet gekozen werkruimte. Gebruik een dry-run met bronhash, aantallen en foutregels. Pauzeer writes bij de definitieve export, valideer IDs en relaties na staging, en activeer de doeldataset pas na goedkeuring van de vergelijking. Bewaar makernaam als historisch veld. Koppel het bestaande voorkeurenrecord aan een expliciete gebruiker in de doelwerkruimte. Registreer cloud-agentkeys opnieuw en ken hun scopes toe. Bij falen blijft de bron de schrijfbare omgeving en kan de import opnieuw worden uitgevoerd.
+4. Toets taak-CRUD, snelle invoer, drag-and-drop, dagfilter, historie, volgorde, recurrence, voorkeuren en 409-gedrag voor en na de import. Behoud de huidige v1-paden en responsevorm, waaronder gepagineerde en onbewerkte lijsten. Houd de legacy-alias en headers volgens bestaand beleid. Inventariseer gebruikte clients vóór verwijdering van de alias en documenteer de vereiste cloud-aanmelding voor bestaande scripts.
+5. Windows maakt vóór schemaverhoging een herstelpunt, biedt handmatig back-up/export en herstelt via een gecontroleerde kopie in een gesloten werkruimte. Kies voor cloud managed PostgreSQL met point-in-time herstel. Oefen herstel naar een aparte omgeving, herstelcontrole en omschakeling vóór de pilot. Leg bewaartermijn, maximaal aanvaardbaar dataverlies en hersteltijd vast met de producteigenaar. Een rollback na nieuwe writes vereist een expliciet herstelbesluit over die writes. Voor reguliere releases verdient een schema dat ook met de vorige appversie werkt de voorkeur. [Azure PostgreSQL-herstel](https://learn.microsoft.com/en-us/azure/postgresql/backup-restore/concepts-backup-restore).
+
+## Windows-installatie en updates
+
+**Voorkeur voor de proef: Electron met Forge en Squirrel.Windows.** De renderer hergebruikt Vite/React. TypeScript-use-cases en de Node/SQLite-adapter draaien in één hoofdproces. Forge kan de native module herbouwen voor Electrons ABI. Verifieer op een schone Windows x64-machine dat het resultaat installeert per gebruiker, de ingebouwde SQLite-adapter laadt en zonder netwerk start. Tauri blijft de kandidaat uit E9. Met behoud van de TypeScript-kern vereist Tauri een meegeleverd proces en beheer van de communicatie en levenscyclus daarvan. Vergelijk in één beslisproef installatiegrootte, koude start, packaging, lokale migratie, aanmelding, signing en updates. Kies vóór productiewerk en verwerk de uitkomst in E9. [Electron native modules](https://www.electronjs.org/docs/latest/tutorial/using-native-node-modules/), [Forge Squirrel.Windows](https://www.electronforge.io/config/makers/squirrel.windows), [Tauri sidecars](https://v2.tauri.app/develop/sidecar/), [Tauri updater](https://v2.tauri.app/plugin/updater/).
+
+Bouw het x64-installatiepakket in een Windows releasejob, pin runtime en buildtooling en houd signingsleutels in de releaseomgeving. Lever een ondertekende volledige installer voor de pilot. Het voorgestelde updatepad is Electron autoUpdater met Squirrel-metadata boven HTTPS en een vast publicatiekanaal. Laat de gebruiker een herstart plannen, sluit writes af en maak een herstelpunt vóór migratie. Test een echte upgrade plus de offline start op de oude en nieuwe build. Als de feed onbereikbaar is blijft de huidige app bruikbaar. Test expliciet welke ondertekening de gekozen feed en updater verifiëren voordat automatische updates worden aangezet. [Forge Windows signing](https://www.electronforge.io/guides/code-signing/code-signing-windows), [Electron updates](https://www.electronjs.org/docs/latest/tutorial/updates).
+
+## Na de eerste versie
+
+- **Zones en capaciteit.** Koppel fictieve postcodegebieden aan vijf zones. Elke zone krijgt dagdeelcapaciteit per datum, met een standaardrooster en datumuitzonderingen. Zet in de demo grenzen op bijvoorbeeld ochtend en middag. Een grens van twee betekent maximaal twee afspraken voor dat slot. Bij gedeelde medewerkers over zones is een aanvullende gedeelde capaciteitsgrens pas aan de orde zodra die behoefte is bevestigd.
+- **Publiek boeken.** Geef de bezoeker alleen de slots waarvoor het publieke kanaal geldig is en verifieer de postcode bij boeken opnieuw. Maak contactverzoek en afspraak atomair aan. Bij een nieuwe publieke klant kan een planner achteraf relaties samenvoegen zodra de identiteit is bevestigd. Lever een referentie op de bevestigingspagina en stuur eventueel e-mail via een transactionele outbox. Laat publieke wijzigingen en annuleringen voor een vervolgbesluit.
+- **Outlook/Microsoft 365.** Begin met uitgaande projectie naar één gekozen interne agenda per cloudwerkruimte, via delegated consent en minimale kalenderrechten. Nooit klantdeelnemers toevoegen aan dit interne evenement. Houd event-ID per afspraak bij en gebruik een stabiele Graph `transactionId` voor herhaalde creatiepogingen. Verwerk wijzigingen via een outbox met zichtbare fout- en herverbindingsstatus. Planner blijft bronhouder. Inkomende Outlook-beschikbaarheid verdient een aparte proef met begrensde kalenderweergave, delta-cursor en herstel bij ongeldige cursor. [Microsoft Graph events](https://learn.microsoft.com/en-us/graph/api/user-post-events?view=graph-rest-1.0), [delta-query](https://learn.microsoft.com/en-us/graph/delta-query-events?tabs=http).
+- **Offline/cloud-synchronisatie.** Afzonderlijke productbeslissing. Ontwerp eerst ownership, wijzigingslog, deletions, retries, versieconflicten en gedrag bij intrekking van toegang. Een gedistribueerde planner kan een offline reservering voor gedeelde capaciteit pas na cloudacceptatie bevestigen.
+
+Open vóór implementatie de beslisproeven voor het Windows-pakket, de OIDC-provider en accountkoppeling, de cloudomgeving en de gewenste hersteldoelen. De backlog noemt per beslissing het bewijs dat nodig is om door te gaan.
