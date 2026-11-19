@@ -11,7 +11,7 @@ const Constructor: typeof Database = binding === 'desktop' ? createRequire(new U
 const db = new Constructor(path), storage = createSqliteBookingStorage(db, 'local');
 const transaction = storage.transaction;
 storage.transaction = operation => {
-  if (role === 'second') writeFileSync(join(gate, 'attempt'), '1');
+  if (role !== 'first') writeFileSync(join(gate, role === 'second' ? 'attempt' : `${role}-attempt`), '1');
   return transaction(() => {
     writeFileSync(join(gate, `${role}-entered`), '1');
     if (role === 'first') {

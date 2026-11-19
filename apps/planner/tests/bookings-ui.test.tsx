@@ -10,10 +10,11 @@ import { Planner } from '../src/Planner';
 const person: Contact = { id:'person',workspaceId:'local',name:'Demo klant',email:null,phone:null,archived:false,version:1,createdAt:'',updatedAt:'' };
 const today = () => bookingToday(new Date().toISOString(), LOCAL_BOOKING_POLICY.timezone);
 function slot(date = today()): Availability {
-  return { available:true,occupied:0,block:null,slot:{ id:'slot-'+date,workspaceId:'local',capacity:1,date,daypartId:'morning',label:'Ochtend',startTime:'08:00',endTime:'12:00',timezone:'Europe/Amsterdam',startAt:date+'T07:00:00Z',endAt:date+'T11:00:00Z' } };
+  return { available:true,occupied:0,block:null,slot:{ id:'slot-'+date,workspaceId:'local',zoneId:'standard',capacity:1,version:1,date,daypartId:'morning',label:'Ochtend',startTime:'08:00',endTime:'12:00',timezone:'Europe/Amsterdam',startAt:date+'T07:00:00Z',endAt:date+'T11:00:00Z' } };
 }
 function fixture() {
   const client: BookingClient = { workspaceId:'local',
+    zones:{list:vi.fn(async()=>[{id:'standard',workspaceId:'local',name:'Standaardgebied',defaultCapacity:1,version:1}]),resolve:vi.fn(),capacity:vi.fn()},slots:{capacity:vi.fn()},
     contacts:{ list:vi.fn(async () => [person]),create:vi.fn(async () => person),update:vi.fn(async () => person),card:vi.fn(async () => ({contact:person,upcoming:[],history:[],events:[]})) },
     availability:vi.fn(async date => [slot(date)]),
     appointments:{list:vi.fn(async () => []),create:vi.fn(),move:vi.fn(),status:vi.fn()},blocks:{create:vi.fn(),remove:vi.fn()},
@@ -55,14 +56,14 @@ it('retains the exact unknown command/key across navigation and retries without 
 
 it('moves to another date with the original appointment version and a separate internal arrival',async()=>{
   const {client}=fixture(), current=slot();
-  const appointment: Appointment={id:'visit',workspaceId:'local',contactId:person.id,slotId:current.slot.id,status:'planned',source:'manual',version:4,window:current.slot,arrivalAt:null,createdAt:'',updatedAt:''};
+  const appointment: Appointment={id:'visit',workspaceId:'local',zoneId:'standard',zoneName:'Standaardgebied',contactId:person.id,slotId:current.slot.id,status:'planned',source:'manual',version:4,window:current.slot,arrivalAt:null,createdAt:'',updatedAt:''};
   client.appointments.list=vi.fn(async()=>[appointment]);
   client.appointments.move=vi.fn(async()=>appointment);
   await act(async()=>root.render(<Bookings client={client} section="appointments"/>));
   await click(button('Verplaatsen'));
   const date='2026-11-21';
   await change(document.querySelector('input[type="date"]')!,date);
-  await change(document.querySelector('select')!,'slot-'+date);
+  await change(document.querySelector('section[aria-label="Afspraak plannen"] select')!,'slot-'+date);
   await change(document.querySelector('input[type="time"]')!,'09:15');
   await submit('Verplaatsing opslaan');
   expect(client.appointments.move).toHaveBeenCalledWith('visit',{version:4,slotId:'slot-'+date,arrivalAt:'2026-11-21T08:15:00Z'},expect.any(String));
@@ -80,11 +81,39 @@ it.each(['success','failure'])('refreshes the current appointment context after 
   await change(document.querySelector('input')!,'Alice');
   await click(button('Alice')); await click(button('Relatie archiveren'));
   await act(async()=>root.render(<Bookings client={client} section="appointments"/>));
-  expect(document.querySelector('select')!.textContent).toContain('Bob');
+  expect(document.querySelector('section[aria-label="Afspraak plannen"] select')!.textContent).toContain('Bob');
   await act(async()=>{
     if(outcome==='success') {people=people.map(p=>p.id==='alice'?{...p,archived:true,version:2}:p);resolve(people[0]);}
     else reject(Object.assign(new Error('Definitieve fout'),{code:'INTERNAL_ERROR'}));
   });
-  expect(document.querySelector('select')!.textContent).toContain('Bob');
-  if(outcome==='success') expect(document.querySelector('select')!.textContent).not.toContain('Alice');
+  expect(document.querySelector('section[aria-label="Afspraak plannen"] select')!.textContent).toContain('Bob');
+  if(outcome==='success') expect(document.querySelector('section[aria-label="Afspraak plannen"] select')!.textContent).not.toContain('Alice');
+});
+
+it('moves across zones with the original version and clears the old zone selection',async()=>{
+  const {client}=fixture(),current=slot();
+  const appointment: Appointment={id:'visit',workspaceId:'local',zoneId:'standard',zoneName:'Standaardgebied',contactId:person.id,slotId:current.slot.id,status:'planned',source:'manual',version:4,window:current.slot,arrivalAt:null,createdAt:'',updatedAt:''};
+  client.zones.list=vi.fn(async()=>[{id:'standard',workspaceId:'local',name:'Standaardgebied',defaultCapacity:1,version:1},{id:'north',workspaceId:'local',name:'Noord (fictief)',defaultCapacity:2,version:1}]);
+  client.availability=vi.fn(async(date,zoneId)=>[{...slot(date),slot:{...slot(date).slot,id:zoneId==='north'?'north-slot':current.slot.id,zoneId:zoneId??'standard'}}]);
+  client.appointments.list=vi.fn(async(_date,zoneId)=>zoneId==='standard'?[appointment]:[]);
+  client.appointments.move=vi.fn(async()=>appointment);
+  await act(async()=>root.render(<Bookings client={client} section="appointments"/>));
+  await click(button('Verplaatsen'));
+  await change(document.querySelector('main > label select')!,'north');
+  expect((document.querySelector('section[aria-label="Afspraak plannen"] select') as HTMLSelectElement).value).toBe('');
+  expect(document.querySelector('section[aria-label="Afspraak plannen"]')!.textContent).toContain('Standaardgebied');
+  await change(document.querySelector('section[aria-label="Afspraak plannen"] select')!,'north-slot');
+  await submit('Verplaatsing opslaan');
+  expect(client.appointments.move).toHaveBeenCalledWith('visit',{version:4,slotId:'north-slot',arrivalAt:null},expect.any(String));
+  expect(client.availability).toHaveBeenLastCalledWith(today(),'north');
+});
+
+it('shows a capacity conflict and submits the current slot version',async()=>{
+  const {client}=fixture();
+  client.slots.capacity=vi.fn().mockRejectedValue(Object.assign(new Error('De capaciteit kan niet lager worden dan de bezetting.'),{code:'CAPACITY_BELOW_OCCUPANCY'}));
+  await act(async()=>root.render(<Bookings client={client} section="appointments"/>));
+  await change(document.querySelector('article input[name="capacity"]')!,'0');
+  await submit('Dagdeelcapaciteit opslaan');
+  expect(client.slots.capacity).toHaveBeenCalledWith('slot-'+today(),{capacity:0,version:1},expect.any(String));
+  expect(document.querySelector('[role="alert"]')!.textContent).toContain('lager worden dan de bezetting');
 });

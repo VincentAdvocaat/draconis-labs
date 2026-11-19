@@ -1,13 +1,14 @@
 import type Database from 'better-sqlite3';
 import type { BookingStorage } from '@draconis/planner-core';
-import type { Appointment, AppointmentEvent, Block, Contact, Slot } from '@draconis/shared';
+import type { Appointment, AppointmentEvent, Block, Contact, Slot, Zone } from '@draconis/shared';
 
 type Row = Record<string, unknown>;
 const fields = {
+  planner_zones: ['workspaceId','id','name','defaultCapacity','version'],
   planner_contacts: ['workspaceId','id','name','email','phone','archived','version','createdAt','updatedAt'],
-  planner_slots: ['workspaceId','id','date','daypartId','label','startTime','endTime','timezone','startAt','endAt','capacity'],
+  planner_slots: ['workspaceId','id','zoneId','date','daypartId','label','startTime','endTime','timezone','startAt','endAt','capacity','version'],
   planner_blocks: ['workspaceId','id','slotId','reason','actor','createdAt'],
-  planner_appointments: ['workspaceId','id','contactId','slotId','status','source','version','window','arrivalAt','createdAt','updatedAt'],
+  planner_appointments: ['workspaceId','id','contactId','slotId','zoneId','zoneName','status','source','version','window','arrivalAt','createdAt','updatedAt'],
   planner_appointment_events: ['workspaceId','id','appointmentId','actor','createdAt','type','before','after'],
 } as const;
 type Table = keyof typeof fields;
@@ -44,10 +45,17 @@ export function createSqliteBookingStorage(db: Database.Database, workspaceId: s
       }
     },
     contacts: () => all<Contact>('planner_contacts'), contact: id => find<Contact>('planner_contacts', id), saveContact: value => save('planner_contacts', value, true),
-    slots: date => all<Slot>('planner_slots', 'AND date=?', [date]), slot: id => find<Slot>('planner_slots', id), insertSlot: value => save('planner_slots', value),
+    zones: () => all<Zone>('planner_zones'), zone: id => find<Zone>('planner_zones', id), saveZone: value => save('planner_zones', value, true),
+    slots: (date, zoneId) => all<Slot>('planner_slots', 'AND date=? AND zone_id=?', [date, zoneId]), slot: id => find<Slot>('planner_slots', id), insertSlot: value => save('planner_slots', value),
+    setSlotCapacity: (id, capacity) => { db.prepare('UPDATE planner_slots SET capacity=?,version=version+1 WHERE workspace_id=? AND id=?').run(capacity, workspaceId, id); },
     block: slotId => all<Block>('planner_blocks', 'AND slot_id=?', [slotId])[0], findBlock: id => find<Block>('planner_blocks', id), insertBlock: value => save('planner_blocks', value),
     removeBlock: id => { db.prepare('DELETE FROM planner_blocks WHERE workspace_id=? AND id=?').run(workspaceId, id); },
-    appointments: () => all<Appointment>('planner_appointments'), appointment: id => find<Appointment>('planner_appointments', id), saveAppointment: value => save('planner_appointments', value, true),
+    appointments: query => {
+      const filters: string[] = [], values: string[] = [];
+      if (query?.zoneId !== undefined) { filters.push('AND zone_id=?'); values.push(query.zoneId); }
+      if (query?.date !== undefined) { filters.push("AND json_extract(window,'$.date')=?"); values.push(query.date); }
+      return all<Appointment>('planner_appointments', filters.join(' '), values);
+    }, appointment: id => find<Appointment>('planner_appointments', id), saveAppointment: value => save('planner_appointments', value, true),
     appendEvent: value => save('planner_appointment_events', value),
     events: ids => {
       const requested = new Set(ids);

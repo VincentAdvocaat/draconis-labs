@@ -2513,6 +2513,1901 @@
         }
       }
     },
+    "/api/v1/workspaces/{workspaceId}/zones": {
+      "get": {
+        "summary": "Local workspace zones.list",
+        "tags": [
+          "bookings"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "workspaceId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "value"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "workspaceId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "defaultCapacity": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "workspaceId",
+                          "name",
+                          "defaultCapacity",
+                          "version"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/zones/resolve": {
+      "get": {
+        "summary": "Local workspace zones.resolve",
+        "tags": [
+          "bookings"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20
+            },
+            "in": "query",
+            "name": "postcode",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "workspaceId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "value"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "value": {
+                      "type": "object",
+                      "properties": {
+                        "postcode": {
+                          "type": "string"
+                        },
+                        "zone": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "workspaceId": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "defaultCapacity": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "version": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "workspaceId",
+                            "name",
+                            "defaultCapacity",
+                            "version"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "demonstration": {
+                          "type": "boolean",
+                          "enum": [
+                            true
+                          ]
+                        }
+                      },
+                      "required": [
+                        "postcode",
+                        "zone",
+                        "demonstration"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/zones/{id}/capacity": {
+      "patch": {
+        "summary": "Local workspace zones.capacity",
+        "tags": [
+          "bookings"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "input": {
+                    "type": "object",
+                    "properties": {
+                      "version": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "defaultCapacity": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100
+                      }
+                    },
+                    "required": [
+                      "version",
+                      "defaultCapacity"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "key",
+                  "input"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "workspaceId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,39}$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "value"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "value": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "workspaceId": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "defaultCapacity": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "workspaceId",
+                        "name",
+                        "defaultCapacity",
+                        "version"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/slots/{id}/capacity": {
+      "patch": {
+        "summary": "Local workspace slots.capacity",
+        "tags": [
+          "bookings"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "input": {
+                    "type": "object",
+                    "properties": {
+                      "version": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "capacity": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100
+                      }
+                    },
+                    "required": [
+                      "version",
+                      "capacity"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "key",
+                  "input"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "workspaceId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "value"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "value": {
+                      "type": "object",
+                      "properties": {
+                        "date": {
+                          "type": "string"
+                        },
+                        "daypartId": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "startTime": {
+                          "type": "string"
+                        },
+                        "endTime": {
+                          "type": "string"
+                        },
+                        "timezone": {
+                          "type": "string"
+                        },
+                        "startAt": {
+                          "type": "string"
+                        },
+                        "endAt": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "workspaceId": {
+                          "type": "string"
+                        },
+                        "zoneId": {
+                          "type": "string"
+                        },
+                        "capacity": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "date",
+                        "daypartId",
+                        "label",
+                        "startTime",
+                        "endTime",
+                        "timezone",
+                        "startAt",
+                        "endAt",
+                        "id",
+                        "workspaceId",
+                        "zoneId",
+                        "capacity",
+                        "version"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "status",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_INPUT",
+                            "WORKSPACE_NOT_FOUND",
+                            "TASK_NOT_FOUND",
+                            "VERSION_CONFLICT",
+                            "UNAUTHORIZED",
+                            "UNAVAILABLE",
+                            "INTERNAL_ERROR",
+                            "NOT_FOUND",
+                            "SLOT_FULL",
+                            "SLOT_BLOCKED",
+                            "CONTACT_ARCHIVED",
+                            "INVALID_TRANSITION",
+                            "IDEMPOTENCY_CONFLICT",
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
+                          ]
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workspaces/{workspaceId}/contacts": {
       "get": {
         "summary": "Local workspace contacts.list",
@@ -2696,7 +4591,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -2752,7 +4650,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -2808,7 +4709,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -2864,7 +4768,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -2920,7 +4827,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -2976,7 +4886,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -3226,7 +5139,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -3282,7 +5198,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -3338,7 +5257,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -3394,7 +5316,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -3450,7 +5375,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -3506,7 +5434,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -3766,7 +5697,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -3822,7 +5756,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -3878,7 +5815,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -3934,7 +5874,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -3990,7 +5933,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -4046,7 +5992,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -4213,6 +6162,12 @@
                                 "format": "uuid",
                                 "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                               },
+                              "zoneId": {
+                                "type": "string"
+                              },
+                              "zoneName": {
+                                "type": "string"
+                              },
                               "status": {
                                 "type": "string",
                                 "enum": [
@@ -4290,6 +6245,8 @@
                               "updatedAt",
                               "contactId",
                               "slotId",
+                              "zoneId",
+                              "zoneName",
                               "status",
                               "source",
                               "version",
@@ -4328,6 +6285,12 @@
                                 "format": "uuid",
                                 "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                               },
+                              "zoneId": {
+                                "type": "string"
+                              },
+                              "zoneName": {
+                                "type": "string"
+                              },
                               "status": {
                                 "type": "string",
                                 "enum": [
@@ -4405,6 +6368,8 @@
                               "updatedAt",
                               "contactId",
                               "slotId",
+                              "zoneId",
+                              "zoneName",
                               "status",
                               "source",
                               "version",
@@ -4501,6 +6466,12 @@
                                             "type": "null"
                                           }
                                         ]
+                                      },
+                                      "zoneId": {
+                                        "type": "string"
+                                      },
+                                      "zoneName": {
+                                        "type": "string"
                                       }
                                     },
                                     "required": [
@@ -4566,6 +6537,12 @@
                                         "type": "null"
                                       }
                                     ]
+                                  },
+                                  "zoneId": {
+                                    "type": "string"
+                                  },
+                                  "zoneName": {
+                                    "type": "string"
                                   }
                                 },
                                 "required": [
@@ -4642,7 +6619,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -4698,7 +6678,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -4754,7 +6737,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -4810,7 +6796,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -4866,7 +6855,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -4922,7 +6914,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -4956,6 +6951,15 @@
             "in": "query",
             "name": "date",
             "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,39}$"
+            },
+            "in": "query",
+            "name": "zoneId",
+            "required": false
           },
           {
             "schema": {
@@ -5032,11 +7036,18 @@
                               "workspaceId": {
                                 "type": "string"
                               },
+                              "zoneId": {
+                                "type": "string"
+                              },
                               "capacity": {
-                                "type": "number",
-                                "enum": [
-                                  1
-                                ]
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "version": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
                               }
                             },
                             "required": [
@@ -5050,7 +7061,9 @@
                               "endAt",
                               "id",
                               "workspaceId",
-                              "capacity"
+                              "zoneId",
+                              "capacity",
+                              "version"
                             ],
                             "additionalProperties": false
                           },
@@ -5160,7 +7173,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -5216,7 +7232,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -5272,7 +7291,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -5328,7 +7350,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -5384,7 +7409,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -5440,7 +7468,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -5474,6 +7505,15 @@
             "in": "query",
             "name": "date",
             "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,39}$"
+            },
+            "in": "query",
+            "name": "zoneId",
+            "required": false
           },
           {
             "schema": {
@@ -5538,6 +7578,12 @@
                             "type": "string",
                             "format": "uuid",
                             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "zoneId": {
+                            "type": "string"
+                          },
+                          "zoneName": {
+                            "type": "string"
                           },
                           "status": {
                             "type": "string",
@@ -5616,6 +7662,8 @@
                           "updatedAt",
                           "contactId",
                           "slotId",
+                          "zoneId",
+                          "zoneName",
                           "status",
                           "source",
                           "version",
@@ -5670,7 +7718,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -5726,7 +7777,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -5782,7 +7836,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -5838,7 +7895,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -5894,7 +7954,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -5950,7 +8013,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -6090,6 +8156,12 @@
                           "format": "uuid",
                           "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                         },
+                        "zoneId": {
+                          "type": "string"
+                        },
+                        "zoneName": {
+                          "type": "string"
+                        },
                         "status": {
                           "type": "string",
                           "enum": [
@@ -6167,6 +8239,8 @@
                         "updatedAt",
                         "contactId",
                         "slotId",
+                        "zoneId",
+                        "zoneName",
                         "status",
                         "source",
                         "version",
@@ -6220,7 +8294,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -6276,7 +8353,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -6332,7 +8412,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -6388,7 +8471,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -6444,7 +8530,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -6500,7 +8589,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -6642,6 +8734,12 @@
                           "format": "uuid",
                           "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                         },
+                        "zoneId": {
+                          "type": "string"
+                        },
+                        "zoneName": {
+                          "type": "string"
+                        },
                         "status": {
                           "type": "string",
                           "enum": [
@@ -6719,6 +8817,8 @@
                         "updatedAt",
                         "contactId",
                         "slotId",
+                        "zoneId",
+                        "zoneName",
                         "status",
                         "source",
                         "version",
@@ -6772,7 +8872,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -6828,7 +8931,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -6884,7 +8990,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -6940,7 +9049,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -6996,7 +9108,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -7052,7 +9167,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -7184,6 +9302,12 @@
                           "format": "uuid",
                           "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                         },
+                        "zoneId": {
+                          "type": "string"
+                        },
+                        "zoneName": {
+                          "type": "string"
+                        },
                         "status": {
                           "type": "string",
                           "enum": [
@@ -7261,6 +9385,8 @@
                         "updatedAt",
                         "contactId",
                         "slotId",
+                        "zoneId",
+                        "zoneName",
                         "status",
                         "source",
                         "version",
@@ -7314,7 +9440,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -7370,7 +9499,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -7426,7 +9558,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -7482,7 +9617,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -7538,7 +9676,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -7594,7 +9735,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -7778,7 +9922,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -7834,7 +9981,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -7890,7 +10040,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -7946,7 +10099,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -8002,7 +10158,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -8058,7 +10217,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -8188,7 +10350,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -8244,7 +10409,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -8300,7 +10468,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -8356,7 +10527,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -8412,7 +10586,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {
@@ -8468,7 +10645,10 @@
                             "CONTACT_ARCHIVED",
                             "INVALID_TRANSITION",
                             "IDEMPOTENCY_CONFLICT",
-                            "OUTSIDE_HORIZON"
+                            "OUTSIDE_HORIZON",
+                            "CAPACITY_BELOW_OCCUPANCY",
+                            "UNKNOWN_POSTCODE",
+                            "AMBIGUOUS_POSTCODE"
                           ]
                         },
                         "status": {

@@ -2,7 +2,8 @@
 
 Deze demo gebruikt uitsluitend nieuwe fictieve gegevens. Zij maakt geen
 cloudresources of accounts aan en installeert niets. De code staat in PR #28,
-gestapeld op #23. De [actuele storymatrix en grenzen](pl14-15-lokale-contacten-afspraken.md)
+gestapeld op #23. De lokale zonesstap bouwt daarop voort. De [zoneregels](pl21-22-zones-capaciteit.md)
+en [eerdere storymatrix](pl14-15-lokale-contacten-afspraken.md)
 onderscheiden lokale functionaliteit van de nog open cloud- en release-eisen.
 
 ## Web starten
@@ -12,7 +13,7 @@ draaien. Het uitgeprinte databasepad is het eigen demobestand; bewaar dat voor
 een volgende start met dezelfde gegevens.
 
 ```powershell
-Set-Location C:/git/draconis-labs/.worktrees/feature/planner-local-bookings
+Set-Location C:/git/draconis-labs/.worktrees/feature/planner-zones-capacity
 corepack pnpm install --frozen-lockfile
 corepack pnpm build
 $plannerDemo = Join-Path $env:TEMP ('planner-demo-' + [guid]::NewGuid().ToString('N'))
@@ -27,7 +28,7 @@ corepack pnpm --filter @draconis/api start
 Open een tweede PowerShell-terminal:
 
 ```powershell
-Set-Location C:/git/draconis-labs/.worktrees/feature/planner-local-bookings
+Set-Location C:/git/draconis-labs/.worktrees/feature/planner-zones-capacity
 $env:VITE_API_URL = 'http://127.0.0.1:3041'
 corepack pnpm --filter @draconis/planner exec vite --host 127.0.0.1 --port 3042 --strictPort
 ```
@@ -46,7 +47,7 @@ Dit maakt een ongeïnstalleerde, niet ondertekende proef-exe. Het lokale profiel
 is onafhankelijk van de webdemo; er vindt geen synchronisatie plaats.
 
 ```powershell
-Set-Location C:/git/draconis-labs/.worktrees/feature/planner-local-bookings
+Set-Location C:/git/draconis-labs/.worktrees/feature/planner-zones-capacity
 corepack pnpm --filter @draconis/desktop-probe build
 corepack pnpm --filter @draconis/desktop-probe package
 $env:PLANNER_PROBE_PROFILE = Join-Path $env:TEMP ('planner-window-demo-' + [guid]::NewGuid().ToString('N'))
@@ -77,6 +78,17 @@ netwerktoegang; de Windows-netwerkadapter is niet uitgeschakeld.
    afspraken, status, vensters en geschiedenis blijven bewaard.
 7. Archiveer de klant. De klant verdwijnt uit nieuwe afspraakselectie. Met
    **Ook gearchiveerde relaties** is de klantkaart inclusief historie te vinden.
+8. Activeer dezelfde fictieve klant opnieuw. Kies Noord en zet de ochtend op
+   capaciteit twee. Boek twee afspraken; een derde plek wordt niet aangeboden.
+   Probeer de capaciteit naar één te verlagen: dit geeft een duidelijke fout.
+9. Verplaats één afspraak via Werkgebied naar Oost. Noord houdt één van twee
+   plaatsen bezet. Blokkeer een leeg Oost-dagdeel en controleer dat hetzelfde
+   dagdeel in Noord beschikbaar blijft.
+10. Zet de standaardcapaciteit van Oost op drie. Open een nog niet aangemaakte
+    datum: nieuwe slots hebben drie plaatsen. Oude Oost-slots blijven gelijk.
+11. Zoek met **Fictieve postcodevoorbeelden** op `0002 AA`: Noord wordt gekozen.
+    Een onbekend voorbeeld, zoals `9999 ZZ`, geeft een duidelijke fout. Dit
+    gebruikt uitsluitend de getoonde fictieve indeling, geen echte dekking.
 
 Een versieconflict vraagt om verversen. Bij een onbekende netwerkuitkomst biedt
 de UI dezelfde handeling opnieuw aan met dezelfde opdrachtsleutel; start dan
@@ -89,9 +101,7 @@ Laat voor productacceptatie de tijdzone, 90 kalenderdagen, weekendboekingen,
 08–12/13–17, statusovergangen en handmatig boeken in verstreken dagdelen van
 vandaag beoordelen. Dit zijn expliciete pilotkeuzes, geen besloten cloudbeleid.
 
-De kleinste voorgestelde volgende bouwstap is vijf **fictieve lokale zones** met
-eigen dagdeelcapaciteit. Acceptatie: zonekeuze is zichtbaar, een blokkade raakt
-één zone, bij capaciteit twee slagen exact twee van drie gelijktijdige
-reserveringen en een verlaging onder bezetting faalt atomair. Dit voorstel is
-nog niet geïmplementeerd. OIDC, PostgreSQL, cloudhosting, schone installatie,
+De vijf fictieve lokale zones en dagdeelcapaciteit zijn inmiddels lokaal
+uitgevoerd en getoetst. Laat de indeling en pilotregels beoordelen voordat een
+publiek boekingskanaal wordt toegevoegd. OIDC, PostgreSQL, cloudhosting, schone installatie,
 signing en updatevertrouwen blijven afzonderlijk open.

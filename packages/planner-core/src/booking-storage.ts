@@ -1,4 +1,4 @@
-import type { Appointment, AppointmentEvent, Block, Contact, Slot } from '@draconis/shared';
+import type { Appointment, AppointmentEvent, Block, Contact, Slot, Zone } from '@draconis/shared';
 import type { PlannerEnvironment } from './storage.js';
 
 export interface ContactStorage {
@@ -7,16 +7,20 @@ export interface ContactStorage {
   saveContact(contact: Contact): void;
 }
 export interface CapacityStorage {
-  slots(date: string): Slot[];
+  zones(): Zone[];
+  zone(id: string): Zone | undefined;
+  saveZone(zone: Zone): void;
+  slots(date: string, zoneId: string): Slot[];
   slot(id: string): Slot | undefined;
   insertSlot(slot: Slot): void;
+  setSlotCapacity(id: string, capacity: number): void;
   block(slotId: string): Block | undefined;
   findBlock(id: string): Block | undefined;
   insertBlock(block: Block): void;
   removeBlock(id: string): void;
 }
 export interface AppointmentStorage {
-  appointments(): Appointment[];
+  appointments(query?: { date?: string; zoneId?: string }): Appointment[];
   appointment(id: string): Appointment | undefined;
   saveAppointment(appointment: Appointment): void;
   appendEvent(event: AppointmentEvent): void;

@@ -6,6 +6,10 @@ export function createBookingHttpTransport(baseUrl = '', fetcher: typeof fetch =
     const base = `${baseUrl}/api/v1/workspaces/${encodeURIComponent(command.workspaceId)}`;
     let path: string, method = 'GET';
     switch (command.type) {
+      case 'zones.list': path = '/zones'; break;
+      case 'zones.resolve': path = `/zones/resolve?postcode=${encodeURIComponent(command.input.postcode)}`; break;
+      case 'zones.capacity': path = `/zones/${encodeURIComponent(command.id)}/capacity`; method = 'PATCH'; break;
+      case 'slots.capacity': path = `/slots/${command.id}/capacity`; method = 'PATCH'; break;
       case 'contacts.list': {
         const query = new URLSearchParams();
         if (command.query?.q !== undefined) query.set('q', command.query.q);
@@ -15,8 +19,8 @@ export function createBookingHttpTransport(baseUrl = '', fetcher: typeof fetch =
       case 'contacts.card': path = `/contacts/${command.id}`; break;
       case 'contacts.create': path = '/contacts'; method = 'POST'; break;
       case 'contacts.update': path = `/contacts/${command.id}`; method = 'PATCH'; break;
-      case 'availability.list': path = `/availability?date=${command.date}`; break;
-      case 'appointments.list': path = `/appointments?date=${command.date}`; break;
+      case 'availability.list': path = `/availability?date=${command.date}${command.zoneId === undefined ? '' : '&zoneId='+encodeURIComponent(command.zoneId)}`; break;
+      case 'appointments.list': path = `/appointments?date=${command.date}${command.zoneId === undefined ? '' : '&zoneId='+encodeURIComponent(command.zoneId)}`; break;
       case 'appointments.create': path = '/appointments'; method = 'POST'; break;
       case 'appointments.move': path = `/appointments/${command.id}/move`; method = 'POST'; break;
       case 'appointments.status': path = `/appointments/${command.id}/status`; method = 'POST'; break;

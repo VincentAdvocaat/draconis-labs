@@ -61,6 +61,12 @@ for (let index = 0; index < 5; index++) {
   assert(result.booking.moved.arrivalAt, 'internal arrival is separate from promised customer window');
   assert.equal(result.booking.available[0].occupied, 1, 'completed visit retains capacity');
   assert(result.booking.available[1].available, 'cancelled visit releases capacity');
+  assert(result.booking.zoneProof.uiZoneSelected && result.booking.zoneProof.uiCapacityChanged && result.booking.zoneProof.uiCrossZoneMoved, 'zone, capacity and cross-zone move use actual React controls');
+  assert.equal(result.booking.zoneProof.thirdRejected,'SLOT_FULL');
+  assert.equal(result.booking.zoneProof.reductionRejected,'CAPACITY_BELOW_OCCUPANCY');
+  assert.equal(result.booking.zoneProof.movedZone,'east');
+  assert.equal(result.booking.zoneProof.sourceOccupancy,1);
+  assert.equal(result.booking.zoneProof.sourceCapacity,2);
   if (previousBookings) assert.deepEqual(result.booking.before, previousBookings, 'contacts, appointments and events must survive restart');
   previousBookings = result.booking.after;
   assert.deepEqual(result.read.filter(task => priorIds.has(task.id)), result.before.filter(task => task.id !== result.deletedId));
@@ -102,6 +108,7 @@ const report = {
       idempotent: booking.idempotent, blocked: booking.blocked, stale: booking.stale,
       customerWindow: booking.moved.window, internalArrival: booking.moved.arrivalAt,
       completedOccupies: booking.available[0].occupied === 1, cancelledReleases: booking.available[1].available,
+      zones: booking.zoneProof,
     },
   })),
   sidecar: { runtime: process.version, abi: process.versions.modules, firstMs: first.elapsedMs,

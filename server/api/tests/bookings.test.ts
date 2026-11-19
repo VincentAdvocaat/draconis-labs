@@ -147,6 +147,18 @@ it('uses the same raw validation, envelopes and durable results over HTTP and lo
     const appointment = await http.appointments.create({ contactId: contact.id, slotId: slot.slot.id }, randomUUID());
     expect(await local.appointments.list('2026-11-20')).toEqual([appointment]);
     expect(await http.contacts.card(contact.id)).toEqual(await local.contacts.card(contact.id));
+    expect(await http.zones.list()).toEqual(await local.zones.list());
+    expect(await http.zones.resolve('0002 aa')).toEqual(await local.zones.resolve('0002 aa'));
+    await expect(http.zones.resolve('9999 ZZ')).rejects.toMatchObject(code('UNKNOWN_POSTCODE'));
+    const [north] = await http.availability('2026-11-20','north');
+    expect(north.slot.zoneId).toBe('north');
+    const changed = await http.slots.capacity(north.slot.id,{version:1,capacity:2},randomUUID());
+    expect(changed).toMatchObject({capacity:2,version:2});
+    const northVisit = await http.appointments.create({contactId:contact.id,slotId:north.slot.id},randomUUID());
+    expect(await http.appointments.list('2026-11-20','north')).toEqual([northVisit]);
+    expect(await http.appointments.list('2026-11-20')).toEqual([appointment]);
+    const northZone=(await http.zones.list()).find(zone=>zone.id==='north')!;
+    expect(await http.zones.capacity('north',{version:northZone.version,defaultCapacity:3},randomUUID())).toMatchObject({defaultCapacity:3});
     for (const command of [
       { type: 'contacts.create', workspaceId: 'local', key: randomUUID(), input: { name: 123 } },
       { type: 'availability.list', workspaceId: 'local', date: '2026-02-30' },

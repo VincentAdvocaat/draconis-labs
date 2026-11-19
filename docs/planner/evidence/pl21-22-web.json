@@ -1,0 +1,250 @@
+{
+  "measuredAt": "2026-11-19T19:44:15.457114+00:00",
+  "scope": "Own synthetic local Chrome/HTTP demo; no real user database",
+  "uiActions": [
+    "Create fictitious contact",
+    "Choose north/date",
+    "Set morning capacity2",
+    "Book two morning visits with 09:15 and 10:15",
+    "See full2/2",
+    "Reduce to1: visible capacity-below-occupancy conflict",
+    "Move first visit through actual form to east with09:45",
+    "Block only east afternoon; north afternoon remains available",
+    "Set east default3; existing slots remain1 and new date slots become3",
+    "Reload and verify north1/2 and remaining visit"
+  ],
+  "paths": {
+    "zones": "/zones",
+    "north": "/availability?date=2026-11-20&zoneId=north",
+    "east": "/availability?date=2026-11-20&zoneId=east",
+    "eastNewDate": "/availability?date=2026-11-21&zoneId=east",
+    "northVisits": "/appointments?date=2026-11-20&zoneId=north",
+    "eastVisits": "/appointments?date=2026-11-20&zoneId=east"
+  },
+  "serverState": {
+    "zones": [
+      {
+        "id": "east",
+        "workspaceId": "local",
+        "name": "Oost (fictief)",
+        "defaultCapacity": 3,
+        "version": 2
+      },
+      {
+        "id": "north",
+        "workspaceId": "local",
+        "name": "Noord (fictief)",
+        "defaultCapacity": 1,
+        "version": 1
+      },
+      {
+        "id": "south",
+        "workspaceId": "local",
+        "name": "Zuid (fictief)",
+        "defaultCapacity": 1,
+        "version": 1
+      },
+      {
+        "id": "standard",
+        "workspaceId": "local",
+        "name": "Standaardgebied",
+        "defaultCapacity": 1,
+        "version": 1
+      },
+      {
+        "id": "west",
+        "workspaceId": "local",
+        "name": "West (fictief)",
+        "defaultCapacity": 1,
+        "version": 1
+      }
+    ],
+    "north": [
+      {
+        "slot": {
+          "date": "2026-11-20",
+          "daypartId": "morning",
+          "label": "Ochtend",
+          "startTime": "08:00",
+          "endTime": "12:00",
+          "timezone": "Europe/Amsterdam",
+          "startAt": "2026-11-20T07:00:00Z",
+          "endAt": "2026-11-20T11:00:00Z",
+          "id": "ba5c039e-63f8-43bf-aa2c-85121605c6ee",
+          "workspaceId": "local",
+          "zoneId": "north",
+          "capacity": 2,
+          "version": 2
+        },
+        "occupied": 1,
+        "block": null,
+        "available": true
+      },
+      {
+        "slot": {
+          "date": "2026-11-20",
+          "daypartId": "afternoon",
+          "label": "Middag",
+          "startTime": "13:00",
+          "endTime": "17:00",
+          "timezone": "Europe/Amsterdam",
+          "startAt": "2026-11-20T12:00:00Z",
+          "endAt": "2026-11-20T16:00:00Z",
+          "id": "4ab65437-da43-471e-a04c-a93bc167c130",
+          "workspaceId": "local",
+          "zoneId": "north",
+          "capacity": 1,
+          "version": 1
+        },
+        "occupied": 0,
+        "block": null,
+        "available": true
+      }
+    ],
+    "east": [
+      {
+        "slot": {
+          "date": "2026-11-20",
+          "daypartId": "morning",
+          "label": "Ochtend",
+          "startTime": "08:00",
+          "endTime": "12:00",
+          "timezone": "Europe/Amsterdam",
+          "startAt": "2026-11-20T07:00:00Z",
+          "endAt": "2026-11-20T11:00:00Z",
+          "id": "94899373-5069-421f-9788-0afe09297e1b",
+          "workspaceId": "local",
+          "zoneId": "east",
+          "capacity": 1,
+          "version": 1
+        },
+        "occupied": 1,
+        "block": null,
+        "available": false
+      },
+      {
+        "slot": {
+          "date": "2026-11-20",
+          "daypartId": "afternoon",
+          "label": "Middag",
+          "startTime": "13:00",
+          "endTime": "17:00",
+          "timezone": "Europe/Amsterdam",
+          "startAt": "2026-11-20T12:00:00Z",
+          "endAt": "2026-11-20T16:00:00Z",
+          "id": "5e0689f7-30da-49ca-a1fb-1fbfb76028da",
+          "workspaceId": "local",
+          "zoneId": "east",
+          "capacity": 1,
+          "version": 1
+        },
+        "occupied": 0,
+        "block": {
+          "id": "96575823-2419-416f-989e-65314d9cddda",
+          "workspaceId": "local",
+          "slotId": "5e0689f7-30da-49ca-a1fb-1fbfb76028da",
+          "reason": "Alleen Oost: fictief onderhoud",
+          "actor": "user",
+          "createdAt": "2026-11-19T19:40:27.175Z"
+        },
+        "available": false
+      }
+    ],
+    "eastNewDate": [
+      {
+        "slot": {
+          "date": "2026-11-21",
+          "daypartId": "morning",
+          "label": "Ochtend",
+          "startTime": "08:00",
+          "endTime": "12:00",
+          "timezone": "Europe/Amsterdam",
+          "startAt": "2026-11-21T07:00:00Z",
+          "endAt": "2026-11-21T11:00:00Z",
+          "id": "b9bf8b28-89b2-41d3-b065-8d588e42c36e",
+          "workspaceId": "local",
+          "zoneId": "east",
+          "capacity": 3,
+          "version": 1
+        },
+        "occupied": 0,
+        "block": null,
+        "available": true
+      },
+      {
+        "slot": {
+          "date": "2026-11-21",
+          "daypartId": "afternoon",
+          "label": "Middag",
+          "startTime": "13:00",
+          "endTime": "17:00",
+          "timezone": "Europe/Amsterdam",
+          "startAt": "2026-11-21T12:00:00Z",
+          "endAt": "2026-11-21T16:00:00Z",
+          "id": "25b59d6c-a120-41ba-b9a8-d04edb0772cb",
+          "workspaceId": "local",
+          "zoneId": "east",
+          "capacity": 3,
+          "version": 1
+        },
+        "occupied": 0,
+        "block": null,
+        "available": true
+      }
+    ],
+    "northVisits": [
+      {
+        "id": "fc54da9c-85b4-4a4b-a741-e915b26f773a",
+        "workspaceId": "local",
+        "createdAt": "2026-11-19T19:39:48.326Z",
+        "updatedAt": "2026-11-19T19:39:48.326Z",
+        "contactId": "53553679-bc18-4317-8d5c-33ce93e4a9f8",
+        "slotId": "ba5c039e-63f8-43bf-aa2c-85121605c6ee",
+        "zoneId": "north",
+        "zoneName": "Noord (fictief)",
+        "status": "planned",
+        "source": "manual",
+        "version": 1,
+        "window": {
+          "date": "2026-11-20",
+          "daypartId": "morning",
+          "label": "Ochtend",
+          "startTime": "08:00",
+          "endTime": "12:00",
+          "timezone": "Europe/Amsterdam",
+          "startAt": "2026-11-20T07:00:00Z",
+          "endAt": "2026-11-20T11:00:00Z"
+        },
+        "arrivalAt": "2026-11-20T09:15:00.000Z"
+      }
+    ],
+    "eastVisits": [
+      {
+        "id": "4a62f429-3a7c-420b-9521-8f77ddd65821",
+        "workspaceId": "local",
+        "createdAt": "2026-11-19T19:39:43.911Z",
+        "updatedAt": "2026-11-19T19:40:09.400Z",
+        "contactId": "53553679-bc18-4317-8d5c-33ce93e4a9f8",
+        "slotId": "94899373-5069-421f-9788-0afe09297e1b",
+        "zoneId": "east",
+        "zoneName": "Oost (fictief)",
+        "status": "planned",
+        "source": "manual",
+        "version": 2,
+        "window": {
+          "date": "2026-11-20",
+          "daypartId": "morning",
+          "label": "Ochtend",
+          "startTime": "08:00",
+          "endTime": "12:00",
+          "timezone": "Europe/Amsterdam",
+          "startAt": "2026-11-20T07:00:00Z",
+          "endAt": "2026-11-20T11:00:00Z"
+        },
+        "arrivalAt": "2026-11-20T08:45:00.000Z"
+      }
+    ]
+  },
+  "serverStateSha256": "1b2261bc44b7a31e05beeae03a25db4636fc60e421e5fc045db93b75e8c1904b",
+  "compiledApiRestart": "passed: identical REST state hash after restarting node --import tsx dist/index.js"
+}

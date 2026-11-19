@@ -19,7 +19,7 @@ describe('numbered Planner SQLite migrations', () => {
       db.exec('DROP TABLE idx_tasks_due_date');
       initializePlannerSqlite(db);
       const versions = db.prepare('SELECT * FROM planner_schema_migrations').all();
-      expect(versions).toMatchObject([{ version: 1 }, { version: 2 }]);
+      expect(versions).toMatchObject([{ version: 1 }, { version: 2 }, { version: 3 }]);
       initializePlannerSqlite(db);
       expect(db.prepare('SELECT * FROM planner_schema_migrations').all()).toEqual(versions);
       for (const [index, row] of tasks.entries()) {

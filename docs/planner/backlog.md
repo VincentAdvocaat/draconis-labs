@@ -65,6 +65,11 @@ taakmutaties; PostgreSQL/import/herstel blijven open. Dit wijzigt geen Azure Boa
 
 ## Fase 2 · Zones en grotere capaciteit
 
+De [lokale PL-21/22-stap](pl21-22-zones-capaciteit.md) voegt vijf fictieve
+gebieden, expliciete demo-postcodes, standaardcapaciteit en slotuitzonderingen
+toe. Bestaande afspraken blijven behouden in de standaardzone. Dit wijzigt
+geen Azure Boards-status of eerdere open cloud-/releasevoorwaarden.
+
 | Story | Prioriteit · vereist | Uitvoering en acceptatie |
 | --- | --- | --- |
 | PL-21 · Werkgebieden | P1 · PL-18 | Voeg vijf fictieve zones en postcode-toewijzing toe als demo. Modelleer het oude impliciete werkgebied als blijvende standaardzone en migreer bestaande slots daarop. **Gereed als** een onbekende of dubbel geconfigureerde postcode een duidelijke uitkomst heeft en bestaande afspraken hun tijdvak en relatie behouden. |
