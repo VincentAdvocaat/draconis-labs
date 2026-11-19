@@ -3,6 +3,18 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, rmdirSync, unlinkSync, 
 import { join } from 'node:path';
 
 const owners = new Map<string, { count: number; token: string }>();
+const gates = new Set<string>();
+
+/** Shared by all supported handles in this process, before any nested SQLite savepoint. */
+export function withCatalogConsumerGate<T>(root: string, action: () => T): T {
+  if (gates.has(root)) throw new Error('Nested catalog consumer mutations are forbidden during an activation gate');
+  gates.add(root);
+  try { return action(); } finally { gates.delete(root); }
+}
+
+export function assertOutsideCatalogConsumerGate(root: string) {
+  if (gates.has(root)) throw new Error('Nested catalog consumer mutations are forbidden during an activation gate');
+}
 
 /** One owning consumer process per checked fixture root. Never searches or kills processes. */
 export function ownCatalogConsumer(root: string): () => void {

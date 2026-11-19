@@ -9,7 +9,7 @@ import { assertFixtureRoot } from '../media-fixture/safety.js';
 import { checksum, MediaFixtureStore } from '../media-fixture/storage.js';
 import { MediaRightsService } from '../media-upload/rights.js';
 import { CatalogService } from './service.js';
-import { ownCatalogConsumer } from './consumer-owner.js';
+import { assertOutsideCatalogConsumerGate, ownCatalogConsumer, withCatalogConsumerGate } from './consumer-owner.js';
 import type { CatalogSnapshot } from './contracts.js';
 
 const label = z.string().trim().min(1).max(200);
@@ -125,6 +125,7 @@ export class CatalogSnapshotConsumer {
     }
   }
   preparePin(website: string, input: CatalogConsumerRequest) {
+    assertOutsideCatalogConsumerGate(this.root);
     this.authorize(website);
     const request = catalogConsumerRequestSchema.parse(input);
     if (request.ref.websiteId !== website) throw new MediaContractError(404, 'Catalog reference belongs to another website');
@@ -135,6 +136,8 @@ export class CatalogSnapshotConsumer {
         if (existing.request !== JSON.stringify(request)) throw new MediaContractError(409, 'Immutable consumer owner already pins another request');
         const pin = this.pin(existing); this.validate(website, pin); return pin;
       }
+      if (request.owner.kind === 'release' && this.attemptPins(website, request.owner).some(pin => pin.state === 'activated'))
+        throw new MediaContractError(409, 'Finalized consumer attempt cannot add another slot');
       const snapshot = this.catalog.resolveSnapshot(request.ref);
       this.assertSnapshot(snapshot, request);
       const pin: CatalogConsumerPin = { ...request, pinId: randomUUID(), state: 'prepared', version: 1,
@@ -164,12 +167,19 @@ export class CatalogSnapshotConsumer {
     if (pins.some(pin => pin.owner.kind !== 'release' || !pin.owner.attemptId || pin.owner.module !== first.module ||
       pin.owner.siteId !== first.siteId || pin.owner.attemptId !== first.attemptId))
       throw new MediaContractError(409, 'One finalization gate requires release pins from the same consumer site/attempt');
+    const full = this.attemptPins(website, first);
+    if (full.length !== pins.length || full.some(pin => !ids.includes(pin.pinId)))
+      throw new MediaContractError(409, 'Finalization requires the complete consumer attempt pin set');
     return pins;
+  }
+  private attemptPins(website: string, owner: CatalogConsumerOwner) {
+    return this.listPins(website, { module: owner.module, attemptId: owner.attemptId })
+      .filter(pin => pin.owner.kind === 'release' && pin.owner.siteId === owner.siteId && pin.owner.attemptId === owner.attemptId);
   }
   finalize(website: string, ids: string[], syncActivate: (pins: readonly CatalogConsumerPin[]) => CatalogActivationOutcome) {
     // Reject native async callbacks before they can start any side effects.
     if (syncActivate.constructor.name === 'AsyncFunction') throw new MediaContractError(400, 'Activation must be synchronous');
-    return this.db.transaction(() => {
+    return withCatalogConsumerGate(this.root, () => this.db.transaction(() => {
       const pins = this.batch(website, ids);
       for (const pin of pins) this.validate(website, pin);
       const activationId = pins[0].owner.attemptId!;
@@ -179,7 +189,7 @@ export class CatalogSnapshotConsumer {
       if (outcome.activationId !== activationId) throw new MediaContractError(409, 'Activation ID does not match prepared owner attempt');
       if (outcome.status === 'published') for (const pin of pins) this.recordActivation(pin, activationId, 'activated');
       return { ...outcome, pins: ids.map(id => this.getPin(website, id)) };
-    }).immediate();
+    }).immediate());
   }
   private recordActivation(pin: CatalogConsumerPin, activationId: string, action: string) {
     this.db.prepare("UPDATE catalog_consumer_pins SET state='activated',activation_id=?,version=version+1 WHERE id=? AND state='prepared'")
@@ -189,7 +199,7 @@ export class CatalogSnapshotConsumer {
   }
   reconcile(website: string, ids: string[], inspect: (owner: CatalogConsumerOwner) => CatalogActivationInspection) {
     if (inspect.constructor.name === 'AsyncFunction') throw new MediaContractError(400, 'Reconciliation lookup must be synchronous');
-    return this.db.transaction(() => {
+    return withCatalogConsumerGate(this.root, () => this.db.transaction(() => {
       const pins = this.batch(website, ids);
       const result = inspectionSchema.parse(synchronous(() => inspect(pins[0].owner)));
       if (result.status === 'published') {
@@ -198,6 +208,6 @@ export class CatalogSnapshotConsumer {
       }
       // Unknown or not-published never frees a pin or its media references.
       return { inspection: result.status, pins: ids.map(id => this.getPin(website, id)) };
-    }).immediate();
+    }).immediate());
   }
 }
