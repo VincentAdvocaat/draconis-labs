@@ -48,6 +48,31 @@ async function publish(test: Test, selected: string[] = []) {
   return test.running.app.inject({method: 'POST', url: base + '/releases', headers: {...headers, 'idempotency-key': randomUUID()}, payload});
 }
 describe('CMS manual page locales', () => {
+  it('upgrades and edits a previously published NL en.html without changing its legacy slug', async () => {
+    const test = await start();
+    // The reviewed pre-CMS22 create schema accepted this exact NL slug.
+    let doc = test.running.documents!.create('demo-cms', {title: 'Legacy en page', slug: 'en'}, 'Legacy fixture');
+    doc = test.running.documents!.save('demo-cms', doc.pageId, {expectedVersion: doc.version,
+      content: {...doc.content, blocks: [{...doc.content.blocks[0], type: 'text', heading: '', body: 'Legacy original text'}]}}, 'Legacy fixture');
+    expect((await publish(test)).statusCode).toBe(200);
+    const legacyRevision = doc.revisionId;
+    // Represent the old on-disk schema with no locale state; existing NL data/release stay intact.
+    test.running.repository.db.exec(`DROP TABLE cms_locale_heads; DROP TABLE cms_locale_revisions; DROP TABLE cms_locale_config;
+      DELETE FROM cms_migrations WHERE version=4`);
+    await test.reopen();
+    expect(test.running.documents!.get('demo-cms', doc.pageId).revisionId).toBe(legacyRevision);
+    expect((await test.running.app.inject('/sites/demo-cms/en.html')).body).toContain('Legacy original text');
+    const result = await test.running.app.inject({method: 'PUT', url: `${base}/documents/${doc.pageId}/draft`, headers,
+      payload: {expectedVersion: doc.version, content: {...doc.content, blocks: [{...doc.content.blocks[0], body: 'Updated legacy text'}]}}});
+    expect(result.statusCode).toBe(200);
+    expect((await publish(test)).statusCode).toBe(200);
+    expect((await test.running.app.inject('/sites/demo-cms/en.html')).body).toContain('Updated legacy text');
+    expect((await test.running.app.inject({method: 'POST', url: base + '/documents', headers, payload: {title: 'New en page', slug: 'en'}})).statusCode).toBe(400);
+    const other = await create(test, 'other-page');
+    expect((await test.running.app.inject({method: 'PUT', url: `${base}/documents/${other.pageId}/draft`, headers,
+      payload: {expectedVersion: other.version, content: {...other.content, slug: 'en'}}})).statusCode).toBe(400);
+  });
+
   it('keeps stable page/block identities, defaults to NL, explicitly publishes EN SEO/lang/navigation and reopens unchanged', async () => {
     const test = await start(); const doc = await create(test); const originalRevision = doc.revisionId;
     let draft = await get(test, doc.pageId);

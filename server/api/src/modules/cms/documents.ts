@@ -40,7 +40,12 @@ export const documentContentSchema = z.object({
     context.addIssue({ code: 'custom', message: 'Beeldgebruik moet bij het stabiele blok-ID horen' });
 });
 export const createDocumentSchema = z.object({ title: z.string().trim().min(1).max(200), slug: documentSlugSchema }).strict();
-export const saveDocumentSchema = z.object({ expectedVersion: z.number().int().positive(), content: documentContentSchema }).strict();
+// The earlier NL schema allowed /en.html. Retain this existing identity on save;
+// create and actual slug changes still apply the current reservation policy.
+const editableDocumentContentSchema = documentContentSchema.safeExtend({
+  slug: z.string().trim().toLowerCase().pipe(z.union([documentSlugSchema, z.literal('en')])),
+});
+export const saveDocumentSchema = z.object({ expectedVersion: z.number().int().positive(), content: editableDocumentContentSchema }).strict();
 export type DocumentContent = z.infer<typeof documentContentSchema>;
 export interface DocumentDto { pageId: string; revisionId: string; version: number; content: DocumentContent; published: boolean }
 export interface SnapshotPage { pageId: string; revisionId: string; version: number; file: string;
@@ -143,6 +148,7 @@ export class CmsDocuments {
     return this.repository.db.transaction(() => {
       const prior = this.get(websiteId, pageId);
       if (prior.version !== input.expectedVersion) throw new CmsError(409, 'Paginaconcept gewijzigd. Haal de nieuwste versie op.');
+      if (prior.content.slug !== input.content.slug) documentSlugSchema.parse(input.content.slug);
       this.assertSlug(websiteId, input.content.slug, pageId);
       this.assertPinnedSlug(websiteId, pageId, input.content.slug);
       const previousMedia = this.revision(websiteId, pageId, prior.revisionId).mediaRevisionId;
