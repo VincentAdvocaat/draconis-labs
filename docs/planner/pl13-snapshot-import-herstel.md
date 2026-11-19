@@ -24,6 +24,10 @@ Alleen de eigen tijdelijke kopie wordt naar zelfstandig rollback-journalformaat
 omgezet. Publicatie gebeurt exclusief vanuit een tijdelijke map op hetzelfde
 volume. Dit vereist een bestandssysteem dat harde links ondersteunt, zoals NTFS.
 Een bestaand doel of bestaande doelzijbestanden worden geweigerd.
+Backup en restore controleren bestandsformaat, SQLite-integriteit en hash;
+hun rapport bevat de hash en aanwezige tabelnamen. Zij eisen geen
+importgeschiktheid. Zo blijft een volledige backup mogelijk wanneer een normale
+taakverwijdering een historische herhaalouderverwijzing heeft achtergelaten.
 
 `dry-run` leest het snapshotbestand in een alleen-lezen geheugendatabase.
 De bron wordt niet gemigreerd of als schrijfbare SQLite-database geopend.
@@ -33,11 +37,13 @@ het **snapshotbestand**, migratieversies, aantallen, IDs, herhaalverwijzingen
 en afzonderlijke gegevenshashes voor taken en voorkeuren. Een hash van alleen
 een actieve hoofddatabase zou de WAL missen en wordt niet als bewijs gebruikt.
 
-De controle omvat SQLite-integriteit, herkende schema's/migraties, geldige
+De strengere dry-run-/importcontrole omvat SQLite-integriteit, herkende schema's/migraties, geldige
 taakvelden/JSON, bestaande herhaalouders zonder cycli en geldige voorkeuren.
 Oude kolommen krijgen alleen in het importmodel expliciete defaults: versie 1
 en lege plannings-/herhaalvelden. Labels, voorkeuren, bestaande versies, IDs,
 tijdstempels en herhaalverwijzingen worden behouden.
+Een ontbrekende herhaalouder verhindert alleen de gecontroleerde import;
+backup en herstel bewaren die bestaande gegevens zonder aanpassing.
 
 ## Importgrens
 

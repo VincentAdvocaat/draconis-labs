@@ -7,7 +7,8 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createPlannerSnapshotTools, initializePlannerSqlite } from '@draconis/planner-sqlite';
+import { createPlannerSnapshotTools, createSqlitePlannerStorage, initializePlannerSqlite } from '@draconis/planner-sqlite';
+import { createPlannerService } from '@draconis/planner-core';
 
 const desktopRequire = createRequire(new URL('../../../apps/desktop-probe/package.json', import.meta.url));
 const DesktopDatabase = desktopRequire('better-sqlite3') as typeof Database;
@@ -30,8 +31,9 @@ it('runs the explicit CLI backup/dry-run/import/resume/restore flow on an own fi
     expect(result.status, result.stderr).toBe(0);
     return JSON.parse(result.stdout);
   };
-  const report = run('backup', '--source', source, '--snapshot', snapshot);
-  expect(run('dry-run', '--snapshot', snapshot)).toEqual(report);
+  const fileReport = run('backup', '--source', source, '--snapshot', snapshot);
+  const report = run('dry-run', '--snapshot', snapshot);
+  expect(report.sha256).toBe(fileReport.sha256);
   const args = ['import', '--snapshot', snapshot, '--target', target, '--source-id', 'cli-demo', '--import-version', '1', '--sha256', report.sha256];
   expect(run(...args)).toMatchObject({ insertedTasks: 3, alreadyImported: false });
   const refused = spawnSync(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../scripts/planner-snapshots.ts', import.meta.url)), ...args], { encoding: 'utf8' });
@@ -39,7 +41,7 @@ it('runs the explicit CLI backup/dry-run/import/resume/restore flow on an own fi
   expect(run(...args, '--resume')).toMatchObject({ insertedTasks: 0, alreadyImported: true });
   run('restore', '--snapshot', snapshot, '--target', restored, '--sha256', report.sha256);
   expect(hash(restored)).toBe(report.sha256); expect(hash(source)).toBe(before);
-});
+}, 15000);
 
 describe.each([['API 12', Database], ['desktop 13', DesktopDatabase]] as const)('%s snapshot tools', (_, Constructor) => {
   function fixture(modern = true) {
@@ -52,9 +54,10 @@ describe.each([['API 12', Database], ['desktop 13', DesktopDatabase]] as const)(
     const { directory, source, tools } = fixture(modern);
     const before = hash(source);
     const snapshot = join(directory, 'backup.sqlite');
-    const backup = await tools.backup(source, snapshot);
+    const fileReport = await tools.backup(source, snapshot);
+    const backup = tools.dryRun(snapshot);
     expect(hash(source)).toBe(before);
-    expect(tools.dryRun(snapshot)).toEqual(backup);
+    expect(fileReport.sha256).toBe(backup.sha256);
     expect(backup).toMatchObject({ taskCount: 3, preferenceCount: 1, sha256: hash(snapshot), migrations: [] });
     expect(backup.taskIds).toContain(first);
     expect(backup.recurrenceLinks).toHaveLength(modern ? 1 : 0);
@@ -63,7 +66,8 @@ describe.each([['API 12', Database], ['desktop 13', DesktopDatabase]] as const)(
     try {
       const options = { snapshotPath: snapshot, target, sourceId: 'own-demo', importVersion: 1, expectedSha256: backup.sha256 };
       expect(tools.importSnapshot(options)).toMatchObject({ insertedTasks: 3, insertedPreferences: 1, alreadyImported: false });
-      const imported = await tools.backup(target.name, join(directory, 'import-backup.sqlite'));
+      await tools.backup(target.name, join(directory, 'import-backup.sqlite'));
+      const imported = tools.dryRun(join(directory, 'import-backup.sqlite'));
       expect(imported.taskDataSha256).toBe(backup.taskDataSha256);
       expect(imported.preferenceDataSha256).toBe(backup.preferenceDataSha256);
       expect(target.prepare('SELECT version, labels FROM tasks WHERE id=?').get(first)).toEqual({ version: modern ? 7 : 1, labels: '["demo","onderhoud"]' });
@@ -88,6 +92,28 @@ describe.each([['API 12', Database], ['desktop 13', DesktopDatabase]] as const)(
       try { expect(copied.prepare('SELECT title FROM tasks WHERE id=?').get(first)).toEqual({ title: 'Committed in WAL' }); }
       finally { copied.close(); }
     } finally { writer.close(); }
+  });
+
+  it('preserves a historical missing recurrence parent in full backup and restore', async () => {
+    const { directory, source, tools } = fixture();
+    const db = new Constructor(source); initializePlannerSqlite(db);
+    let sequence = 10;
+    const service = createPlannerService(createSqlitePlannerStorage(db), {
+      id: () => `00000000-0000-4000-8000-${String(++sequence).padStart(12, '0')}`,
+      now: () => '2026-11-19T10:00:00.000Z',
+    });
+    const parent = service.create({ title: 'Own recurrence', plannedDate: '2026-11-19', recurrence: { frequency: 'daily', interval: 1 } }, { name: 'demo' });
+    service.update(parent.id, { lane: 'done', version: 1 }); service.remove(parent.id);
+    const rows = db.prepare('SELECT * FROM tasks ORDER BY id').all(); db.close();
+    const snapshot = join(directory, 'historical.sqlite'), restored = join(directory, 'historical-restored.sqlite');
+    const before = hash(source), report = await tools.backup(source, snapshot);
+    expect(hash(source)).toBe(before);
+    expect(() => tools.dryRun(snapshot)).toThrow(expect.objectContaining({ code: 'INVALID_RELATION' }));
+    tools.restore(snapshot, restored, report.sha256);
+    expect(hash(restored)).toBe(report.sha256);
+    const copy = new Constructor(restored, { readonly: true });
+    try { expect(copy.prepare('SELECT * FROM tasks ORDER BY id').all()).toEqual(rows); }
+    finally { copy.close(); }
   });
 
   it('rolls back every imported row and marker, then permits repair and retry', async () => {

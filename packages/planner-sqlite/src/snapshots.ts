@@ -7,7 +7,7 @@ import { IMPORT_VERSION, PlannerSnapshotError, canonical, dataHash, preferenceCo
 
 export { IMPORT_VERSION, PlannerSnapshotError } from './snapshot-data.js';
 export function createPlannerSnapshotTools(DatabaseClass: typeof Database) {
-  function inspect(path: string) {
+  function readSnapshot<T>(path: string, read: (db: Database.Database, sha256: string) => T) {
     if (['-wal', '-journal'].some(suffix => existsSync(path + suffix) && statSync(path + suffix).size > 0)) throw new PlannerSnapshotError('SNAPSHOT_REQUIRED', 'Maak eerst een consistente backup van de actieve WAL-database.');
     const bytes = readFileSync(path);
     if (bytes.subarray(0, 16).toString('ascii') !== 'SQLite format 3\0') throw new PlannerSnapshotError('INVALID_SOURCE', 'Dit bestand is geen SQLite-database.');
@@ -17,6 +17,17 @@ export function createPlannerSnapshotTools(DatabaseClass: typeof Database) {
     try {
       db = new DatabaseClass(bytes, { readonly: true });
       if (db.pragma('integrity_check', { simple: true }) !== 'ok') throw new PlannerSnapshotError('INVALID_SOURCE', 'SQLite-integriteitscontrole faalt.');
+      return read(db, sha256);
+    } catch (error) {
+      if (error instanceof PlannerSnapshotError) throw error;
+      throw new PlannerSnapshotError('INVALID_SOURCE', 'De SQLite-snapshot kan niet worden gelezen.');
+    } finally { db?.close(); }
+  }
+  const fileReport = (path: string) => readSnapshot(path, (db, sha256) => ({ sha256,
+    tables: (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT GLOB 'sqlite_*' ORDER BY name").all() as { name: string }[]).map(row => row.name),
+  }));
+  function inspect(path: string) {
+    return readSnapshot(path, (db, sha256) => {
       if ((db.pragma('foreign_key_check') as unknown[]).length) throw new PlannerSnapshotError('INVALID_RELATION', 'De snapshot bevat ongeldige databaseverwijzingen.');
       const data = readPlannerData(db);
       return { ...data, report: { importVersion: IMPORT_VERSION, sha256, migrations: data.migrations,
@@ -25,10 +36,7 @@ export function createPlannerSnapshotTools(DatabaseClass: typeof Database) {
         recurrenceLinks: data.tasks.filter(row => row.recurrence_parent_id !== null).map(row => ({ id: row.id, parentId: row.recurrence_parent_id })),
         taskDataSha256: dataHash(data.tasks), preferenceDataSha256: dataHash(data.preferences),
       } };
-    } catch (error) {
-      if (error instanceof PlannerSnapshotError) throw error;
-      throw new PlannerSnapshotError('INVALID_SOURCE', 'De SQLite-snapshot kan niet worden gelezen.');
-    } finally { db?.close(); }
+    });
   }
   function destination(path: string) {
     if ([path, `${path}-wal`, `${path}-shm`, `${path}-journal`].some(existsSync)) throw new PlannerSnapshotError('DESTINATION_EXISTS', 'Kies een nieuw, ongebruikt doelbestand.');
@@ -61,7 +69,7 @@ export function createPlannerSnapshotTools(DatabaseClass: typeof Database) {
         const stable = new DatabaseClass(staging.file);
         try { stable.pragma('wal_checkpoint(TRUNCATE)'); stable.pragma('journal_mode = DELETE'); }
         finally { stable.close(); }
-        const report = inspect(staging.file).report;
+        const report = fileReport(staging.file);
         publish(staging.file, snapshotPath);
         return report;
       } finally { source?.close(); staging.close(); }
@@ -106,11 +114,11 @@ export function createPlannerSnapshotTools(DatabaseClass: typeof Database) {
     },
     restore(snapshotPath: string, targetPath: string, expectedSha256: string) {
       destination(targetPath);
-      expected(inspect(snapshotPath).report.sha256, expectedSha256);
+      expected(fileReport(snapshotPath).sha256, expectedSha256);
       const staging = stage(targetPath);
       try {
         copyFileSync(snapshotPath, staging.file);
-        const report = inspect(staging.file).report; expected(report.sha256, expectedSha256);
+        const report = fileReport(staging.file); expected(report.sha256, expectedSha256);
         publish(staging.file, targetPath);
         return report;
       } finally { staging.close(); }
