@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { newTask } from '@draconis/planner-core';
 import type { CreateTaskInput, Lane, Task, UpdateTaskInput } from '@draconis/shared';
 import type { PlannerListQuery } from './query.js';
 import type { Actor } from '../../core/auth.js';
@@ -27,25 +28,13 @@ export const plannerService = {
 
   create(input: CreateTaskInput, actor: Actor): Task {
     const now = new Date().toISOString();
+    const task = newTask(input, {
+      id: randomUUID(), now, actorName: actor.name,
+      maxTodoPosition: plannerRepository.maxTodoPosition(),
+    });
     const row: TaskRow = {
-      id: randomUUID(),
-      title: input.title,
-      description: input.description ?? null,
-      lane: 'todo',
-      plannedDate: input.plannedDate ?? input.dueDate ?? null,
-      dueDate: input.dueDate ?? input.plannedDate ?? null,
-      dueTime: input.dueTime ?? null,
-      timezone: input.timezone ?? null,
-      recurrence: serializeRecurrence(input.recurrence) ?? null,
-      recurrenceParentId: null,
-      position: plannerRepository.maxTodoPosition() + 1000,
-      version: 1,
-      createdBy: actor.name,
-      priority: input.priority ?? 'normal',
-      labels: JSON.stringify(input.labels ?? []),
-      createdAt: now,
-      updatedAt: now,
-      completedAt: null,
+      ...task, labels: JSON.stringify(task.labels),
+      recurrence: serializeRecurrence(task.recurrence) ?? null,
     };
 
     plannerRepository.insert(row);

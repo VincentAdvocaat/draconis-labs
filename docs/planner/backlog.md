@@ -20,6 +20,13 @@ Prioriteit **P0** is vereist voor de eerste verticale oplevering. **P1** volgt n
 
 ## Fase 0 · Bewijs en beslissingen
 
+Uitvoering op 19 november 2026: de [PL-01-baseline](baseline.md) legt twee
+fictieve schemafixtures, 22 tests en de resterende UI-controle vast. De
+[Windows-ADR](adr-001-windows-runtime.md) bevat de uitvoerbare Electron-proef,
+meetresultaten en harde grenzen. PL-02 blijft voorlopig zolang de schone-VM-
+vergelijking, installatie-/upgradetest en identity-/signingcontroles ontbreken.
+Dit wijzigt geen Azure Boards-status.
+
 | Story | Prioriteit · vereist | Uitvoering en acceptatie |
 | --- | --- | --- |
 | PL-01 · Taakbaseline | P0 · start | Zet fictieve SQLite-fixtures op voor het oude en actuele taakschema. Leg veldwaarden, API-responses inclusief legacy-headers, recurrence, zichtbare sortering en acceptatiescenario's vast. **Gereed als** de huidige v1-suite én de genoteerde taakscenario's op de gekozen baseline reproduceerbaar zijn. |

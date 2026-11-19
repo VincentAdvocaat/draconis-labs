@@ -20,7 +20,8 @@
     "better-sqlite3": "^12.11.1",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.10.0",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@draconis/planner-core": "workspace:*"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
