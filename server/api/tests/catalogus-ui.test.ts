@@ -18,6 +18,7 @@ class Element {
   append(child: Element) { this.children.push(child); if (this.children.length === 1) this.value = child.value; }
   add(child: Element) { this.append(child); }
   replaceChildren(...children: Element[]) { this.children = children; this.value = children[0]?.value ?? ''; }
+  focus() {}
 }
 
 function browserHarness() {
@@ -27,6 +28,8 @@ function browserHarness() {
     return elements.get(id)!;
   };
   el('site').value = 'fixture-alpha';
+  el('categoryEnMissing').checked = true;
+  const categories = [{ categoryId: 'algemeen', version: 1, archived: false, labels: { nl: 'Algemeen', en: 'General' as string | null } }];
   let stored = { itemId: 'item-1', version: 1, title: 'Oude titel', slug: 'oud', description: 'Oud',
     metadata: { year: 2025 }, media: { assetId: 'photo', fileVersion: 1, altText: { nl: 'Oud alt' }, decorative: false } };
   const assets = [{ assetId: 'photo', fileVersion: 1, metadataVersion: 1, rights: 'cleared', state: 'ready' },
@@ -39,6 +42,19 @@ function browserHarness() {
   const response = (json: unknown, ok = true) => ({ ok, json: async () => JSON.parse(JSON.stringify(json)) });
   const context = vm.createContext({ document: { getElementById: el, createElement: () => new Element(), querySelectorAll: () => [...elements.values()] }, Option: Element,
     fetch: async (path: string, options: { method?: string; body?: string } = {}) => {
+      if (path.includes('/categories')) {
+        if (options.method === 'POST' || options.method === 'PUT') {
+          const body = JSON.parse(options.body!) as { expectedVersion: number; labels: { nl: string; en: string | null } };
+          sent.push(body);
+          const id = path.split('/categories/')[1];
+          const old = categories.find(category => category.categoryId === id);
+          if (id && old?.version !== body.expectedVersion) return response({ message: 'Category version conflict' }, false);
+          if (old) { old.labels = body.labels; old.version++; return response(old); }
+          const created = { categoryId: 'new-category', version: 1, archived: false, labels: body.labels };
+          categories.push(created); return response(created);
+        }
+        return response(categories);
+      }
       if (path.includes('/locales/en')) {
         if (options.method === 'PUT') {
           const body = JSON.parse(options.body!) as typeof english & { expectedVersion: number };
@@ -77,11 +93,12 @@ function browserHarness() {
         stored = { ...body, version: stored.version + 1 };
         return response(stored);
       }
-      return response({ items: [stored], version: stored.version });
+      return response({ items: [stored], version: stored.version, categories });
     },
   });
   vm.runInContext(adminHtml.match(/<script>([\s\S]*?)<\/script>/)![1], context);
   return { el, sent, context, get stored() { return stored; },
+    externalCategoryUpdate() { categories[0].version++; },
     externalUpdate() { stored = { ...stored, version: 2, title: 'Nieuwe titel', slug: 'nieuw', description: 'Nieuw',
       metadata: { year: 2026 }, media: { ...stored.media, fileVersion: 2, altText: { nl: 'Nieuw alt' }, decorative: true } }; },
     async selectVersionOne() { await el('load').onclick!(); el('items').value = 'item-1'; el('items').onchange!(); },
@@ -251,5 +268,40 @@ describe('actual admin script optimistic form binding', () => {
     await browser.el('saveLocale').onclick!();
     expect(browser.sent).toEqual([]);
     expect(browser.el('message').textContent).toContain('Laad eerst de EN-variant');
+  });
+});
+
+describe('category editor preserves item and category drafts', () => {
+  it('creates a category without replacing pending NL/EN item values or advancing the visible item version', async () => {
+    const browser = browserHarness(); await browser.selectVersionOne(); await browser.el('loadLocale').onclick!();
+    browser.el('title').value = 'Unsaved NL'; browser.el('enTitle').value = 'Unsaved EN';
+    const asset = browser.el('asset').value;
+    browser.el('categoryNl').value = 'Projecten'; browser.el('categoryEn').value = 'Projects'; browser.el('categoryEnMissing').checked = false;
+    await browser.el('saveCategory').onclick!();
+    expect(browser.el('title').value).toBe('Unsaved NL'); expect(browser.el('enTitle').value).toBe('Unsaved EN');
+    expect(browser.el('asset').value).toBe(asset); expect(browser.el('category').value).toBe('algemeen');
+    expect(browser.el('message').textContent).toContain('Het open item is behouden');
+    await browser.el('save').onclick!();
+    expect(browser.sent.at(-1)?.expectedVersion).toBe(1);
+    expect(browser.el('categories').value).toBe('new-category');
+  });
+
+  it('guards unsaved category navigation and mutations and allows explicit cancel', async () => {
+    const browser = browserHarness(); await browser.selectVersionOne();
+    browser.el('categories').value = 'algemeen'; browser.el('categories').onchange!();
+    browser.el('categoryNl').value = 'Pending rename'; browser.el('categories').value = ''; browser.el('categories').onchange!();
+    expect(browser.el('categories').value).toBe('algemeen'); expect(browser.el('categoryNl').value).toBe('Pending rename');
+    await browser.el('archiveCategory').onclick!(); expect(browser.sent).toEqual([]);
+    expect(browser.el('message').textContent).toContain('eerst op of annuleer');
+    await browser.el('cancelCategory').onclick!(); expect(browser.el('categoryNl').value).toBe('Algemeen');
+    browser.el('categories').value = ''; browser.el('categories').onchange!(); expect(browser.el('categoryNl').value).toBe('');
+  });
+
+  it('keeps category drafts on a verified stale-version rejection', async () => {
+    const browser = browserHarness(); await browser.selectVersionOne();
+    browser.el('categories').value = 'algemeen'; browser.el('categories').onchange!(); browser.el('categoryNl').value = 'Pending rename';
+    browser.externalCategoryUpdate(); await browser.el('saveCategory').onclick!();
+    expect(browser.sent[0]).toMatchObject({ expectedVersion: 1 });
+    expect(browser.el('categoryNl').value).toBe('Pending rename'); expect(browser.el('message').textContent).toContain('version conflict');
   });
 });

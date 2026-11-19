@@ -10,7 +10,7 @@ Gebouwd betekent dat code en lokale controles bestaan. Geïntegreerd betekent da
 | M0 media-contract | Twee fictieve websites, assetId/fileVersion, referentieretentie, CAS-conflicten en manifestresolver, PR 8; catalogus en geïntegreerde CMS-consumer gebruiken dezelfde M0-service | Productie-identiteit en fysieke assetpurge buiten volledige fixturecleanup |
 | M1 upload/processor | Echte loopback-HTTP-upload, JPEG/PNG/WebP-validatie, kleine bronnen, schone varianten, jobherstel/retry, PR 11 | Batch-UI, client-idempotency, algemene opslagdienst en productie-operatie |
 | M2 bibliotheek/rechten | Uploadstatus, expliciete versieselectie, schone private preview en rechtenaudit. Nu ook asset-ID zoeken, rechten/nieuwste-statusfilters, serverpaginering en detail met alle versies/historisch retained gebruik, zie [bibliotheekproef](media-library.md) | Nieuwe bestandsversies beheren via UI; bredere toetsenbordacceptatie buiten deze lijst/detailflow; tags, expiry/credits en echte medewerkeridentiteit |
-| M3 catalogus | Items opslaan/bewerken/archiveren, vaste collectie portfolio/categorie algemeen, getypeerd jaar, slugconstraint/CAS, immutable revisies en snapshots, PR 14 | Collectie-/categorie-editor, categorie-in-gebruikweigering, configureerbaar metadata-schema en redactionele volgorde met herstartacceptatie |
+| M3 catalogus | Items, getypeerd jaar, slug/CAS en immutable snapshots; nu ook vlakke websitecategorieën met NL/EN-namen, CAS, archief, in-gebruikweigering en gepinde namen, zie [categorieën](categories.md) | Meer collecties, configureerbaar metadata-schema en redactionele volgorde met herstartacceptatie; volgorde volgt in een aparte kleine stap |
 | M4 portfolio | Raster, itemdetail en lege staat boven dezelfde gepinde media, alt/decorative, behoud na wijziging/archief; mobiele browserproef | Geordende selectie/reorder, coverkeuze, filter, meerdere beelden, zichtbare credits en gerichte toetsenbord-/focusherstelacceptatie; responsieve bronkeuze/lightbox wanneer nodig |
 | Publicatiebeheer | Normale CLI-start, snapshotlijst, expliciete CAS-intrekking, audit en 404 voor bekende pagina/detail/beeld, PR 16; CMS consumeert nu CatalogRef | Eigen expliciete intrekking van gekopieerde CMS-releases; bronintrekking wist geen kopieën |
 | Talen | Gedeeld contract, handmatige NL/EN-itemvelden en gepinde taalcontext; CMS heeft inmiddels ook NL/EN-blokkop/lege staat, paginavarianten, navigatie, EN-afbeelding/portfolio en Home-EN in PR 37 | Categorie-naam en overige labels van de zelfstandige portfoliorenderer bevatten nog NL-tekst; geen volledige vertaling van iedere losse renderer geclaimd |
@@ -74,9 +74,9 @@ De volgende criteria vormden de kleine CMS-adapteropdracht en zijn nu verbonden 
 
 Pas daarna zijn bredere bibliotheek- of portfoliobedieningen zinvol. Echte klantmigratie, merge en deployment blijven afzonderlijke opdrachten. De huidige fixtures en screenshots bevatten alleen synthetisch testmateriaal.
 
-## Huidige kleine vervolgstap: bibliotheek
+## Huidige kleine vervolgstappen
 
-De gezamenlijke review is afgerond. De geautoriseerde vervolgstap is de bestaande assets bruikbaar doorzoeken, filteren en pagineren, met versie-/gebruiksdetail. De [bibliotheekproef](media-library.md) beschrijft de nieuwe read-only API, live-offsetsemantiek en browser-/herstartacceptatie. Geen batch, lightbox, extra CMS-bibliotheek, migratie of productie-uitrol. Andere open fasecriteria blijven afzonderlijk te plannen.
+De gezamenlijke integratiereview is afgerond. De [bibliotheekproef](media-library.md) is onafhankelijk gereviewd in PR 38 op `c0c7c65fd080f4b9e7cd06142ab1cbb381b6c7df`, met 315 API-tests groen. De nieuwe [categorie-editor](categories.md) bouwt daarop. Daarna volgt uitsluitend de al geautoriseerde redactionele itemvolgorde met collectie-CAS, exacte actieve ID-set, behoud van oude snapshotvolgorde en migratie van de bestaande slugsortering. Geen batch, lightbox, multi-image, extra CMS-bibliotheek, klantmigratie of productie-uitrol. Andere open fasecriteria blijven afzonderlijk te plannen.
 
 ## Verificatielimieten
 

@@ -8,7 +8,7 @@ export const itemInputSchema = z.object({
   slug: z.string().min(1).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   title: z.string().trim().min(1).max(200),
   description: z.string().max(5000),
-  categoryId: z.literal('algemeen'),
+  categoryId: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/),
   metadata: z.object({ year: z.number().int().min(1900).max(2200).optional() }).strict(),
   media: mediaReferenceSchema,
 }).strict();
@@ -19,12 +19,13 @@ export interface CatalogItem extends Omit<ItemInput, 'expectedVersion'> {
   version: number;
 }
 export interface CatalogSnapshot {
-  schemaVersion: 1 | 2;
+  schemaVersion: 1 | 2 | 3;
   websiteId: string;
   collectionId: 'portfolio';
   snapshotId: string;
   checksum: string;
   localeContext?: ContentLocaleContext;
+  categories?: Array<{ categoryId: string; name: string; sourceLocale: ContentLocale; isFallback: boolean }>;
   items: Array<CatalogItem & { resolvedMedia: ReleaseManifest['references'][number];
     localeValues?: Partial<Record<ContentLocale, CatalogLocaleFields>>;
     fieldSources?: Record<keyof CatalogLocaleFields, ResolvedContentField> }>;
