@@ -79,6 +79,9 @@ export function applyZones(db: Database.Database) {
     CREATE TRIGGER planner_block_occupied BEFORE INSERT ON planner_blocks
     WHEN EXISTS(SELECT 1 FROM planner_appointments WHERE workspace_id=NEW.workspace_id AND slot_id=NEW.slot_id AND status!='cancelled')
     BEGIN SELECT RAISE(ABORT,'planner slot occupied'); END;
+    CREATE TRIGGER planner_block_occupied_update BEFORE UPDATE OF workspace_id,slot_id ON planner_blocks
+    WHEN EXISTS(SELECT 1 FROM planner_appointments WHERE workspace_id=NEW.workspace_id AND slot_id=NEW.slot_id AND status!='cancelled')
+    BEGIN SELECT RAISE(ABORT,'planner slot occupied'); END;
   `);
   if ((db.pragma('foreign_key_check') as unknown[]).length) throw new Error('Zone migration violates a foreign key');
 }

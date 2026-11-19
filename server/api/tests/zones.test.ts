@@ -93,6 +93,23 @@ describe.each([['API12',Database],['desktop13',desktop]] as const)('%s zones and
     } finally {db.close();}
   });
 
+  it.each(['planned','completed'] as const)('rejects direct SQL blocks on a partially occupied slot with a %s appointment',async status=>{
+    const {db,client}=setup();
+    try {
+      const [destination,source]=await client.availability('2026-11-21','north');
+      await client.slots.capacity(destination.slot.id,{version:1,capacity:2},randomUUID());
+      const contact=await client.contacts.create({name:'Fictieve SQL-blokkadeklant'},randomUUID());
+      const appointment=await client.appointments.create({contactId:contact.id,slotId:destination.slot.id},randomUUID());
+      if(status==='completed') await client.appointments.status(appointment.id,{version:1,status},randomUUID());
+      const block=await client.blocks.create({slotId:source.slot.id,reason:'Fictieve bronblokkade'},randomUUID());
+      expect(()=>db.prepare('INSERT INTO planner_blocks VALUES(?,?,?,?,?,?)').run('local',randomUUID(),destination.slot.id,'Directe blokkade','demo',environment.now())).toThrow('planner slot occupied');
+      expect(()=>db.prepare('UPDATE planner_blocks SET slot_id=? WHERE workspace_id=? AND id=?').run(destination.slot.id,'local',block.id)).toThrow('planner slot occupied');
+      expect(db.prepare('SELECT slot_id FROM planner_blocks WHERE workspace_id=? AND id=?').get('local',block.id)).toEqual({slot_id:source.slot.id});
+      expect(db.prepare('SELECT id FROM planner_blocks WHERE workspace_id=? AND slot_id=?').get('local',destination.slot.id)).toBeUndefined();
+      expect((await client.availability('2026-11-21','north'))[0]).toMatchObject({occupied:1,block:null,available:true,slot:{capacity:2}});
+    } finally {db.close();}
+  });
+
   it('rolls back cross-zone moves, keeps windows, and replays a successful move once',async()=>{
     const {db,client}=setup();
     try {

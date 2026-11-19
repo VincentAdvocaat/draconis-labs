@@ -83,7 +83,7 @@ echte gebruikersdatabase geopend.
 
 ## Bewijs en acceptatiegrens
 
-- De suite omvat 113 tests: 86 API, 9 ReactDOM, 7 core, 5 shared en 6 desktop.
+- De suite omvat 117 tests: 90 API, 9 ReactDOM, 7 core, 5 shared en 6 desktop.
   De nieuwe migratie-/gedragstests draaien met SQLite 12.11.1 én 13.2.0.
 - Twaalf nieuwe procesproeven gebruiken onafhankelijke verbindingen: capaciteit
   twee met drie schrijvers, drie gelijke sleutels, reserveren tegenover verlagen

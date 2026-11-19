@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-11-19T19:44:15.457114+00:00",
+  "measuredAt": "2026-11-19T20:44:15.457114+01:00",
   "scope": "Own synthetic local Chrome/HTTP demo; no real user database",
   "uiActions": [
     "Create fictitious contact",
@@ -215,7 +215,7 @@
           "startAt": "2026-11-20T07:00:00Z",
           "endAt": "2026-11-20T11:00:00Z"
         },
-        "arrivalAt": "2026-11-20T09:15:00.000Z"
+        "arrivalAt": "2026-11-20T09:15:00Z"
       }
     ],
     "eastVisits": [
@@ -223,7 +223,7 @@
         "id": "4a62f429-3a7c-420b-9521-8f77ddd65821",
         "workspaceId": "local",
         "createdAt": "2026-11-19T19:39:43.911Z",
-        "updatedAt": "2026-11-19T19:40:09.400Z",
+        "updatedAt": "2026-11-19T19:40:09.4Z",
         "contactId": "53553679-bc18-4317-8d5c-33ce93e4a9f8",
         "slotId": "94899373-5069-421f-9788-0afe09297e1b",
         "zoneId": "east",
@@ -241,10 +241,18 @@
           "startAt": "2026-11-20T07:00:00Z",
           "endAt": "2026-11-20T11:00:00Z"
         },
-        "arrivalAt": "2026-11-20T08:45:00.000Z"
+        "arrivalAt": "2026-11-20T08:45:00Z"
       }
     ]
   },
   "serverStateSha256": "1b2261bc44b7a31e05beeae03a25db4636fc60e421e5fc045db93b75e8c1904b",
-  "compiledApiRestart": "passed: identical REST state hash after restarting node --import tsx dist/index.js"
+  "compiledApiRestart": "passed: identical REST state hash after restarting node --import tsx dist/index.js",
+  "postcodeUi": {
+    "realGeographicalCoverage": false,
+    "unknownMessage": "Geen fictief werkgebied voor deze postcode. Gebruik uitsluitend de getoonde democodes.",
+    "observedThrough": "Normal Chrome form, current PR30 head4637dbb",
+    "resolvedZone": "north",
+    "testedCode": "0002 aa",
+    "unknownCode": "9999 ZZ"
+  }
 }
