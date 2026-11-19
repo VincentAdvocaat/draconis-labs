@@ -28,7 +28,7 @@ export type Rights = 'cleared' | 'unknown' | 'blocked';
 
 export interface PublicVariant {
   path: string;
-  mime: 'image/png';
+  mime: 'image/png' | 'image/jpeg' | 'image/webp';
   bytes: number;
   width: number;
   height: number;
