@@ -10,7 +10,10 @@ interface Values { title: string; intro: string; image?: ImageReference | null }
 interface Page {
   revisionId: string; pageVersion: number; values: Values;
   activeReleaseId: string | null; activeVersion: number;
+  uploadEnabled?: boolean;
 }
+interface UploadStatus { assetId: string; fileVersion: number; state: string; error: string | null; rights: string; metadataVersion?: number }
+interface RightsMetadata { assetId: string; metadataVersion: number; rights: string }
 interface Attempt { releaseId: string; status: string; errorCode: string | null; publicUrl: string | null }
 interface PublishChoice { revisionId: string; expectedActiveVersion: number; key: string }
 class ApiError extends Error {
@@ -30,6 +33,11 @@ function App() {
   const [draftConflict, setDraftConflict] = useState<Page | null>(null);
   const [pendingChoice, setPendingChoice] = useState<PublishChoice | null>(null);
   const [publicationConflict, setPublicationConflict] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploadJobId, setUploadJobId] = useState('');
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus | null>(null);
+  const [rightsTarget, setRightsTarget] = useState<RightsMetadata | null>(null);
+  const [rightsDecision, setRightsDecision] = useState({ owner: '', source: '', basis: '', confirmed: false });
   // Scope generation prevents late responses from a previous token/site reaching this view.
   const generation = useRef(0);
 
@@ -51,6 +59,8 @@ function App() {
     generation.current++;
     setPage(null); setPreview(''); setAttempt(null); setDraftConflict(null);
     setPendingChoice(null); setPublicationConflict(false); setError(''); setBusy(false);
+    setFile(null); setUploadJobId(''); setUploadStatus(null);
+    resetRights();
     setStatus('Open de pagina met dit token.');
     // Keep unsaved text visible until the user explicitly opens another page.
   }
@@ -69,6 +79,7 @@ function App() {
       if (!current()) return;
       setPage(result); setValues(result.values); setDraftConflict(null); setAttempt(null);
       setPendingChoice(null); setPublicationConflict(false); setPreview('');
+      resetRights();
       setStatus(`Conceptversie ${result.pageVersion} geladen.`);
     });
   }
@@ -101,6 +112,65 @@ function App() {
       const html = await response.text();
       if (!current()) return;
       setPreview(html); setStatus('Privépreview van de opgeslagen conceptversie.');
+    });
+  }
+  function useUpload(result: UploadStatus) {
+    setValues((prior) => ({ ...prior, image: { assetId: result.assetId, fileVersion: result.fileVersion,
+      usage: 'hero', decorative: prior.image?.decorative ?? false, altText: prior.image?.altText ?? { nl: '' } } }));
+    setPreview('');
+    resetRights();
+  }
+  function resetRights() {
+    setRightsTarget(null); setRightsDecision({ owner: '', source: '', basis: '', confirmed: false });
+  }
+  function loadRights() {
+    const assetId = values.image?.assetId;
+    if (!assetId) return;
+    void perform(async (current) => {
+      const metadata = await request<RightsMetadata>(`/media/${encodeURIComponent(assetId)}/rights`);
+      if (current()) {
+        setRightsTarget(metadata); setRightsDecision((prior) => ({ ...prior, confirmed: false }));
+        setStatus(`Rechtenstatus opgehaald: ${metadata.rights}.`);
+      }
+    });
+  }
+  function decideRights(decision: 'cleared' | 'blocked') {
+    const target = rightsTarget;
+    if (!target || target.assetId !== values.image?.assetId || !rightsDecision.confirmed) return;
+    void perform(async (current) => {
+      const result = await request<{ rights: string; metadataVersion: number }>(`/media/${encodeURIComponent(target.assetId)}/rights`, {
+        method: 'PUT', body: JSON.stringify({ ...rightsDecision, expectedVersion: target.metadataVersion, status: decision }),
+      });
+      if (!current()) return;
+      setRightsTarget({ ...target, ...result }); setRightsDecision((prior) => ({ ...prior, confirmed: false }));
+      setPendingChoice(null);
+      setUploadStatus((prior) => prior?.assetId === target.assetId ? { ...prior, ...result } : prior);
+      setStatus(decision === 'cleared' ? 'Rechten expliciet vrijgegeven. Sla eventuele conceptwijzigingen op en kies daarna bewust Publiceren.' : 'Afbeelding geblokkeerd voor nieuwe publicaties.');
+    });
+  }
+  function upload() {
+    if (!file) return;
+    void perform(async (current) => {
+      const response = await fetch(`${base}/media`, { method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': file.type,
+          'X-Media-Filename': encodeURIComponent(file.name) }, body: await file.arrayBuffer() });
+      const result = await response.json();
+      if (!current()) return;
+      if (result.assetId) setUploadJobId(result.assetId);
+      if (!response.ok) {
+        setUploadStatus(result.assetId ? { assetId: result.assetId, fileVersion: 1, state: 'failed', error: result.message, rights: 'unknown' } : null);
+        throw new ApiError(response.status, result.message ?? 'Upload mislukt');
+      }
+      setUploadStatus(result); useUpload(result);
+      setStatus('Upload verwerkt en geselecteerd. Sla het concept op; publicatie blijft geblokkeerd totdat de rechten expliciet zijn vrijgegeven.');
+    });
+  }
+  function loadUpload(retry = false) {
+    if (!uploadJobId) return;
+    void perform(async (current) => {
+      const result = await request<UploadStatus>(`/media/${encodeURIComponent(uploadJobId)}${retry ? '/retry' : ''}`, retry ? { method: 'POST' } : {});
+      if (!current()) return;
+      setUploadStatus(result); setStatus(`Uploadstatus: ${result.state}. Rechten: ${result.rights}.`);
     });
   }
   function publish() {
@@ -159,13 +229,31 @@ function App() {
       <p>Conceptversie {page.pageVersion} · Actieve publicatieversie {page.activeVersion}{dirty ? ' · Onopgeslagen wijzigingen' : ''}</p>
       <label>Titel<input value={values.title} maxLength={200} disabled={busy} onChange={(event) => setValues({ ...values, title: event.target.value })} /></label>
       <label>Introductie<textarea value={values.intro} maxLength={4000} rows={5} disabled={busy} onChange={(event) => setValues({ ...values, intro: event.target.value })} /></label>
-      <fieldset disabled={busy}><legend>Fictieve afbeelding</legend>
-        <p className="hint">De testafbeelding is één gekleurde pixel, hier vergroot. Kies expliciet een bestandsversie; uploads zijn niet aangesloten.</p>
+      {page.uploadEnabled && <fieldset disabled={busy}><legend>Eigen afbeelding uploaden</legend>
+        <label>PNG-, JPEG- of WebP-bestand<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></label>
+        <button disabled={!file} onClick={upload}>Bestand uploaden</button>
+        <p className="hint">Maximaal 20 MB. Alleen geschoonde beeldvarianten kunnen naar de website; het origineel blijft privé. Een upload geeft geen publicatierechten.</p>
+        <details><summary>Uploadstatus controleren of herstellen</summary>
+          <label>Uploadnummer<input value={uploadJobId} onChange={(event) => setUploadJobId(event.target.value)} /></label>
+          <div className="actions"><button disabled={!uploadJobId} onClick={() => loadUpload()}>Status ophalen</button>
+            <button disabled={uploadStatus?.state !== 'failed' || uploadStatus.assetId !== uploadJobId} onClick={() => loadUpload(true)}>Verwerking opnieuw proberen</button></div>
+        </details>
+        {uploadStatus && <aside><p>Laatste upload: {uploadStatus.state} · Rechten: {uploadStatus.rights}</p>
+          {uploadStatus.error && <p>{uploadStatus.error}</p>}
+          {uploadStatus.state === 'ready' && <button onClick={() => useUpload(uploadStatus)}>Deze upload gebruiken</button>}
+        </aside>}
+      </fieldset>}
+      <fieldset disabled={busy}><legend>Afbeelding in concept</legend>
+        <p className="hint">{page.uploadEnabled ? 'Kies je upload of een vaste testafbeelding. De vaste testafbeeldingen zijn vergrote pixels; je eigen upload gebruikt geschoonde beeldvarianten.'
+          : 'De testafbeelding is één gekleurde pixel, hier vergroot. Kies expliciet een bestandsversie; uploads zijn niet aangesloten.'}</p>
         <label>Afbeelding<select value={values.image ? `${values.image.assetId}:${values.image.fileVersion}` : ''} onChange={(event) => {
+          resetRights();
           const [assetId, version] = event.target.value.split(':');
           setValues({ ...values, image: assetId ? { assetId, fileVersion: Number(version), usage: 'hero',
             altText: values.image?.altText ?? { nl: '' }, decorative: values.image?.decorative ?? false } : null });
-        }}><option value="">Geen afbeelding</option><option value="photo:1">Testafbeelding · versie 1</option><option value="photo:2">Testafbeelding · versie 2</option>
+        }}><option value="">Geen afbeelding</option>
+          {values.image && !['photo', 'unlicensed', 'pending'].includes(values.image.assetId) && <option value={`${values.image.assetId}:${values.image.fileVersion}`}>Geüploade afbeelding · versie {values.image.fileVersion}</option>}
+          <option value="photo:1">Testafbeelding · versie 1</option><option value="photo:2">Testafbeelding · versie 2</option>
           <option value="unlicensed:1">Rechten onbekend · blokkeert publicatie</option><option value="pending:1">Nog in verwerking · blokkeert publicatie</option></select></label>
         {values.image && <>
           <label className="check"><input type="checkbox" checked={values.image.decorative} onChange={(event) => {
@@ -178,9 +266,24 @@ function App() {
           <p className="hint">{values.image.decorative ? 'De export krijgt een leeg alt-attribuut.' : 'Vul een beschrijving in voordat je previewt of publiceert.'}</p>
         </>}
       </fieldset>
+      {page.uploadEnabled && values.image && <fieldset disabled={busy}><legend>Rechten beoordelen</legend>
+        <p>Een gereed beeld kan privé bekeken worden. Publiceren vereist een expliciete vrijgave; een upload alleen geeft geen toestemming.</p>
+        <button onClick={loadRights}>Rechtenstatus ophalen</button>
+        {rightsTarget?.assetId === values.image.assetId && <>
+          <p>Huidige status: {rightsTarget.rights} · versie {rightsTarget.metadataVersion}</p>
+          <label>Rechthebbende<input value={rightsDecision.owner} onChange={(event) => setRightsDecision({ ...rightsDecision, owner: event.target.value })} /></label>
+          <label>Bron<input value={rightsDecision.source} onChange={(event) => setRightsDecision({ ...rightsDecision, source: event.target.value })} /></label>
+          <label>Onderbouwing van de rechtenbeslissing<textarea rows={3} value={rightsDecision.basis} onChange={(event) => setRightsDecision({ ...rightsDecision, basis: event.target.value })} /></label>
+          <label className="check"><input type="checkbox" checked={rightsDecision.confirmed} onChange={(event) => setRightsDecision({ ...rightsDecision, confirmed: event.target.checked })} />Ik bevestig deze rechtenbeslissing met bovenstaande onderbouwing</label>
+          <p className="hint">Je beslissing wordt met je proefaccount vastgelegd. Alleen een Publisher kan deze stap uitvoeren.</p>
+          <div className="actions"><button disabled={!rightsDecision.confirmed} onClick={() => decideRights('cleared')}>Rechten vrijgeven</button>
+            <button disabled={!rightsDecision.confirmed} className="secondary" onClick={() => decideRights('blocked')}>Nieuwe publicatie blokkeren</button></div>
+        </>}
+      </fieldset>}
       {draftConflict && <aside><h3>Nieuwste opgeslagen tekst</h3><p>{draftConflict.values.title}</p><p>{draftConflict.values.intro}</p>
         <button onClick={() => {
           setPage(draftConflict); setValues(draftConflict.values); setDraftConflict(null); setPreview('');
+          resetRights();
           setPendingChoice(null); setPublicationConflict(false); setAttempt(null);
           setStatus('Nieuwste versie overgenomen. Kies Lokaal publiceren om deze revisie te publiceren.');
         }}>Nieuwste versie overnemen</button>

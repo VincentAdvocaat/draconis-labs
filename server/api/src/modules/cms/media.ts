@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createMediaFixture, FIXTURE_WEBSITES } from '../../media-fixture/fixture.js';
 import { MediaFixtureStore } from '../../media-fixture/storage.js';
-import type { MediaReference, ReleaseManifest } from '../../media-fixture/contracts.js';
+import type { MediaReference } from '../../media-fixture/contracts.js';
 import { CmsError } from './model.js';
 
 /** Server-owned mapping between the two fixture namespaces; never supplied by the browser. */
@@ -28,7 +28,7 @@ export class CmsMedia {
       writeFileSync(pointer, JSON.stringify({ root: this.root }), { flag: 'wx' });
     }
   }
-  private site(websiteId: string): string {
+  websiteScope(websiteId: string): string {
     const site = sites[websiteId];
     if (!site) throw new CmsError(404, 'Website niet gevonden');
     return site;
@@ -39,29 +39,33 @@ export class CmsMedia {
     // Text-only revisions reuse the retained reference snapshot. An archived existing
     // image is not accidentally treated as a new selection when only text changes.
     if (previousMediaRevision && JSON.stringify(image) === JSON.stringify(previousImage)) return previousMediaRevision;
-    this.store.saveReferences(this.site(websiteId), { module: 'cms', ownerId: 'home',
+    this.store.saveReferences(this.websiteScope(websiteId), { module: 'cms', ownerId: 'home',
       revisionId, expectedVersion: 0, references: [image] });
     return revisionId;
   }
-  resolve(websiteId: string, mediaRevisionId: string, snapshotId: string): { manifest: ReleaseManifest; bytes: Buffer; alt: string } {
-    const manifest = this.store.resolveRelease(this.site(websiteId), {
+  resolve(websiteId: string, mediaRevisionId: string, snapshotId: string) {
+    const manifest = this.store.resolveRelease(this.websiteScope(websiteId), {
       releaseId: snapshotId, revisionId: mediaRevisionId, locales: ['nl'],
     });
     const image = manifest.references[0];
-    if (manifest.references.length !== 1 || image.usage !== 'hero' || image.variants[0]?.mime !== 'image/png') {
-      throw new CmsError(409, 'Deze proef ondersteunt één publieke PNG-afbeelding');
+    if (manifest.references.length !== 1 || image.usage !== 'hero') {
+      throw new CmsError(409, 'Deze proef ondersteunt één publieke afbeelding');
     }
     // The reviewed media resolver validates public paths, symlinks, rights and bytes first.
-    const variant = image.variants[0];
+    const variant = image.variants.find((v) => v.mime === 'image/png')
+      ?? image.variants.find((v) => v.mime === 'image/jpeg')
+      ?? image.variants.find((v) => v.mime === 'image/webp');
+    if (!variant) throw new CmsError(409, 'Geen ondersteunde publieke derivative');
     const bytes = readFileSync(join(this.root, variant.path));
     if (bytes.length !== variant.bytes || createHash('sha256').update(bytes).digest('hex') !== variant.checksum) {
       throw new CmsError(409, 'Afbeelding gewijzigd tijdens lezen');
     }
-    return { manifest, bytes, alt: image.decorative ? '' : image.altText.nl };
+    const extension = variant.mime === 'image/png' ? 'png' : variant.mime === 'image/jpeg' ? 'jpg' : 'webp';
+    return { manifest, bytes, alt: image.decorative ? '' : image.altText.nl, mime: variant.mime, extension };
   }
   preview(websiteId: string, mediaRevisionId: string): { src: string; alt: string } {
     const resolved = this.resolve(websiteId, mediaRevisionId, `preview-${mediaRevisionId}`);
-    return { src: `data:image/png;base64,${resolved.bytes.toString('base64')}`, alt: resolved.alt };
+    return { src: `data:${resolved.mime};base64,${resolved.bytes.toString('base64')}`, alt: resolved.alt };
   }
   close(): void { this.store.close(); }
 }

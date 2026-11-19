@@ -53,3 +53,16 @@ Opschoning van revisies/releases is expliciet beheerwerk. Nooit de actieve relea
 | Gebruik | Toetsenbord bereikt website/pagekeuze, inputs, opslaan en publiceren. Labels/status/fouten zijn leesbaar; netwerk-/401-/409-fout bewaart de invoer. |
 
 De implementatie-PR's voeren relevante unit-, API-, filesystem- en browsertests uit, plus bestaande Labs typecheck/lint/build en API-suite. Een rendereradapter draait daarnaast de geselecteerde bestaande CMS-regressiegevallen op fictieve templates. Verifieer de actuele head-SHA en testresultaten in de verplichte aparte reviewchat. Deze documentatie-PR claimt geen uitgevoerde runtime- of hersteltests.
+
+## Vervolgrichting centrale tekstredactie
+
+Gebruikersrichting van 19 november, uitgewerkt in [centrale tekstredactie](centrale-tekstredactie.md). Deze stories volgen op de huidige uploadreview en vervangen geen eerder vereiste migratie-/herstelpoorten.
+
+| Story | Na | Kleine oplevering en bewijs |
+| --- | --- | --- |
+| CMS-20 Taal- en contentcontract | Uploadreview | Bestaande Planner-i18n en CMS-locales inventariseren, redactionele records van systeemteksten scheiden, locale/default/fallback en catalogusgrens vastleggen. Ontwerp staat in de gelinkte uitwerking; geen claim van geïmplementeerde EN-redactie. |
+| CMS-21 Nieuwe pagina en blok | CMS-20 | Lokale NL-pagina met veilige slug, titel/SEO, getypeerd tekstblok en één imageblok toevoegen, draft/preview/sitebrede release. Bestaande home migreren zonder verlies, IDs/versies behouden en herhaalde migratie testen. Geen vrije HTML. |
+| CMS-22 Meertalige redactie | CMS-21 | NL/EN-varianten op dezelfde records met ontbrekend/leeg/fallback, per-use alt, consistente taalwissel, localegebonden routes en publicatievalidatie. Geen automatische vertaling. |
+| CMS-23 Alle systeemteksten via i18n | CMS-21 | CMS-appbediening en vaste fout/statusberichten onder getypeerde eigen keys volgens Planner-patroon; UI-locale los van contentlocale. Dek ontbrekende keys en veilige interpolatie af. Nieuwe pagina's/blokken hoeven geen vertaalkey in de UI-map. |
+| CMS-24 Websitebreed tekstoverzicht | CMS-21, 22 | Navigatie, footer, SEO, benoemde formulier-/siteteksten en blokken vanuit één overzicht vinden en bewerken; aantoonbare dekking van codebeheerde bindings vóór migratie van een bestaande website. |
+| CMS-25 Locale-catalogusadapter | CMS-22, gereviewde cataloguslocales | Invariant item/category-ID en metadata behouden, locale title/description/slug/categorienaam, per-use alt en gepinde CatalogRef/snapshotchecksum gebruiken. |

@@ -5,6 +5,7 @@ import { CmsError, render, type Attempt, type ReleaseInput } from './model.js';
 import { CmsRepository } from './repository.js';
 import type { CmsMedia } from './media.js';
 import { MediaContractError } from '../../media-fixture/contracts.js';
+import type { CmsUploads } from './upload.js';
 
 export interface BuildHooks {
   beforeBuild?: () => Promise<void>;
@@ -15,7 +16,7 @@ const sha256 = (value: string) => createHash('sha256').update(value).digest('hex
 
 export class CmsService {
   constructor(readonly repository: CmsRepository, readonly releasesRoot: string, private hooks: BuildHooks = {},
-    readonly media?: CmsMedia, private mediaUnavailable = false) {}
+    readonly media?: CmsMedia, private mediaUnavailable = false, readonly uploads?: CmsUploads, readonly uploadEnabled = false) {}
 
   private requireMedia(): void {
     if (!this.media) throw new CmsError(this.mediaUnavailable ? 503 : 409,
@@ -26,7 +27,8 @@ export class CmsService {
     const values = this.repository.revision(websiteId, revisionId);
     const mediaRevision = this.repository.mediaRevision(websiteId, revisionId);
     if (mediaRevision) this.requireMedia();
-    return render(values, mediaRevision ? this.media!.preview(websiteId, mediaRevision) : undefined);
+    return render(values, mediaRevision ? this.uploads && values.image
+      ? this.uploads.preview(websiteId, values.image) : this.media!.preview(websiteId, mediaRevision) : undefined);
   }
 
   async publish(websiteId: string, input: ReleaseInput, key: string, actor: string): Promise<Attempt> {
@@ -37,9 +39,11 @@ export class CmsService {
       await this.hooks.beforeBuild?.();
       const mediaRevision = this.repository.mediaRevision(websiteId, input.revisionId);
       if (mediaRevision) this.requireMedia();
+      const values = this.repository.revision(websiteId, input.revisionId);
+      if (values.image && this.uploads) this.uploads.requireApproval(websiteId, values.image.assetId);
       const image = mediaRevision ? this.media!.resolve(websiteId, mediaRevision, attempt.releaseId) : undefined;
-      const html = render(this.repository.revision(websiteId, input.revisionId),
-        image ? { src: `media/${attempt.releaseId}/hero.png`, alt: image.alt } : undefined);
+      const html = render(values,
+        image ? { src: `media/${attempt.releaseId}/hero.${image.extension}`, alt: image.alt } : undefined);
       const siteRoot = join(this.releasesRoot, websiteId);
       const staging = join(siteRoot, `.staging-${randomUUID()}`);
       const complete = join(siteRoot, attempt.releaseId);
@@ -48,8 +52,8 @@ export class CmsService {
       const files: Record<string, string> = { 'index.html': sha256(html) };
       if (image) {
         await mkdir(join(staging, 'media', attempt.releaseId), { recursive: true });
-        await writeFile(join(staging, 'media', attempt.releaseId, 'hero.png'), image.bytes, { flag: 'wx', flush: true });
-        files[`media/${attempt.releaseId}/hero.png`] = createHash('sha256').update(image.bytes).digest('hex');
+        await writeFile(join(staging, 'media', attempt.releaseId, `hero.${image.extension}`), image.bytes, { flag: 'wx', flush: true });
+        files[`media/${attempt.releaseId}/hero.${image.extension}`] = createHash('sha256').update(image.bytes).digest('hex');
       }
       const manifest = JSON.stringify({ schemaVersion: 1, websiteId, releaseId: attempt.releaseId,
         revisionId: input.revisionId, template: 'plain-page@3', files,
@@ -82,10 +86,11 @@ export class CmsService {
     if (!['demo-cms', 'demo-other'].includes(websiteId)) throw new CmsError(404, 'Website niet gevonden');
   }
 
-  async publicImage(websiteId: string, releaseId: string): Promise<Buffer> {
+  async publicImage(websiteId: string, releaseId: string, filename = 'hero.png'): Promise<Buffer> {
     this.publicSite(websiteId);
     if (!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(releaseId)) throw new CmsError(404, 'Publicatie niet gevonden');
-    return this.releaseBytes(websiteId, releaseId, `media/${releaseId}/hero.png`);
+    if (!['hero.png', 'hero.jpg', 'hero.webp'].includes(filename)) throw new CmsError(404, 'Afbeelding niet gevonden');
+    return this.releaseBytes(websiteId, releaseId, `media/${releaseId}/${filename}`);
   }
 
   private async releaseBytes(websiteId: string, releaseId: string, file: string): Promise<Buffer> {

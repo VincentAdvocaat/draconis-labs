@@ -9,7 +9,7 @@ const configPath = process.env.CMS_FIXTURE_CONFIG;
 if (!configPath) throw new Error('Gebruik scripts/start-cms-fixture.ps1 voor deze lokale proef');
 const config = JSON.parse(await readFile(configPath, 'utf8')) as { credentials: unknown; runtimeRoot: string; port: number };
 const { app } = await buildCmsApp({ runtimeRoot: config.runtimeRoot, credentials: config.credentials,
-  seed: true, enableMedia: true, uiRoot: join(repoRoot, 'apps', 'cms', 'dist') });
+  seed: true, enableMedia: true, enableUploads: true, uiRoot: join(repoRoot, 'apps', 'cms', 'dist') });
 try {
   await app.listen({ host: '127.0.0.1', port: config.port });
 } catch (error) { await app.close(); throw error; }

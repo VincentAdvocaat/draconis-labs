@@ -86,6 +86,11 @@ function editorHarness() {
   };
   render();
   return { results, requests, action, button, title,
+    field: (label: string) => {
+      const owner = find((node) => node.type === 'label' && Array.isArray(node.props.children) &&
+        node.props.children.some((child) => typeof child === 'string' && child.trim() === label));
+      return nodes(owner).find((node) => ['input', 'select', 'textarea'].includes(String(node.type)))!;
+    },
     publicationButton: () => find((node) => node.type === 'button' &&
       ['Lokaal publiceren', 'Publicatie opnieuw controleren'].includes(text(node.props.children))),
     open: () => action(find((node) => node.type === 'form'), 'onSubmit', { preventDefault() {} }),
@@ -98,6 +103,33 @@ const pageA = { revisionId: 'revision-A', pageVersion: 1, values: { title: 'Revi
 const pageB = { ...pageA, revisionId: 'revision-B', pageVersion: 2, values: { title: 'Revisie B', intro: '' } };
 
 describe('CMS editor recovery and selected revision', () => {
+  it('requires fresh confirmation after loading a newer rights version and posts the matching selected asset', async () => {
+    const ui = editorHarness();
+    const uploadedPage = { ...pageA, uploadEnabled: true, values: { ...pageA.values,
+      image: { assetId: 'upload-a', fileVersion: 1, usage: 'hero', decorative: false, altText: { nl: 'Proefbeeld' } } } };
+    ui.results.push({ status: 200, body: uploadedPage }); await ui.open();
+    ui.results.push({ status: 200, body: { assetId: 'upload-a', rights: 'unknown', metadataVersion: 1 } });
+    await ui.action(ui.button('Rechtenstatus ophalen'));
+    await ui.action(ui.field('Rechthebbende'), 'onChange', { target: { value: 'Fictieve maker' } });
+    await ui.action(ui.field('Bron'), 'onChange', { target: { value: 'Eigen lokale fixture' } });
+    await ui.action(ui.field('Onderbouwing van de rechtenbeslissing'), 'onChange', { target: { value: 'Zelf gegenereerd voor lokale tests.' } });
+    const confirmation = 'Ik bevestig deze rechtenbeslissing met bovenstaande onderbouwing';
+    await ui.action(ui.field(confirmation), 'onChange', { target: { checked: true } });
+    ui.results.push({ status: 200, body: { assetId: 'upload-a', rights: 'blocked', metadataVersion: 2 } });
+    await ui.action(ui.button('Rechtenstatus ophalen'));
+    expect(ui.button('Rechten vrijgeven').props.disabled).toBe(true);
+    expect(ui.field('Rechthebbende').props.value).toBe('Fictieve maker');
+    await ui.action(ui.field(confirmation), 'onChange', { target: { checked: true } });
+    ui.results.push({ status: 200, body: { rights: 'cleared', metadataVersion: 3 } });
+    await ui.action(ui.button('Rechten vrijgeven'));
+    const choice = ui.requests.at(-1)!;
+    expect(choice.path).toContain('/media/upload-a/rights');
+    expect(JSON.parse(choice.init.body!)).toMatchObject({ expectedVersion: 2, confirmed: true, status: 'cleared', owner: 'Fictieve maker' });
+    expect(JSON.parse(choice.init.body!)).not.toHaveProperty('employee');
+    await ui.action(ui.field('Afbeelding'), 'onChange', { target: { value: 'unlicensed:1' } });
+    expect(() => ui.button('Rechten vrijgeven')).toThrow();
+  });
+
   it('shows the media dependency failure from preview without blaming the token or changing text', async () => {
     const ui = editorHarness();
     ui.results.push({ status: 200, body: pageA }); await ui.open();

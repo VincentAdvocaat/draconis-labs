@@ -8,6 +8,8 @@ Ontwerp van 19 november 2026. De oorspronkelijke ontwerp-PR bevat alleen bouwopd
 - [Eerste bouwopdracht](eerste-bouwopdracht.md) is een afgebakende lokale demonstratie met fictieve tekst.
 - [Lokale tekstproef](lokale-proef.md) documenteert de afzonderlijke CMS-01-implementatie en haar start-/testcommando's.
 - [Afbeeldingreferentieproef](media-proef.md) koppelt één vaste fictieve PNG aan draft, privépreview en lokale release.
+- [Echte uploadproef](upload-proef.md) verbindt de M1-processor en expliciete rechtenvrijgave met de normale CMS-browserflow.
+- [Centrale tekstredactie](centrale-tekstredactie.md) werkt de vervolgrichting voor pagina's, blokken en localevarianten uit.
 
 De bestaande sites blijven hun huidige ASP.NET Core CMS gebruiken. Labs krijgt eerst een geïsoleerde CMS-proef binnen zijn bestaande app/API-structuur. Daarna toetsen we de adapter en migratie op een fictieve kopie. Een productiemigratie, merge of deployment vraagt een aparte opdracht van de orchestrator.
 
