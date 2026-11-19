@@ -175,6 +175,25 @@ describe('isolated media contract fixture', () => {
     expect(existsSync(root)).toBe(false);
   });
 
+  it('rejects a valid private original reached through public/.. without retaining a failed release', () => {
+    const store = fixture.store;
+    store.saveReferences(website, request());
+    const db = new Database(join(fixture.root, 'media.sqlite'));
+    try {
+      const row = db.prepare("SELECT variants FROM files WHERE website=? AND asset='photo' AND version=1")
+        .get(website) as { variants: string };
+      const variants = JSON.parse(row.variants);
+      variants[0].path = 'public/../private/fixture-alpha/photo/1/original.png';
+      db.prepare("UPDATE files SET variants=? WHERE website=? AND asset='photo' AND version=1")
+        .run(JSON.stringify(variants), website);
+      expect(() => store.resolveRelease(website, release)).toThrow(expect.objectContaining({ statusCode: 409 }));
+      expect(db.prepare('SELECT * FROM releases').all()).toEqual([]);
+      expect(store.usages(website, 'photo')).toEqual([
+        { kind: 'revision', owner: 'draft', fileVersion: 1, slot: 'hero' },
+      ]);
+    } finally { db.close(); }
+  });
+
   it('paginates and exports only public derivatives without storage paths', () => {
     expect(fixture.store.list(website, '', 0, 1)).toHaveLength(1);
     expect(() => fixture.store.list(website, '', 0, 101)).toThrow('pagination');
