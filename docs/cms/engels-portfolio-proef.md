@@ -14,10 +14,16 @@ De bestaande bronconflictherstelroute bewaart lokale EN-labels en selectie via b
 
 ## Bewijs
 
-- Volledige API/component-suite: 158 tests groen, maxWorkers 2. Shared: 15 tests groen. Workspace typecheck, lint, build en diffcheck groen.
+- Volledige API/component-suite: 158 tests groen vóór de gerichte fix; na fix 159 tests groen, maxWorkers 2. Shared: 15 tests groen. Workspace typecheck, lint, build en diffcheck groen.
 - Zeven nieuwe API-tests bewijzen expliciete selectie, verkeerde website/checksum/context/NL-snapshot, exacte oude preview, incomplete EN met behoud vorige active, gevuld/leeg, immutable selectie bij nieuwe snapshot tijdens async build, retained/reopen, afzonderlijke NL/EN-pins en bereikbare EN-bytes met SHA256. Finale rechtenblokkering en hashcorruptie weigeren nieuwe activatie en behouden oude publieke bytes.
 - Componenttest gebruikt de echte API-lijstvorm inclusief itemCount, stuurt alleen ref/checksum/context naar revisie, en bewaart lokale portfoliokop/selectie bij een bronstructuurconflict in het eerste EN-concept. Bestaande gelijktijdige EN-conflicttests blijven groen.
 - Normale browser op 3026: NL-pagina met NL-portfolio opgeslagen; EN-variant met expliciete EN-snapshot, titel/slug/SEO/tekst en kop/leegstaat opgeslagen en privé bekeken. Daarna expliciete shared-pin én EN-publicatieselectie gekozen en gepubliceerd. Publieke route en catalogusbeeld werken.
 - Echte serverprocesherstart behoudt publieke kop `Selected English projects`; later opgeslagen EN-concept `Unpublished English portfolio heading` blijft apart. EN-route levert 70 vaste proefbytes met SHA256 `4ff6ab670a58c14270e034e2090d9a432caa263a14e0a25785386b0c12f880b5`. De toegestane NL-descriptionfallback is als NL gemarkeerd. Screenshot alleen in genegeerde runtime.
 
-Onafhankelijke review volgt op de PR. Home-EN, echte klanttemplates, algemene localeconfiguratie en productie blijven open. Er zijn geen footer- of formulierbindings aan deze lokale renderer toegevoegd. Geen merge of deployment uitgevoerd.
+## Onafhankelijke review
+
+PR34 is alleen-lezen beoordeeld door `/root/review_pr34`, GPT-6 Astra medium, op remote head `f9d7b45b58158a33399352d8c21dea9418400e47`. Eén noodzakelijke P2: EN-init nam ontbrekende labels uit legacy-NL-portfoliorevisies over als undefined. De DTO faalde het schema en de echte editor crashte op heading. De reviewer reproduceerde beide zonder bestanden te wijzigen, draaide 27 relevante tests en vond geen andere concrete fouten.
+
+Fixsubagent `/root/fix_pr34_legacy`, GPT-6.1 Sol low, verifieerde dit eerst rood met echte raw legacy-NL JSON in de database. De fix gebruikt één gedeelde fresh-label-baseline voor NL-schema, renderer en EN-init, uitsluitend als labels ontbreken. Bestaande null/leegwaarden worden niet vervangen. De regressie opent en rendert de echte EN-editor, bewaart en bekijkt EN, heropent de database en bewijst bytegelijk NL-revisiebehoud plus dezelfde oude actieve publicatie. Fixhead `7378fae161873b40cd66ad8c6c036a983c5c5cfa` is door dezelfde reviewer gericht herbeoordeeld en akkoord. P2 gesloten, geen nieuwe noodzakelijke bevindingen. Reviewer draaide 37 relevante tests groen. Volledige implementatiesuite na fix: 159 groen; API/CMS typecheck, lint en diffcheck groen. Volledig rapport, gecontroleerde SHA's en reviewer-id staan duurzaam in de PR-body.
+
+ Home-EN, echte klanttemplates, algemene localeconfiguratie en productie blijven open. Er zijn geen footer- of formulierbindings aan deze lokale renderer toegevoegd. Geen merge of deployment uitgevoerd.
