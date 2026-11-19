@@ -77,7 +77,13 @@ SQLite-bindings 12.11.1 en 13.2.0.
   synthetische profiel gebruikt; de bronhash bleef gelijk.
 
 Bewijs staat in `evidence/pl31-32-web.json`, `pl31-32-public.png` en
-`pl31-32-staff.png`. De interne browsercontrole gebruikte de gebouwde app met
-expliciete API-URL; de eerste Vite-ontwikkelpagina bleef leeg en is niet als
-geslaagde acceptatie geteld. Startinstructies staan in [de demo](demo-lokaal.md).
+`pl31-32-staff.png`. De eerste interne Vite-ontwikkelpagina bleef leeg; de
+boekingsacceptatie gebruikte daarom eerst de gebouwde app met expliciete
+API-URL. De onafhankelijke review vond een gedeelde dependencycache van de
+twee Vite-configuraties. Public gebruikt nu een aparte absolute `.vite-public`
+cache. Daarna zijn beide ontwikkelpagina's tegelijk normaal geladen, inclusief
+interne pagina verversen na publieke serverstart en herstart. Beschikbaarheid
+bleef werken. Dit aanvullende bewijs staat in
+`evidence/pl31-32-dev-private-after-public-restart.png`.
+Startinstructies staan in [de demo](demo-lokaal.md).
 Er is niets gemerged, gedeployd of publiek op het internet gezet.

@@ -30,6 +30,14 @@
     "privateStartupSmoke": "passed",
     "publicStartupSmoke": "passed"
   },
-  "browserLimitation": "Initial private Vite dev page remained blank; acceptance used built private app with explicit VITE_API_URL instead",
-  "screenshots": ["pl31-32-public.png", "pl31-32-staff.png"]
+  "initialBrowserIssue": "Initial private Vite dev page remained blank; first booking acceptance used built private app with explicit VITE_API_URL",
+  "reviewFixVerification": {
+    "issue": "Private and public Vite resolved the same dependency cache",
+    "fix": "Separate absolute public .vite-public cache",
+    "bothDevPagesLoadedTogether": true,
+    "privateRefreshAfterPublicStart": true,
+    "privateRefreshAfterPublicRestart": true,
+    "publicAvailabilityAfterRestart": "Only afternoon offered; one remaining"
+  },
+  "screenshots": ["pl31-32-public.png", "pl31-32-staff.png", "pl31-32-dev-private-after-public-restart.png"]
 }
