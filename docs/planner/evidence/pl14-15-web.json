@@ -62,5 +62,16 @@
     "afterFix": "Normal browser release succeeded; compiled start smoke covers repeated same-key DELETE",
     "beforeFix": "OPTIONS only; no DELETE reached server; block still present",
     "cause": "DELETE absent from allowed preflight methods"
+  },
+  "compiledApiRestart": {
+    "passed": true,
+    "entrypoint": "node --import tsx dist/index.js",
+    "preserved": [
+      "archived contact",
+      "cancelled appointment version3",
+      "three events",
+      "two free dayparts"
+    ],
+    "realUserData": false
   }
 }
