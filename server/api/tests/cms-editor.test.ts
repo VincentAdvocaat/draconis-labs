@@ -212,6 +212,18 @@ describe('CMS editor recovery and selected revision', () => {
     finish({status: 200, body: pageA}); await pending; await ui.settle();
     expect(ui.status()).toBe('Draft version 1 loaded.'); expect(ui.requests).toHaveLength(1);
   });
+  it('edits home EN through the same source recovery flow without writing the NL home',async()=>{
+    const ui=editorHarness();ui.results.push({status:200,body:{...pageA,pagesEnabled:true}});await ui.open();
+    const english={pageId:'home',revisionId:null,version:0,structure:'source-one',savedStructure:'source-one',supported:true,needsUpdate:false,sourceImages:[],sourceBlocks:[{blockId:'home-text-id',type:'text'}],content:{schemaVersion:1,locale:'en',title:'English home',slug:'index',seoTitle:'English SEO',seoDescription:null,blocks:[{blockId:'home-text-id',type:'text',heading:null,body:null}]}};
+    ui.results.push({status:200,body:english});await ui.action(ui.button('English bewerken'));expect(ui.requests.at(-1)!.path).toContain('/documents/home/locales/en');
+    await ui.action(ui.field('EN-bloktekst 1'),'onChange',{target:{value:'My unsaved English intro'}});
+    const latest={...english,structure:'source-two',sourceImages:[{blockId:'home-image-id',assetId:'photo',fileVersion:2,usage:'hero',decorative:false}],sourceBlocks:[...english.sourceBlocks,{blockId:'home-image-id',type:'image'}]};ui.results.push({status:409,body:{message:'Source changed'}},{status:200,body:latest});await ui.action(ui.button('EN-concept opslaan'));await ui.action(ui.button('Actuele NL-bron laden met behoud van EN-invoer'));await ui.action(ui.button('EN-structuur en beeldbinding bevestigen'));
+    expect(ui.field('EN-bloktekst 1').props.value).toBe('My unsaved English intro');await ui.action(ui.field('EN-alt-tekst'),'onChange',{target:{value:'English home alt'}});
+    ui.results.push({status:200,body:{...latest,revisionId:'en-one',version:1,needsUpdate:false}});await ui.action(ui.button('EN-concept opslaan'));
+    expect(JSON.parse(ui.requests.at(-1)!.init.body!)).toMatchObject({expectedVersion:0,expectedStructure:'source-two',confirmSourceChange:true,content:{blocks:[{body:'My unsaved English intro'},{altText:'English home alt'}]}});
+    expect(ui.requests.some((request)=>request.path.endsWith('/pages/home/draft'))).toBe(false);
+  });
+
   it('selects EN catalog context explicitly and preserves portfolio input through source recovery',async()=>{
     const ui=editorHarness();ui.results.push({status:200,body:{...pageA,pagesEnabled:true}});await ui.open();
     const labels={heading:{nl:'NL heading',en:'Saved heading'},empty:{nl:'NL empty',en:'Saved empty'}};

@@ -1,0 +1,13 @@
+# EN-home in de eigen fixture
+
+Gebouwd vanaf PR34-head `9ec2c02940cffde0f318dd6e4e2d6b37e1790653`. Alleen fictieve lokale data. Geen echte klanttemplate gewijzigd.
+
+NL-home blijft één bron in cms_pages/cms_revisions. De documentadapter leest die bron en ondersteunt geen document-draftwrite voor home. De bestaande index.html blijft NL. Additieve migratie 7 introduceert cms_home_blocks met stabiele UUID's en aparte EN-home-revisie/heads-tabellen met FK naar cms_home_identity. Er worden geen home-records in cms_documents of kopieën van NL-concepten aangemaakt. Bestaande document-FK's en revisies blijven intact. Dezelfde localeclass gebruikt uitsluitend vaste tabelnamen voor home versus documenten. EN-slugs worden binnen dezelfde IMMEDIATE transactie over beide headtabellen op uniciteit gecontroleerd. Index is alleen voor EN-home toegestaan. Een document met slug home heeft een eigen UUID en blijft een afzonderlijke pagina.
+
+EN-home heeft titel, slug, SEO, introductie en per gebruik alt/bijschrift voor het NL-bronbeeld. De bestaande localehelper, expliciete bronbevestiging, dirty-conflictherstel, exacte revisiepreview, shared-pin en EN-publicatieselectie blijven van toepassing. Afbeelding blijft in NL beheerd; EN-binding en retained media zijn immutable. Home en document-EN worden samen in dezelfde volledige siterelease bevroren voor async werk. EN-indexroute is /sites/demo-cms/en/index.html bij slug index; taalnav wijst naar de bestaande NL-index.
+
+Bewijs: 167 API/componenttests en 15 shared-tests groen. Workspace typecheck/lint/build/diffcheck groen. Zeven nieuwe API-tests omvatten oude fixtures zonder/met beeld, herhaalde migratie, FK-check, ongewijzigde NL-revisies en oude releasebytes, UUID's, home/document-identiteit en slugbotsingen, bron-CAS/directealt/decoratiefleeg, retainedpaden, asyncfreeze en finale rechten/hashweigering. Nieuwe echte-handlereditortest behoudt dirty homeintro bij bronwijziging en schrijft nooit de NL-homeopslag via EN.
+
+Browser3027: NL-home met vrijgegeven vaste fictieve afbeelding bewaard. EN-titel/indexslug/SEO/intro/alt/bijschrift handmatig ingevuld, exact privé bekeken, expliciete shared-pin en EN-selectie gepubliceerd. Echte procesherstart behoudt publieke introductie en de aparte nieuwere concepttekst Unpublished English home after restart. Runtime/screenshot alleen in genegeerde fixturemap.
+
+Onafhankelijke review volgt op de PR. Alle CMS-PR's blijven gestapeld en ongesamengevoegd. Volgende prioriteit is gezamenlijke integratie/consolidatie voorbereiden met exacte DAG, conflicten en één-checkoutreproductie. Geen nieuwe contentuitbreiding, main-merge, deployment of klantdata-acties uitgevoerd.

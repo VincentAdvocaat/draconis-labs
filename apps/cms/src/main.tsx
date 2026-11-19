@@ -309,9 +309,9 @@ function App() {
     });
   }
   function openEnglish() {
-    if (busy || dirty || documentDirty || englishDirty || !selectedDocument) return;
+    if (busy || dirty || documentDirty || englishDirty || !page?.pagesEnabled) return;
     void perform(async (current) => {
-      const result = await request<EnglishDto>(`/documents/${selectedDocument.pageId}/locales/en`);
+      const result = await request<EnglishDto>(`/documents/${selectedDocument?.pageId??'home'}/locales/en`);
       if (!current()) return;
       setEnglishLatest(null); setEnglishConfirmedStructure(''); setEnglish(result); setEnglishDraft(result.content); setPreview(''); invalidateSiteChoice();
     });
@@ -347,10 +347,10 @@ function App() {
     }catch(error){if(error instanceof ApiError&&error.status===409){const latest=await request<SharedNavigationDto>('/shared-navigation');if(current())setSharedLatest(latest);}throw error;}});
   }
   function previewShared() {
-    if(busy||!shared||sharedDirty||dirty||documentDirty||englishDirty||!selectedDocument||(english&&!english.revisionId))return;
+    if(busy||!shared||sharedDirty||dirty||documentDirty||englishDirty||!page?.pagesEnabled||(english&&!english.revisionId))return;
     void perform(async(current)=>{
       const response=await fetch(base+'/shared-navigation/previews',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
-        body:JSON.stringify({pageId:selectedDocument.pageId,revisionId:english?.revisionId??selectedDocument.revisionId,locale:english?'en':'nl',sharedRevisionId:shared.revisionId,sharedVersion:shared.version})});
+        body:JSON.stringify({pageId:selectedDocument?.pageId??'home',revisionId:english?.revisionId??selectedDocument?.revisionId??page!.revisionId,locale:english?'en':'nl',sharedRevisionId:shared.revisionId,sharedVersion:shared.version})});
       if(!response.ok)throw new ApiError(response.status,apiErrorMessage(response.status,await response.json().catch(()=>null),'previewUnavailable'));
       const html=await response.text();if(current()){setPreview(html);setStatus(message('sharedPreview'));}
     });
@@ -423,7 +423,7 @@ function App() {
     {error && <p role="alert" className="error">{formatUiMessage(uiLocale,error)}</p>}
     {page?.sharedEnabled&&<section><h2>{t.sharedTitle}</h2><button disabled={busy||sharedDirty} onClick={openShared}>{t.openShared}</button>
       {shared&&sharedDraft&&<SharedNavigationEditor record={shared} draft={sharedDraft} onChange={(content)=>{setSharedDraft(content);setPreview('');invalidateSiteChoice();}} busy={busy} dirty={sharedDirty} onSave={saveShared} onPreview={previewShared}
-        previewDisabled={!selectedDocument||dirty||documentDirty||englishDirty||!!english&&!english.revisionId} uiLocale={uiLocale}/>}
+        previewDisabled={!page?.pagesEnabled||dirty||documentDirty||englishDirty||!!english&&!english.revisionId} uiLocale={uiLocale}/>}
       {sharedLatest&&<aside><p>{t.sharedConflictHelp}</p><button disabled={busy} onClick={()=>{if(busy)return;setShared(sharedLatest);setSharedDraft(sharedLatest.content);setSharedLatest(null);setPreview('');invalidateSiteChoice();}}>{t.adoptShared}</button></aside>}
     </section>}
     {page?.pagesEnabled && <section><h2>{dc.pages}</h2>
@@ -438,7 +438,7 @@ function App() {
     </section>}
     {page && <section aria-labelledby="content-title"><h2 id="content-title">{selectedDocument ? documentDraft?.title : t.homeDutch}</h2>
       <p>{t.versionDraft} {selectedDocument?.version ?? page.pageVersion} {t.versionActive} {page.activeVersion}{(selectedDocument ? documentDirty : dirty) ? t.unsaved : ''}</p>
-      {!selectedDocument && <>
+      {!selectedDocument && !english && <>
       <label>{t.homeTitle}<input value={values.title} maxLength={200} disabled={busy} onChange={(event) => setValues({ ...values, title: event.target.value })} /></label>
       <label>{t.homeIntro}<textarea value={values.intro} maxLength={4000} rows={5} disabled={busy} onChange={(event) => setValues({ ...values, intro: event.target.value })} /></label>
       </>}
@@ -456,7 +456,7 @@ function App() {
           {uploadStatus.state === 'ready' && <button onClick={() => useUpload(uploadStatus)}>{t.useUpload}</button>}
         </aside>}
       </fieldset>}
-      {selectedDocument && <div className="actions"><button disabled={busy || englishDirty} onClick={() => {setEnglishLatest(null); setEnglishConfirmedStructure(''); setEnglish(null); setEnglishDraft(null); setPreview('');}}>{t.editDutch}</button>
+      {page.pagesEnabled && <div className="actions"><button disabled={busy || englishDirty} onClick={() => {setEnglishLatest(null); setEnglishConfirmedStructure(''); setEnglish(null); setEnglishDraft(null); setPreview('');}}>{t.editDutch}</button>
         <button disabled={busy || dirty || documentDirty || englishDirty} onClick={openEnglish}>{t.editEnglish}</button>
         {english && <button disabled={busy} onClick={() => { if (englishDirty && !window.confirm(t.confirmDiscardEnglish)) return;
           setEnglishConfirmedStructure(''); setEnglishDraft(english.content); }}>{t.discardEnglish}</button>}
@@ -472,7 +472,7 @@ function App() {
       {documentConflict && <aside><p>{dc.conflict}</p><p>{documentConflict.content.title}</p>
         <button disabled={busy} onClick={() => { if (busy) return; setSelectedDocument(documentConflict); setDocumentDraft(documentConflict.content);
           setDocumentConflict(null); setPreview(''); resetRights(); invalidateSiteChoice(); }}>{dc.latest}</button></aside>}
-      {!selectedDocument && <fieldset disabled={busy}><legend>{t.imageInDraft}</legend>
+      {!selectedDocument && !english && <fieldset disabled={busy}><legend>{t.imageInDraft}</legend>
         <p className="hint">{page.uploadEnabled ? t.imageHelpUploads
           : t.imageHelpFixture}</p>
         <label>{t.imageSelect}<select value={values.image ? `${values.image.assetId}:${values.image.fileVersion}` : ''} onChange={(event) => {
@@ -509,7 +509,7 @@ function App() {
             <button disabled={!rightsDecision.confirmed} className="secondary" onClick={() => decideRights('blocked')}>{t.blockPublication}</button></div>
         </>}
       </fieldset>}
-      {!selectedDocument && draftConflict && <aside><h3>{t.latestText}</h3><p>{draftConflict.values.title}</p><p>{draftConflict.values.intro}</p>
+      {!selectedDocument && !english && draftConflict && <aside><h3>{t.latestText}</h3><p>{draftConflict.values.title}</p><p>{draftConflict.values.intro}</p>
         <button disabled={busy} onClick={() => {
           if (busy) return;
           setPage(draftConflict); setValues(draftConflict.values); setDraftConflict(null); setPreview('');
@@ -518,7 +518,7 @@ function App() {
           setStatus(message('adoptedLatest'));
         }}>{t.adoptLatest}</button>
         <p>{t.keepInputHelp}</p></aside>}
-      {!selectedDocument && <div className="actions"><button disabled={busy || !dirty || !!draftConflict} onClick={save}>{t.saveHome}</button>
+      {!selectedDocument && !english && <div className="actions"><button disabled={busy || !dirty || !!draftConflict} onClick={save}>{t.saveHome}</button>
         <button className="secondary" disabled={busy || dirty || !!draftConflict} onClick={previewDraft}>{t.previewHomeButton}</button>
         {!page.pagesEnabled && <button disabled={busy || dirty || !!draftConflict || publicationConflict} onClick={publish}>{pendingChoice ? t.retryPage : t.publishPage}</button>}</div>}
       {!page.pagesEnabled && publicationConflict && <aside><p>{t.confirmRevision}</p><button disabled={busy} onClick={() => { if (busy) return; setPublicationConflict(false); setStatus(message('revisionConfirmed')); }}>{t.rechooseRevision}</button></aside>}

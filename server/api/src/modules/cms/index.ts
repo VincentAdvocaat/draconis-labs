@@ -65,7 +65,7 @@ export function cmsModule(service: CmsService, credentials: LocalCredential[]): 
             return shared.save(parameters(request).websiteId,sharedSaveSchema.parse(request.body),actor.name);
           });
           app.post('/websites/:websiteId/shared-navigation/previews', async (request,reply) => {
-            const input = z.object({pageId:z.string().uuid(),revisionId:z.string().uuid(),locale:z.enum(['nl','en']),
+            const input = z.object({pageId:z.union([z.literal('home'),z.string().uuid()]),revisionId:z.string().uuid(),locale:z.enum(['nl','en']),
               sharedRevisionId:z.string().uuid(),sharedVersion:z.number().int().positive()}).strict().parse(request.body);
             reply.header('Content-Security-Policy', "default-src 'none'; img-src data:; frame-ancestors 'self'; form-action 'none'; base-uri 'none'");
             return reply.type('text/html; charset=utf-8').send(documents.previewShared(parameters(request).websiteId,input));

@@ -73,6 +73,11 @@ export class CmsDocuments {
         INSERT OR IGNORE INTO cms_migrations VALUES(3);
       `);
     })();
+    db.transaction(()=>{
+      db.exec(`CREATE TABLE IF NOT EXISTS cms_home_blocks(website_id TEXT PRIMARY KEY REFERENCES cms_home_identity(website_id),text_id TEXT NOT NULL UNIQUE,image_id TEXT NOT NULL UNIQUE)`);
+      for(const row of db.prepare('SELECT website_id FROM cms_home_identity').all() as Array<{website_id:string}>)
+        db.prepare('INSERT OR IGNORE INTO cms_home_blocks VALUES(?,?,?)').run(row.website_id,randomUUID(),randomUUID());
+    }).immediate();
     this.locales = new CmsPageLocales(repository, (site, page) => this.get(site, page), media, portfolio);
     repository.setSiteSnapshots(this);
   }
@@ -84,10 +89,18 @@ export class CmsDocuments {
   }
   get(websiteId: string, pageId: string): DocumentDto {
     this.repository.page(websiteId);
+    if(pageId==='home'){const home=this.repository.page(websiteId);return {pageId,revisionId:home.revisionId,version:home.pageVersion,content:this.homeContent(websiteId,home.revisionId),published:!!home.activeReleaseId};}
     const row = this.rows(websiteId).find((item) => item.id === pageId);
     if (!row) throw new CmsError(404, 'Pagina niet gevonden');
     return { pageId, revisionId: row.revision_id, version: row.version, content: JSON.parse(row.content) as DocumentContent,
       published: this.wasPublished(websiteId, pageId) };
+  }
+  private homeContent(websiteId:string,revisionId:string):DocumentContent{
+    const values=this.repository.revision(websiteId,revisionId);
+    const ids=this.repository.db.prepare('SELECT text_id,image_id FROM cms_home_blocks WHERE website_id=?').get(websiteId) as {text_id:string;image_id:string};
+    return {schemaVersion:1,locale:'nl',title:values.title,slug:'index',seoTitle:values.title,seoDescription:'',blocks:[
+      {blockId:ids.text_id,type:'text',heading:'',body:values.intro},
+      ...(values.image?[{blockId:ids.image_id,type:'image' as const,reference:values.image,caption:''}]:[])]};
   }
   plan(websiteId: string) {
     const home = this.repository.page(websiteId);
@@ -140,6 +153,7 @@ export class CmsDocuments {
     return id;
   }
   save(websiteId: string, pageId: string, input: z.infer<typeof saveDocumentSchema>, actor: string): DocumentDto {
+    if(pageId==='home')throw new CmsError(400,'Gebruik de bestaande home-conceptopslag');
     return this.repository.db.transaction(() => {
       const prior = this.get(websiteId, pageId);
       if (prior.version !== input.expectedVersion) throw new CmsError(409, 'Paginaconcept gewijzigd. Haal de nieuwste versie op.');
@@ -171,6 +185,7 @@ export class CmsDocuments {
     }
   }
   private revision(websiteId: string, pageId: string, revisionId: string) {
+    if(pageId==='home')return {content:this.homeContent(websiteId,revisionId),mediaRevisionId:this.repository.mediaRevision(websiteId,revisionId)};
     const row = this.repository.db.prepare('SELECT content,media_revision_id FROM cms_document_revisions WHERE website_id=? AND page_id=? AND id=?')
       .get(websiteId, pageId, revisionId) as { content: string; media_revision_id: string | null } | undefined;
     if (!row) throw new CmsError(404, 'Paginarevisie niet gevonden');
@@ -188,10 +203,7 @@ export class CmsDocuments {
     }
     const home = plan.pages[0];
     if (input.revisionId !== home.revisionId) throw new CmsError(409, 'De home-revisie komt niet overeen met de selectie');
-    const values = this.repository.revision(websiteId, home.revisionId);
-    const homeContent: DocumentContent = { schemaVersion: 1, locale: 'nl', title: values.title, slug: 'index', seoTitle: values.title,
-      seoDescription: '', blocks: [{ blockId: 'home-text', type: 'text', heading: '', body: values.intro },
-        ...(values.image ? [{ blockId: 'home-image', type: 'image' as const, reference: values.image, caption: '' }] : [])] };
+    const homeContent=this.homeContent(websiteId,home.revisionId);
     const pages: SnapshotPage[] = [{ ...home, content: homeContent, mediaRevisionId: this.repository.mediaRevision(websiteId, home.revisionId) },
       ...plan.pages.slice(1).map((page) => ({ ...page, ...this.revision(websiteId, page.pageId, page.revisionId) }))];
     const selected = input.expectedLocales ?? [];
