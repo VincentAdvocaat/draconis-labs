@@ -40,3 +40,8 @@ Deze acceptatie geldt voor afzonderlijke lokale worktrees en fictieve gegevens. 
 Media-, upload-, locale- en catalogusconsumercontracten zijn als eerder gereviewde subsets in deze CMS-keten opgenomen. De zelfstandige media/catalogus-PR's staan eveneens open. Tijdelijke integratie in PR37 heeft de overlap verenigd en de volledige gezamenlijke lokale poort en browser/herstartproef doorlopen; onafhankelijke review akkoord op fb9c22d. Gezamenlijke landing op main, productieconfiguratie en deployment zijn nog niet uitgevoerd. Zie [integratiebewijs](../integratie/README.md). Mergevolgorde en consolidatie vragen een afzonderlijke opdracht. Bestaande lokale proefbewijzen blijven geldig binnen hun opgegeven codehead; ze bewijzen geen echte klantimport of livewebsitewerking.
 
 EN-home is inmiddels lokaal gebouwd en gereviewd in PR36. De volgende prioriteit is gezamenlijke integratie/consolidatie in één checkout. Geen nieuwe contentuitbreiding tot de integratiegaten concrete eigenaren hebben. Echte klanttemplates en alle daarin aanwezige vaste tekstbindings blijven een aparte open aansluiting. De lokale renderer heeft geen footer of formulier; die worden niet als ontbrekende gebouwde functies verzonnen.
+
+
+## Gesaneerde contacttemplate
+
+De afzonderlijke proef en controles staan in [contact-template-proef.md](contact-template-proef.md). Alle 27 bindings zijn afgedekt met fictieve NL/EN-inhoud, vaste templatehash en expliciete pagina/shared/templatepins. PR 37 blijft de vaste basis; mediacatalogus M2/M3 zijn nog niet geconsolideerd. Onafhankelijke PR-review volgt vóór afronding.

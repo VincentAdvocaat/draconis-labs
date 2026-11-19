@@ -1,6 +1,7 @@
 import {createCmsTranslator, type UiLocale} from './i18n';
 
-export interface SharedNavigationContent {schemaVersion:1;fields:{
+export type ContactValues=Partial<Record<'nl'|'en',string|null>>;
+export interface SharedNavigationContent {schemaVersion:1;contact?:Record<string,ContactValues>;fields:{
   'navigation.languageLabel':{values:Partial<Record<'nl'|'en',string|null>>};
   'navigation.locale.nl':{value:string|null;sourceLocale:'nl'};
   'navigation.locale.en':{value:string|null;sourceLocale:'en'};

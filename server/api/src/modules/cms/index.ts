@@ -1,3 +1,5 @@
+import {contactSaveSchema} from './contact-fields.js';
+import {previewSelectionSchema} from './contact-template.js';
 import {z} from 'zod';
 import {sharedSaveSchema} from './shared-navigation.js';
 import { createHash, timingSafeEqual } from 'node:crypto';
@@ -52,14 +54,24 @@ export function cmsModule(service: CmsService, credentials: LocalCredential[]): 
         }
       });
       app.get('/websites/:websiteId/pages/home', async (request) => ({
-        ...service.repository.page(parameters(request).websiteId), uploadEnabled: service.uploadEnabled, pagesEnabled: !!service.documents, sharedEnabled: !!service.documents?.shared,
+        ...service.repository.page(parameters(request).websiteId), uploadEnabled: service.uploadEnabled, pagesEnabled: !!service.documents, sharedEnabled: !!service.documents?.shared, contactEnabled:!!service.documents?.contact,
       }));
       if (service.documents) {
         const documents = service.documents;
+        if(documents.contact){
+          const contact=documents.contact;
+          app.get('/websites/:websiteId/contact-template',async(request)=>contact.plan(parameters(request).websiteId));
+          app.put('/websites/:websiteId/contact-template',{bodyLimit:128_000},async(request)=>contact.save(parameters(request).websiteId,contactSaveSchema.parse(request.body),authorize(request).name));
+          app.post('/websites/:websiteId/contact-template/previews',async(request)=>contact.preview(parameters(request).websiteId,previewSelectionSchema.parse(request.body)));
+          app.get('/websites/:websiteId/contact-template/previews/:previewId',async(request,reply)=>{
+            const result=contact.previewHtml(parameters(request).websiteId,(request.params as {previewId:string}).previewId);
+            return reply.header('Content-Security-Policy',result.csp).type('text/html; charset=utf-8').send(result.html);
+          });
+        }
         if (documents.shared) {
           const shared = documents.shared;
           app.get('/websites/:websiteId/shared-navigation', async (request) => shared.get(parameters(request).websiteId));
-          app.put('/websites/:websiteId/shared-navigation', async (request) => {
+          app.put('/websites/:websiteId/shared-navigation', {bodyLimit:128_000}, async (request) => {
             const actor = authorize(request);
             if (typeof request.body === 'object' && request.body !== null && !('expectedVersion' in request.body)) throw new CmsError(428,'Verwachte navigatieversie vereist');
             return shared.save(parameters(request).websiteId,sharedSaveSchema.parse(request.body),actor.name);
