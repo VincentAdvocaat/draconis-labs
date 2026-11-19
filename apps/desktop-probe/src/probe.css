@@ -1,0 +1,6 @@
+body { background: #f4f6f9; color: #162039; font: 18px system-ui, sans-serif; margin: 40px; }
+main { max-width: 780px; margin: auto; }
+input, button { font: inherit; padding: 10px; margin: 8px; }
+button { background: #243c74; color: white; border: 0; border-radius: 5px; }
+li { padding: 12px; border-bottom: 1px solid #ccd3df; }
+[role=alert] { color: #9d1d25; }

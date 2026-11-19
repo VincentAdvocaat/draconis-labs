@@ -1,6 +1,13 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { Button } from './Button.js';
 
+function hasHiddenDisplayAncestor(element: HTMLElement, panel: HTMLElement): boolean {
+  for (let current: HTMLElement | null = element; current && current !== panel; current = current.parentElement) {
+    if (getComputedStyle(current).display === 'none') return true;
+  }
+  return false;
+}
+
 export interface ModalProps {
   open: boolean;
   onClose: () => void;
@@ -26,16 +33,41 @@ export function Modal({
 }: ModalProps) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') onCloseRef.current();
+      if (event.key !== 'Tab') return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusable = [...panel.querySelectorAll<HTMLElement>(
+        'a[href], button, input, select, textarea, [tabindex], [contenteditable="true"]',
+      )].filter(element => element.tabIndex >= 0 && !element.matches(':disabled, input[type="hidden"]') &&
+        !element.closest('[hidden], [inert], [aria-hidden="true"]') &&
+        getComputedStyle(element).visibility !== 'hidden' &&
+        !hasHiddenDisplayAncestor(element, panel));
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (!first || !panel.contains(active) || active === panel ||
+          (event.shiftKey ? active === first : active === last)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first)?.focus();
+        if (!first) panel.focus();
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     panelRef.current?.focus();
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open, onClose]);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      if (opener?.isConnected) opener.focus();
+    };
+  }, [open]);
 
   if (!open) return null;
 

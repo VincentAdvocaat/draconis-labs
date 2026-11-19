@@ -1,0 +1,1569 @@
+{
+  "previous": {
+    "version": "0.3.0",
+    "electron": "45.4.1",
+    "node": "24.22.3",
+    "abi": "150",
+    "readyMs": 186.77499999999998,
+    "readyEpochMs": 1795106828309,
+    "before": [
+      {
+        "id": "d63a4e41-e74e-4ad8-9dcc-b55a200ba36a",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 6000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:06.378Z",
+        "updatedAt": "2026-11-19T16:47:06.403Z",
+        "completedAt": "2026-11-19T16:47:06.385Z"
+      },
+      {
+        "id": "747c6f55-b6c3-43ed-b56c-f4fe9c6f3d17",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 7000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.002Z",
+        "updatedAt": "2026-11-19T16:47:07.023Z",
+        "completedAt": "2026-11-19T16:47:07.020Z"
+      },
+      {
+        "id": "1fed2791-74c6-4431-9171-404f986ecb16",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 8000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.434Z",
+        "updatedAt": "2026-11-19T16:47:07.453Z",
+        "completedAt": "2026-11-19T16:47:07.450Z"
+      },
+      {
+        "id": "d36e3b0b-cbbd-415d-a70c-6aa8e895a59b",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 9000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.872Z",
+        "updatedAt": "2026-11-19T16:47:07.887Z",
+        "completedAt": "2026-11-19T16:47:07.885Z"
+      },
+      {
+        "id": "46a0a8db-2dc2-4325-a8ef-a8cd0370cc80",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 1000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:53.799Z",
+        "updatedAt": "2026-11-19T16:36:53.799Z",
+        "completedAt": null
+      },
+      {
+        "id": "829784d1-1a7c-4fce-85ee-13314bb40a51",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 2000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:54.344Z",
+        "updatedAt": "2026-11-19T16:36:54.344Z",
+        "completedAt": null
+      },
+      {
+        "id": "66e3de30-f88d-498b-86e6-c70543acf418",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 3000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:54.740Z",
+        "updatedAt": "2026-11-19T16:36:54.740Z",
+        "completedAt": null
+      },
+      {
+        "id": "f7fce42b-5f1d-4551-9c1d-e0172de7c0c9",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 4000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:55.142Z",
+        "updatedAt": "2026-11-19T16:36:55.142Z",
+        "completedAt": null
+      },
+      {
+        "id": "63029e5f-f7ed-4bfb-828a-ef6c7825647b",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 5000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:55.505Z",
+        "updatedAt": "2026-11-19T16:36:55.505Z",
+        "completedAt": null
+      },
+      {
+        "id": "8abc936f-4391-4eec-9370-ca2fc42c1453",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "d63a4e41-e74e-4ad8-9dcc-b55a200ba36a",
+        "position": 6000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:06.385Z",
+        "updatedAt": "2026-11-19T16:47:06.385Z",
+        "completedAt": null
+      },
+      {
+        "id": "a7164045-3b5b-41a2-bb6c-2eb5b3718ac3",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "747c6f55-b6c3-43ed-b56c-f4fe9c6f3d17",
+        "position": 7000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.020Z",
+        "updatedAt": "2026-11-19T16:47:07.020Z",
+        "completedAt": null
+      },
+      {
+        "id": "816976f7-7067-47a1-9cbf-0a4df4d379bf",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "1fed2791-74c6-4431-9171-404f986ecb16",
+        "position": 8000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.450Z",
+        "updatedAt": "2026-11-19T16:47:07.450Z",
+        "completedAt": null
+      },
+      {
+        "id": "650be9c3-6aa9-4859-b432-65bd8937c41d",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "d36e3b0b-cbbd-415d-a70c-6aa8e895a59b",
+        "position": 9000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.885Z",
+        "updatedAt": "2026-11-19T16:47:07.885Z",
+        "completedAt": null
+      }
+    ],
+    "task": {
+      "id": "a9930678-7cfd-407e-bc79-cd1cfe01b4c3",
+      "title": "Rijke fictieve desktoptaak",
+      "description": "Behoud alle velden",
+      "lane": "done",
+      "plannedDate": "2026-11-19",
+      "dueDate": "2026-11-20",
+      "dueTime": "09:15",
+      "timezone": "Europe/Amsterdam",
+      "recurrence": {
+        "frequency": "weekly",
+        "interval": 2
+      },
+      "recurrenceParentId": null,
+      "position": 10000,
+      "version": 4,
+      "createdBy": "local-probe",
+      "priority": "high",
+      "labels": [
+        "probe",
+        "onderhoud"
+      ],
+      "createdAt": "2026-11-19T16:47:08.314Z",
+      "updatedAt": "2026-11-19T16:47:08.331Z",
+      "completedAt": "2026-11-19T16:47:08.329Z"
+    },
+    "read": [
+      {
+        "id": "d63a4e41-e74e-4ad8-9dcc-b55a200ba36a",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 6000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:06.378Z",
+        "updatedAt": "2026-11-19T16:47:06.403Z",
+        "completedAt": "2026-11-19T16:47:06.385Z"
+      },
+      {
+        "id": "747c6f55-b6c3-43ed-b56c-f4fe9c6f3d17",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 7000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.002Z",
+        "updatedAt": "2026-11-19T16:47:07.023Z",
+        "completedAt": "2026-11-19T16:47:07.020Z"
+      },
+      {
+        "id": "1fed2791-74c6-4431-9171-404f986ecb16",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 8000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.434Z",
+        "updatedAt": "2026-11-19T16:47:07.453Z",
+        "completedAt": "2026-11-19T16:47:07.450Z"
+      },
+      {
+        "id": "d36e3b0b-cbbd-415d-a70c-6aa8e895a59b",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 9000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.872Z",
+        "updatedAt": "2026-11-19T16:47:07.887Z",
+        "completedAt": "2026-11-19T16:47:07.885Z"
+      },
+      {
+        "id": "a9930678-7cfd-407e-bc79-cd1cfe01b4c3",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 10000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:08.314Z",
+        "updatedAt": "2026-11-19T16:47:08.331Z",
+        "completedAt": "2026-11-19T16:47:08.329Z"
+      },
+      {
+        "id": "46a0a8db-2dc2-4325-a8ef-a8cd0370cc80",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 1000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:53.799Z",
+        "updatedAt": "2026-11-19T16:36:53.799Z",
+        "completedAt": null
+      },
+      {
+        "id": "829784d1-1a7c-4fce-85ee-13314bb40a51",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 2000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:54.344Z",
+        "updatedAt": "2026-11-19T16:36:54.344Z",
+        "completedAt": null
+      },
+      {
+        "id": "66e3de30-f88d-498b-86e6-c70543acf418",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 3000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:54.740Z",
+        "updatedAt": "2026-11-19T16:36:54.740Z",
+        "completedAt": null
+      },
+      {
+        "id": "f7fce42b-5f1d-4551-9c1d-e0172de7c0c9",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 4000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:55.142Z",
+        "updatedAt": "2026-11-19T16:36:55.142Z",
+        "completedAt": null
+      },
+      {
+        "id": "63029e5f-f7ed-4bfb-828a-ef6c7825647b",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 5000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:55.505Z",
+        "updatedAt": "2026-11-19T16:36:55.505Z",
+        "completedAt": null
+      },
+      {
+        "id": "8abc936f-4391-4eec-9370-ca2fc42c1453",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "d63a4e41-e74e-4ad8-9dcc-b55a200ba36a",
+        "position": 6000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:06.385Z",
+        "updatedAt": "2026-11-19T16:47:06.385Z",
+        "completedAt": null
+      },
+      {
+        "id": "a7164045-3b5b-41a2-bb6c-2eb5b3718ac3",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "747c6f55-b6c3-43ed-b56c-f4fe9c6f3d17",
+        "position": 7000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.020Z",
+        "updatedAt": "2026-11-19T16:47:07.020Z",
+        "completedAt": null
+      },
+      {
+        "id": "816976f7-7067-47a1-9cbf-0a4df4d379bf",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "1fed2791-74c6-4431-9171-404f986ecb16",
+        "position": 8000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.450Z",
+        "updatedAt": "2026-11-19T16:47:07.450Z",
+        "completedAt": null
+      },
+      {
+        "id": "650be9c3-6aa9-4859-b432-65bd8937c41d",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "d36e3b0b-cbbd-415d-a70c-6aa8e895a59b",
+        "position": 9000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.885Z",
+        "updatedAt": "2026-11-19T16:47:07.885Z",
+        "completedAt": null
+      },
+      {
+        "id": "4f0b2372-5bd4-41ed-b378-6dafc6d19d59",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "a9930678-7cfd-407e-bc79-cd1cfe01b4c3",
+        "position": 10000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:08.329Z",
+        "updatedAt": "2026-11-19T16:47:08.329Z",
+        "completedAt": null
+      }
+    ],
+    "rejected": true,
+    "actorBoundary": true,
+    "conflictRejected": true,
+    "tokenRoundTrip": true,
+    "sqlite": "better-sqlite3"
+  },
+  "next": {
+    "version": "0.4.0",
+    "electron": "45.4.1",
+    "node": "24.22.3",
+    "abi": "150",
+    "readyMs": 1331.6543000000001,
+    "readyEpochMs": 1795106871032,
+    "before": [
+      {
+        "id": "d63a4e41-e74e-4ad8-9dcc-b55a200ba36a",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 6000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:06.378Z",
+        "updatedAt": "2026-11-19T16:47:06.403Z",
+        "completedAt": "2026-11-19T16:47:06.385Z"
+      },
+      {
+        "id": "747c6f55-b6c3-43ed-b56c-f4fe9c6f3d17",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 7000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.002Z",
+        "updatedAt": "2026-11-19T16:47:07.023Z",
+        "completedAt": "2026-11-19T16:47:07.020Z"
+      },
+      {
+        "id": "1fed2791-74c6-4431-9171-404f986ecb16",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 8000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.434Z",
+        "updatedAt": "2026-11-19T16:47:07.453Z",
+        "completedAt": "2026-11-19T16:47:07.450Z"
+      },
+      {
+        "id": "d36e3b0b-cbbd-415d-a70c-6aa8e895a59b",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 9000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.872Z",
+        "updatedAt": "2026-11-19T16:47:07.887Z",
+        "completedAt": "2026-11-19T16:47:07.885Z"
+      },
+      {
+        "id": "a9930678-7cfd-407e-bc79-cd1cfe01b4c3",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 10000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:08.314Z",
+        "updatedAt": "2026-11-19T16:47:08.331Z",
+        "completedAt": "2026-11-19T16:47:08.329Z"
+      },
+      {
+        "id": "46a0a8db-2dc2-4325-a8ef-a8cd0370cc80",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 1000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:53.799Z",
+        "updatedAt": "2026-11-19T16:36:53.799Z",
+        "completedAt": null
+      },
+      {
+        "id": "829784d1-1a7c-4fce-85ee-13314bb40a51",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 2000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:54.344Z",
+        "updatedAt": "2026-11-19T16:36:54.344Z",
+        "completedAt": null
+      },
+      {
+        "id": "66e3de30-f88d-498b-86e6-c70543acf418",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 3000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:54.740Z",
+        "updatedAt": "2026-11-19T16:36:54.740Z",
+        "completedAt": null
+      },
+      {
+        "id": "f7fce42b-5f1d-4551-9c1d-e0172de7c0c9",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 4000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:55.142Z",
+        "updatedAt": "2026-11-19T16:36:55.142Z",
+        "completedAt": null
+      },
+      {
+        "id": "63029e5f-f7ed-4bfb-828a-ef6c7825647b",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 5000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:55.505Z",
+        "updatedAt": "2026-11-19T16:36:55.505Z",
+        "completedAt": null
+      },
+      {
+        "id": "8abc936f-4391-4eec-9370-ca2fc42c1453",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "d63a4e41-e74e-4ad8-9dcc-b55a200ba36a",
+        "position": 6000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:06.385Z",
+        "updatedAt": "2026-11-19T16:47:06.385Z",
+        "completedAt": null
+      },
+      {
+        "id": "a7164045-3b5b-41a2-bb6c-2eb5b3718ac3",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "747c6f55-b6c3-43ed-b56c-f4fe9c6f3d17",
+        "position": 7000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.020Z",
+        "updatedAt": "2026-11-19T16:47:07.020Z",
+        "completedAt": null
+      },
+      {
+        "id": "816976f7-7067-47a1-9cbf-0a4df4d379bf",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "1fed2791-74c6-4431-9171-404f986ecb16",
+        "position": 8000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.450Z",
+        "updatedAt": "2026-11-19T16:47:07.450Z",
+        "completedAt": null
+      },
+      {
+        "id": "650be9c3-6aa9-4859-b432-65bd8937c41d",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "d36e3b0b-cbbd-415d-a70c-6aa8e895a59b",
+        "position": 9000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.885Z",
+        "updatedAt": "2026-11-19T16:47:07.885Z",
+        "completedAt": null
+      },
+      {
+        "id": "4f0b2372-5bd4-41ed-b378-6dafc6d19d59",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "a9930678-7cfd-407e-bc79-cd1cfe01b4c3",
+        "position": 10000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:08.329Z",
+        "updatedAt": "2026-11-19T16:47:08.329Z",
+        "completedAt": null
+      }
+    ],
+    "task": {
+      "id": "e2a45ab6-7a02-4778-b8b0-6cc69dd79cce",
+      "title": "Rijke fictieve desktoptaak",
+      "description": "Behoud alle velden",
+      "lane": "done",
+      "plannedDate": "2026-11-19",
+      "dueDate": "2026-11-20",
+      "dueTime": "09:15",
+      "timezone": "Europe/Amsterdam",
+      "recurrence": {
+        "frequency": "weekly",
+        "interval": 2
+      },
+      "recurrenceParentId": null,
+      "position": 11000,
+      "version": 4,
+      "createdBy": "local-probe",
+      "priority": "high",
+      "labels": [
+        "probe",
+        "onderhoud"
+      ],
+      "createdAt": "2026-11-19T16:47:51.035Z",
+      "updatedAt": "2026-11-19T16:47:51.050Z",
+      "completedAt": "2026-11-19T16:47:51.048Z"
+    },
+    "read": [
+      {
+        "id": "d63a4e41-e74e-4ad8-9dcc-b55a200ba36a",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 6000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:06.378Z",
+        "updatedAt": "2026-11-19T16:47:06.403Z",
+        "completedAt": "2026-11-19T16:47:06.385Z"
+      },
+      {
+        "id": "747c6f55-b6c3-43ed-b56c-f4fe9c6f3d17",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 7000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.002Z",
+        "updatedAt": "2026-11-19T16:47:07.023Z",
+        "completedAt": "2026-11-19T16:47:07.020Z"
+      },
+      {
+        "id": "1fed2791-74c6-4431-9171-404f986ecb16",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 8000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.434Z",
+        "updatedAt": "2026-11-19T16:47:07.453Z",
+        "completedAt": "2026-11-19T16:47:07.450Z"
+      },
+      {
+        "id": "d36e3b0b-cbbd-415d-a70c-6aa8e895a59b",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 9000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.872Z",
+        "updatedAt": "2026-11-19T16:47:07.887Z",
+        "completedAt": "2026-11-19T16:47:07.885Z"
+      },
+      {
+        "id": "a9930678-7cfd-407e-bc79-cd1cfe01b4c3",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 10000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:08.314Z",
+        "updatedAt": "2026-11-19T16:47:08.331Z",
+        "completedAt": "2026-11-19T16:47:08.329Z"
+      },
+      {
+        "id": "e2a45ab6-7a02-4778-b8b0-6cc69dd79cce",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "done",
+        "plannedDate": "2026-11-19",
+        "dueDate": "2026-11-20",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": null,
+        "position": 11000,
+        "version": 4,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:51.035Z",
+        "updatedAt": "2026-11-19T16:47:51.050Z",
+        "completedAt": "2026-11-19T16:47:51.048Z"
+      },
+      {
+        "id": "46a0a8db-2dc2-4325-a8ef-a8cd0370cc80",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 1000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:53.799Z",
+        "updatedAt": "2026-11-19T16:36:53.799Z",
+        "completedAt": null
+      },
+      {
+        "id": "829784d1-1a7c-4fce-85ee-13314bb40a51",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 2000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:54.344Z",
+        "updatedAt": "2026-11-19T16:36:54.344Z",
+        "completedAt": null
+      },
+      {
+        "id": "66e3de30-f88d-498b-86e6-c70543acf418",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 3000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:54.740Z",
+        "updatedAt": "2026-11-19T16:36:54.740Z",
+        "completedAt": null
+      },
+      {
+        "id": "f7fce42b-5f1d-4551-9c1d-e0172de7c0c9",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 4000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:55.142Z",
+        "updatedAt": "2026-11-19T16:36:55.142Z",
+        "completedAt": null
+      },
+      {
+        "id": "63029e5f-f7ed-4bfb-828a-ef6c7825647b",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 5000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:55.505Z",
+        "updatedAt": "2026-11-19T16:36:55.505Z",
+        "completedAt": null
+      },
+      {
+        "id": "8abc936f-4391-4eec-9370-ca2fc42c1453",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "d63a4e41-e74e-4ad8-9dcc-b55a200ba36a",
+        "position": 6000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:06.385Z",
+        "updatedAt": "2026-11-19T16:47:06.385Z",
+        "completedAt": null
+      },
+      {
+        "id": "a7164045-3b5b-41a2-bb6c-2eb5b3718ac3",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "747c6f55-b6c3-43ed-b56c-f4fe9c6f3d17",
+        "position": 7000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.020Z",
+        "updatedAt": "2026-11-19T16:47:07.020Z",
+        "completedAt": null
+      },
+      {
+        "id": "816976f7-7067-47a1-9cbf-0a4df4d379bf",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "1fed2791-74c6-4431-9171-404f986ecb16",
+        "position": 8000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.450Z",
+        "updatedAt": "2026-11-19T16:47:07.450Z",
+        "completedAt": null
+      },
+      {
+        "id": "650be9c3-6aa9-4859-b432-65bd8937c41d",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "d36e3b0b-cbbd-415d-a70c-6aa8e895a59b",
+        "position": 9000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:07.885Z",
+        "updatedAt": "2026-11-19T16:47:07.885Z",
+        "completedAt": null
+      },
+      {
+        "id": "4f0b2372-5bd4-41ed-b378-6dafc6d19d59",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "a9930678-7cfd-407e-bc79-cd1cfe01b4c3",
+        "position": 10000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:08.329Z",
+        "updatedAt": "2026-11-19T16:47:08.329Z",
+        "completedAt": null
+      },
+      {
+        "id": "e1595919-a480-4e80-94fa-3d0d9df2ab92",
+        "title": "Rijke fictieve desktoptaak",
+        "description": "Behoud alle velden",
+        "lane": "todo",
+        "plannedDate": "2026-12-04",
+        "dueDate": "2026-12-04",
+        "dueTime": "09:15",
+        "timezone": "Europe/Amsterdam",
+        "recurrence": {
+          "frequency": "weekly",
+          "interval": 2
+        },
+        "recurrenceParentId": "e2a45ab6-7a02-4778-b8b0-6cc69dd79cce",
+        "position": 11000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "high",
+        "labels": [
+          "probe",
+          "onderhoud"
+        ],
+        "createdAt": "2026-11-19T16:47:51.048Z",
+        "updatedAt": "2026-11-19T16:47:51.048Z",
+        "completedAt": null
+      }
+    ],
+    "rejected": true,
+    "actorBoundary": true,
+    "conflictRejected": true,
+    "tokenRoundTrip": true,
+    "sqlite": "better-sqlite3"
+  },
+  "fullRecordsEqual": true
+}

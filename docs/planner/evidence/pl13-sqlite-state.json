@@ -1,0 +1,20 @@
+{
+  "binding": "better-sqlite3 13.2.0",
+  "migrations": [
+    {
+      "version": 1,
+      "applied_at": "2026-11-19T17:39:08.234Z"
+    }
+  ],
+  "tasks": {
+    "count": 50
+  },
+  "retainedSource": {
+    "count": 5
+  },
+  "completedImports": [
+    {
+      "id": "pl02-json-to-tasks"
+    }
+  ]
+}

@@ -21,7 +21,7 @@ export async function registerApiModules(
     async (legacy) => {
       legacy.addHook('onSend', addLegacyDeprecationHeaders);
       for (const mod of modules) {
-        await legacy.register(mod.register, { prefix: mod.prefix });
+        if (mod.legacyAlias !== false) await legacy.register(mod.register, { prefix: mod.prefix });
       }
     },
     { prefix: '/api' },

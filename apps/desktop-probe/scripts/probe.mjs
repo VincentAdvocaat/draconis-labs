@@ -1,0 +1,120 @@
+import { spawn } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
+import { tmpdir, release, arch, cpus } from 'node:os';
+import { join, resolve } from 'node:path';
+import assert from 'node:assert/strict';
+import Database from 'better-sqlite3';
+
+const outputDir = resolve(process.env.PLANNER_PROBE_RESULTS || `dist/results/run-${Date.now()}`);
+mkdirSync(outputDir, { recursive: true });
+assert.equal(readdirSync(outputDir).length, 0, 'Choose an empty result directory to preserve earlier evidence');
+const profile = process.env.PLANNER_PROBE_PROFILE || mkdtempSync(join(tmpdir(), 'draconis-desktop-probe-'));
+if (process.env.PLANNER_PROBE_SEED) {
+  mkdirSync(profile, { recursive: true });
+  const database = new Database(join(profile, 'probe.sqlite'));
+  database.exec(readFileSync(new URL('../tests/fixtures/pl02.sql', import.meta.url), 'utf8'));
+  const seed = JSON.parse(readFileSync(process.env.PLANNER_PROBE_SEED, 'utf8')).previous.read;
+  for (const task of seed) database.prepare('INSERT INTO probe_tasks VALUES (?, ?)').run(task.id, JSON.stringify(task));
+  database.close();
+}
+const exe = resolve('dist/packages/DraconisPlannerProbe-win32-x64/DraconisPlannerProbe.exe');
+function run(file, args, env, input) {
+  return new Promise((done, fail) => {
+    const started = performance.now();
+    const startedEpochMs = Date.now();
+    const child = spawn(file, args, { env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    const timeout = setTimeout(() => { child.kill(); fail(new Error(`Probe timed out: ${stderr}`)); }, 25_000);
+    child.stdout.on('data', chunk => { stdout += chunk; });
+    child.stderr.on('data', chunk => { stderr += chunk; });
+    child.on('error', error => { clearTimeout(timeout); fail(error); });
+    child.on('exit', code => {
+      clearTimeout(timeout);
+      if (code !== 0) fail(new Error(`Probe exit ${code}: ${stderr}`));
+      else done({ startedEpochMs, elapsedMs: performance.now() - started, stdout, stderr });
+    });
+    child.stdin.end(input);
+  });
+}
+const env = { ...process.env };
+delete env.ELECTRON_RUN_AS_NODE;
+const runs = [];
+let previous = process.env.PLANNER_PROBE_PREVIOUS
+  ? JSON.parse(readFileSync(process.env.PLANNER_PROBE_PREVIOUS, 'utf8')).read : process.env.PLANNER_PROBE_SEED
+    ? JSON.parse(readFileSync(process.env.PLANNER_PROBE_SEED, 'utf8')).previous.read : undefined;
+let previousBookings;
+for (let index = 0; index < 5; index++) {
+  const output = join(outputDir, `launch-${index + 1}.json`);
+  const processResult = await run(exe, [], { ...env, PLANNER_PROBE_PROFILE: profile, PLANNER_PROBE_OUTPUT: output });
+  const result = JSON.parse(readFileSync(output, 'utf8'));
+  assert(result.rejected, 'main process must reject invalid payload');
+  assert(result.tokenRoundTrip, 'Windows safeStorage must round-trip a synthetic token');
+  assert(result.actorBoundary, 'actor, ID, lane and version must remain main-process determined');
+  assert(result.conflictRejected, 'shared update must reject stale versions');
+  const priorIds = new Set(result.before.map(task => task.id));
+  assert(result.workspaceRejected, 'wrong workspace must be rejected');
+  assert(result.preferencesRoundTrip, 'workspace preferences must round-trip');
+  assert(result.booking.idempotent, 'contact retry must reuse its outcome');
+  assert.equal(result.booking.blocked, 'SLOT_BLOCKED');
+  assert.equal(result.booking.stale, 'VERSION_CONFLICT');
+  assert.equal(result.booking.moved.window.startTime, '08:00');
+  assert(result.booking.moved.arrivalAt, 'internal arrival is separate from promised customer window');
+  assert.equal(result.booking.available[0].occupied, 1, 'completed visit retains capacity');
+  assert(result.booking.available[1].available, 'cancelled visit releases capacity');
+  assert(result.booking.zoneProof.uiZoneSelected && result.booking.zoneProof.uiCapacityChanged && result.booking.zoneProof.uiCrossZoneMoved, 'zone, capacity and cross-zone move use actual React controls');
+  assert.equal(result.booking.zoneProof.thirdRejected,'SLOT_FULL');
+  assert.equal(result.booking.zoneProof.reductionRejected,'CAPACITY_BELOW_OCCUPANCY');
+  assert.equal(result.booking.zoneProof.movedZone,'east');
+  assert.equal(result.booking.zoneProof.sourceOccupancy,1);
+  assert.equal(result.booking.zoneProof.sourceCapacity,2);
+  if (previousBookings) assert.deepEqual(result.booking.before, previousBookings, 'contacts, appointments and events must survive restart');
+  previousBookings = result.booking.after;
+  assert.deepEqual(result.read.filter(task => priorIds.has(task.id)), result.before.filter(task => task.id !== result.deletedId));
+  assert.equal(result.read.length, result.before.length + 2 - (result.deletedId ? 1 : 0));
+  if (result.deletedId) assert(!result.read.some(task => task.id === result.deletedId));
+  assert.equal(result.task.version, 4);
+  assert.equal(result.task.timezone, 'Europe/Amsterdam');
+  const successor = result.read.find(task => task.recurrenceParentId === result.task.id);
+  assert.equal(successor.dueDate, '2026-12-04');
+  assert.deepEqual(successor.recurrence, { frequency: 'weekly', interval: 2 });
+  if (previous) assert.deepEqual(result.before, previous, 'SQLite records must survive process restart');
+  previous = result.read;
+  runs.push({ ...result, spawnToReadyMs: result.readyEpochMs - processResult.startedEpochMs, elapsedMs: processResult.elapsedMs, invalidInputLogged: processResult.stderr.includes('ZodError') });
+}
+// Rehearse the Node sidecar's write, rejection and EOF lifecycle independently of Tauri.
+const sidecarDb = join(profile, 'node-sidecar.sqlite');
+const first = await run(process.execPath, ['dist/sidecar.cjs', sidecarDb], env,
+  '{"type":"create","input":{"title":"Fictieve sidecartaak"}}\n{"type":"create","input":{"title":""}}\n{"type":"list"}\n');
+const messages = first.stdout.trim().split('\n').map(line => JSON.parse(line));
+assert.equal(messages[1].error, 'INVALID_COMMAND');
+assert.equal(messages[2].tasks.at(-1).title, 'Fictieve sidecartaak');
+const second = await run(process.execPath, ['dist/sidecar.cjs', sidecarDb], env, '{"type":"list"}\n');
+assert.deepEqual(JSON.parse(second.stdout).tasks, messages[2].tasks);
+function bytes(path) {
+  return readdirSync(path).reduce((total, entry) => {
+    const target = join(path, entry), stat = statSync(target);
+    return total + (stat.isDirectory() ? bytes(target) : stat.size);
+  }, 0);
+}
+const report = {
+  measuredAt: new Date().toISOString(), os: `Windows ${release()} ${arch()}`,
+  cpu: cpus()[0].model, hostNode: process.version, hostAbi: process.versions.modules,
+  machine: 'Existing developer workstation, no clean VM; process-cold starts, OS cache not cleared',
+  packageBytes: bytes(resolve('dist/packages/DraconisPlannerProbe-win32-x64')),
+  runs: runs.map(({ profile: _profile, before, task, read, booking, ...result }) => ({
+    ...result, beforeCount: before.length, afterCount: read.length, createdId: task.id,
+    booking: { uiContactCreated: booking.uiContactCreated, uiAppointmentCreated: booking.uiAppointmentCreated,
+      contactsBefore: booking.before.length, contactsAfter: booking.after.length,
+      idempotent: booking.idempotent, blocked: booking.blocked, stale: booking.stale,
+      customerWindow: booking.moved.window, internalArrival: booking.moved.arrivalAt,
+      completedOccupies: booking.available[0].occupied === 1, cancelledReleases: booking.available[1].available,
+      zones: booking.zoneProof,
+    },
+  })),
+  sidecar: { runtime: process.version, abi: process.versions.modules, firstMs: first.elapsedMs,
+    secondMs: second.elapsedMs, recordsPreserved: true, invalidCommandRejected: true, eofExits: true,
+    tauriShell: 'Not built: rustc/cargo unavailable. This is a Node protocol rehearsal only.' },
+};
+writeFileSync(join(outputDir, 'summary.json'), JSON.stringify(report, null, 2));
+console.log(JSON.stringify(report, null, 2));
+console.log(`Disposable profile retained at ${profile}`);

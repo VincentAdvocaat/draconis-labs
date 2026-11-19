@@ -1,0 +1,14 @@
+.bookings { max-width: 1120px; margin: auto; padding: 24px; color: var(--ink); }
+.booking-mode { color: var(--muted, #aab5cc); }
+.booking-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 20px; }
+.bookings label { display: block; margin: 12px 0; }
+.bookings input:not([type=checkbox]), .bookings select { display: block; width: 100%; max-width: 420px; padding: 9px; border: 1px solid var(--line); border-radius: 5px; background: white; color: var(--ink); }
+.bookings button, .planner-sections button { padding: 8px 12px; margin: 4px 8px 4px 0; border: 1px solid var(--line); border-radius: 5px; background: var(--green); color: white; cursor: pointer; }
+.bookings button:disabled { opacity: .5; cursor: default; }
+.bookings fieldset { border: 0; padding: 0; }
+.bookings ul { padding: 0; list-style: none; }
+.booking-slot, .booking-visit { padding: 16px; border: 1px solid var(--line); border-radius: 8px; margin: 12px 0; background: white; }
+.bookings [role=alert] { padding: 12px; color: var(--red); background: #fff0ed; }
+.planner-sections { padding: 10px 24px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.planner-sections [aria-current=page] { background: var(--ink); }
+@media (max-width: 720px) { .booking-columns { grid-template-columns: 1fr; } }

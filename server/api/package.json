@@ -5,12 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
+    "start": "node --import tsx dist/index.js",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "oxlint src tests",
     "test": "vitest run",
-    "openapi:update": "tsx scripts/update-openapi-snapshot.ts"
+    "openapi:update": "tsx scripts/update-openapi-snapshot.ts",
+    "smoke:start": "node scripts/smoke-start.mjs",
+    "planner:data": "tsx scripts/planner-snapshots.ts",
+    "planner:channel": "tsx scripts/create-public-channel.ts",
+    "start:public": "node --import tsx dist/public.js",
+    "smoke:public": "node scripts/smoke-public.mjs",
+    "demo:local": "node scripts/demo-local.mjs"
   },
   "dependencies": {
     "@draconis/shared": "workspace:*",
@@ -21,7 +27,10 @@
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.10.0",
     "sharp": "0.35.5",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@draconis/planner-core": "workspace:*",
+    "@draconis/planner-sqlite": "workspace:*",
+    "tsx": "^4.23.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

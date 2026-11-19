@@ -1,0 +1,25 @@
+{
+  "name": "@draconis/planner-sqlite",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "@draconis/shared": "workspace:*",
+    "@draconis/planner-core": "workspace:*",
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.13.3",
+    "typescript": "~6.0.3",
+    "oxlint": "^1.73.0"
+  }
+}

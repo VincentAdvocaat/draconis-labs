@@ -1,0 +1,37 @@
+{
+  "pr": "https://github.com/VincentAdvocaat/draconis-labs/pull/35",
+  "sourceChat": "01a1f49b-5c08-7343-9126-c4dee4c3ffe3",
+  "reviewerId": "/root/review_pr35",
+  "model": "gpt-6-astra",
+  "reasoning": "medium",
+  "status": "approved_with_no_required_findings",
+  "baseSha": "22cd650e8f72471c734244da65d9cbccd7caa16b",
+  "checkedCodeSha": "43c172c887e81fd09be999e1e28253825c4a4e12",
+  "fixAgent": "/root/fix_keyboard_modal",
+  "fixModel": "gpt-6.1-sol",
+  "fixReasoning": "low",
+  "fixReport": "Gereed door /root/fix_keyboard_modal, GPT-6.1 Sol low, geen commit/push. Modal: Tab/ShiftTab begrenzen, callback zonder focusreset, openerfocus herstellen, panelfallback. Bookings: alertfocus bij fouten, focusherstel na opslaan. Publiek: focus tijdvak/resultaat/fout/bevestiging. Gerichte regressies in drie testbestanden; onbekende retries behouden payload/key zonder extra mutatie. 20 planner tests en planner/UI typecheck/lint groen. Oude implementatie aantoonbaar falend getest: vier modalregressies, zeven boekings/public-focusasserties en contactsave body-versus-opslaan. Browserherproeven door implementatiechat na definitieve writes voltooid.",
+  "reviewReport": "Review afgerond: geen noodzakelijke fixes binnen afgesproken scope. Remote head bij begin/einde bevestigd, worktree schoon. Modal houdt focus binnen huidige dialogen, gebruikt nieuwste sluitcallback en herstelt opener. Bookings herstelt focus na async opslag of focust foutmelding. Publieke flow focust resultaten, fouten en bevestiging. Retryopdracht blijft intact; tests controleren gelijke payload/sleutel en aantallen mutaties. Supervisor gebruikt nieuwe eigen tempdatabase, controleert vier poorten vooraf, start vier Node-processen rechtstreeks en stopt uitsluitend opgeslagen child-processen. Geen verwijdering/opening gebruikersprofielen aangetroffen. Onafhankelijk planner test:20 geslaagd. Volledige suite/build/twee echte supervisorstarts niet herhaald; browserbewijs/acceptatiegrenzen als aangeleverd beoordeeld. Optioneel automatische lifecyclecontroles bij verdere uitbreiding voor bezette poort en onverwacht childexit. Normale start/CtrlC bewezen, foutpaden nog geen regressiedekking. Dit blokkeert lokale demo niet. Geen bestanden/externe comments/merge/deployment gewijzigd.",
+  "optionalFindings": [
+    {
+      "finding": "Automatische supervisor-lifecyclecontroles voor bezette poort en onverwachte childexit bij verdere uitbreiding",
+      "disposition": "Niet automatisch toegevoegd; optionele uitbreiding. Normale starts/CtrlC en geen resterende listeners daadwerkelijk gecontroleerd."
+    }
+  ],
+  "validation": {
+    "tests": 155,
+    "plannerTests": 20,
+    "typecheck": "passed",
+    "lint": "passed",
+    "build": "passed with existing bundle size advisory",
+    "keyboardBrowser": "passed documented normal flows",
+    "supervisor": "two actual starts and Ctrl+C; four listeners stopped",
+    "installation": "preparation only",
+    "cloud": "not performed"
+  },
+  "additionalImpactReview": {
+    "checkedSha": "1246586b4e5329dcf5c9bd4af21d3b5cd2e142f8",
+    "status": "approved_with_no_required_findings",
+    "report": "Geen noodzakelijke fixes voor taakeditor/PreferencesModal. requestClose behoudt mutating- en onopgeslagenwijzigingencontrole. Callbackwijziging herstart focuseffect niet. Async save/delete/retry blijven bestaande handlers. Tab bepaalt controls iedere toets opnieuw; disabled overgeslagen, retry bereikbaar. Unmount verwijdert listener en herstelt alleen verbonden opener; open=false geen listener. Zelf modal-keyboard/client-context:7 geslaagd. Geen aparte browsertaakeditorfoutretry. Geen CMS in checkout, CMSacceptatie volgt integratie-eigenaar. Alleen-lezen."
+  }
+}

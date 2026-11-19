@@ -1,0 +1,46 @@
+{
+  "pr": "https://github.com/VincentAdvocaat/draconis-labs/pull/30",
+  "sourceChat": "01a1f49b-5c08-7343-9126-c4dee4c3ffe3",
+  "reviewerKind": "subagent, fork_turns none",
+  "reviewerId": "/root/review_pr30",
+  "reviewerModel": "gpt-6-astra",
+  "reviewerReasoningEffort": "medium",
+  "fixAgentId": "/root/fix_pr30_sql_guard",
+  "fixModel": "gpt-6.1-sol",
+  "fixReasoningEffort": "low",
+  "status": "closed: required P2 fixed and targeted re-review passed",
+  "checkedCodeSha": "3c3d8fc569264c3a30fcac03d1b864e91d76e149",
+  "baseSha": "9b5c81038d784994d929bbadbc4408bd9ecc828e",
+  "optionalScopeExtensions": [],
+  "reports": [
+    {
+      "kind": "full-review",
+      "checkedSha": "4637dbb9765764101fcae2fd5819ab80fc12433e",
+      "text": "Reviewstatus: noodzakelijke fix gevonden. Reviewer /root/review_pr30, GPT-6 Astra medium. PR #30 is aan begin en einde gecontroleerd op SHA 4637dbb9765764101fcae2fd5819ab80fc12433e.\n\nP2: bescherm ook verplaatsingen van blokkades via directe SQL. zone-migration.ts:79 maakt uitsluitend een BEFORE INSERT-trigger. Een bestaande blokkade kan met UPDATE planner_blocks SET slot_id=? WHERE id=? naar een bezet slot worden verplaatst. Daarmee ontstaat een geblokkeerd slot met een actieve afspraak, ondanks de expliciete garantie voor directe SQL-writers. Ik heb dit onafhankelijk gereproduceerd op een synthetische in-memory database met de echte migratie en service. De UPDATE slaagde; availability rapporteerde [{occupied:1,blocked:true},{occupied:0,blocked:false}]. Voeg een equivalente guard toe voor UPDATE OF workspace_id,slot_id. Test INSERT én UPDATE op een gedeeltelijk bezet slot met capaciteit twee, inclusief behoud van de oorspronkelijke blokkade na afwijzing.\n\nGeen andere noodzakelijke bevindingen vastgesteld in migratie, receiptcompatibiliteit, zone/capaciteitslogica, transport, React-wijzigingen en concurrencyproeven. Geen optionele scope-uitbreidingen voorgesteld.\n\nOnafhankelijk uitgevoerd: vitest run tests/zones.test.ts tests/zone-concurrency.test.ts tests/booking-concurrency.test.ts, alle 28 tests geslaagd. De bredere 113-test-, build-, browser- en packaged-bewijzen zijn aangeleverd door de implementatieagent; die heb ik niet volledig opnieuw uitgevoerd.\n\nRead-only gewerkt, geen bronbestanden gewijzigd, geen gebruikersdatabase geopend en geen externe reviewcomments geplaatst. De worktree bleef schoon. Gerichte herbeoordeling van de fix kan in dezelfde reviewer plaatsvinden."
+    },
+    {
+      "kind": "verified-fix",
+      "text": "Fix gereed, zonder commit of push. zone-migration.ts: equivalente occupied-guard toegevoegd voor UPDATE OF workspace_id,slot_id. zones.test.ts: directe INSERT en UPDATE getest bij capaciteit 2 en één planned/completed afspraak, met beide bindings. Controleert ook behoud van bronblokkade en ontbreken van doelblokkade. Oude code: alle vier regressiegevallen faalden bij UPDATE. Na fix: 26 zone-, concurrency- en migratietests groen. API-typecheck en git diff --check geslaagd. Alle testdata is synthetisch en in-memory. De parallel gewijzigde evidence-JSON is niet door mij aangepast."
+    },
+    {
+      "kind": "targeted-re-review",
+      "checkedSha": "3c3d8fc569264c3a30fcac03d1b864e91d76e149",
+      "text": "Gerichte herreview afgerond. De P2 is opgelost; geen resterende noodzakelijke bevindingen.\n\nDe nieuwe BEFORE UPDATE OF workspace_id,slot_id-trigger controleert de bestemmingsbezetting en weigert de wijziging wanneer daar geplande of uitgevoerde afspraken staan. De regressietests dekken beide statussen bij één bezette plaats op capaciteit twee, voor SQLite 12 en 13. Ze controleren tevens dat de oorspronkelijke blokkade en de bestemming intact blijven.\n\nOnafhankelijk uitgevoerd: vitest run tests/zones.test.ts, 12 tests geslaagd. De volledige suite wordt door de implementatieagent gecontroleerd.\n\nReviewer: /root/review_pr30, GPT-6 Astra medium. Lokale HEAD en remote head waren bij start/einde 3c3d8fc569264c3a30fcac03d1b864e91d76e149. Read-only gewerkt; worktree schoon. Reviewstatus: akkoord binnen de beoordeelde scope, zonder merge- of deploymentautorisatie."
+    }
+  ],
+  "implementationValidation": {
+    "finalTests": 117,
+    "apiTests": 90,
+    "uiTests": 9,
+    "sharedTests": 5,
+    "coreTests": 7,
+    "desktopTests": 6,
+    "typecheck": "passed; API and SQLite adapter repeated after fix",
+    "lint": "passed; SQLite adapter repeated after fix",
+    "build": "passed, Vite size advisory only",
+    "compiledStartSmoke": "passed",
+    "native": "five packaged restarts from own schema2 read-only backup copy; raw windows/events preserved",
+    "browser": "normal HTTP zone/capacity/move/block/default/reload and postcode forms passed; compiled API restart identical state hash"
+  },
+  "followUp": "Reuse same reviewer for subsequent PR30 changes. No separate reviewchat was created. No merge/deployment authorization."
+}
