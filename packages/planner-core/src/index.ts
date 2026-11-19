@@ -3,3 +3,5 @@ export { parseQuickTask, addDaysFrom, nextWeekFrom, nextMonthFrom } from './quic
 
 export { createPlannerService, TaskConflictError, type PlannerService } from './service.js';
 export type { PlannerStorage, PlannerEnvironment, HistoryQuery } from './storage.js';
+
+export { executePlannerCommand } from './commands.js';

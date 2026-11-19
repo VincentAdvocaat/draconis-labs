@@ -12,7 +12,7 @@ const profile = process.env.PLANNER_PROBE_PROFILE || mkdtempSync(join(tmpdir(), 
 if (process.env.PLANNER_PROBE_SEED) {
   mkdirSync(profile, { recursive: true });
   const database = new Database(join(profile, 'probe.sqlite'));
-  database.exec('CREATE TABLE probe_tasks (id TEXT PRIMARY KEY, payload TEXT NOT NULL)');
+  database.exec(readFileSync(new URL('../tests/fixtures/pl02.sql', import.meta.url), 'utf8'));
   const seed = JSON.parse(readFileSync(process.env.PLANNER_PROBE_SEED, 'utf8')).previous.read;
   for (const task of seed) database.prepare('INSERT INTO probe_tasks VALUES (?, ?)').run(task.id, JSON.stringify(task));
   database.close();
@@ -51,8 +51,11 @@ for (let index = 0; index < 5; index++) {
   assert(result.actorBoundary, 'actor, ID, lane and version must remain main-process determined');
   assert(result.conflictRejected, 'shared update must reject stale versions');
   const priorIds = new Set(result.before.map(task => task.id));
-  assert.deepEqual(result.read.filter(task => priorIds.has(task.id)), result.before);
-  assert.equal(result.read.length, result.before.length + 2);
+  assert(result.workspaceRejected, 'wrong workspace must be rejected');
+  assert(result.preferencesRoundTrip, 'workspace preferences must round-trip');
+  assert.deepEqual(result.read.filter(task => priorIds.has(task.id)), result.before.filter(task => task.id !== result.deletedId));
+  assert.equal(result.read.length, result.before.length + 2 - (result.deletedId ? 1 : 0));
+  if (result.deletedId) assert(!result.read.some(task => task.id === result.deletedId));
   assert.equal(result.task.version, 4);
   assert.equal(result.task.timezone, 'Europe/Amsterdam');
   const successor = result.read.find(task => task.recurrenceParentId === result.task.id);

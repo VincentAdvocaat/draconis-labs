@@ -86,3 +86,6 @@ export interface PaginatedTasks {
   page: number;
   pageSize: number;
 }
+
+export { LOCAL_WORKSPACE_ID, plannerCommandSchema, createPlannerClient, createPlannerHttpTransport, PlannerClientError, PlannerConflictError } from './planner-client.js';
+export type { PlannerClient, PlannerCommand, PlannerError, PlannerErrorCode, PlannerReply, PlannerTransport } from './planner-client.js';

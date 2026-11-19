@@ -1,0 +1,13 @@
+{
+  "/api/v1/openapi.json": "d1baccc00dce6bf9274bacf9decae9b273cc64bd24e9ba49ed8f43a4271e568b",
+  "/api/v1/planner/tasks": "50243e35517acde8c780c74322e2483456c78182c26083a8a5d168f2271295dd",
+  "/api/v1/planner/tasks/{id}": "9c46c432f854e85b3799e151c6ddf120778ed2c63c1c5a5c089824fbdd83cbd1",
+  "/api/v1/planner/history": "c75a998fd90a574d1c9971c977dc1e72b4c4981c649bc12639960ca2fd69a0be",
+  "/api/v1/planner/preferences": "ec247b3013b2814fdd8146e3c459e00bcb77238aa5efdac4a96f9c7ff0956119",
+  "/api/v1/system/info": "3851d44e8cd8c4fd12da8d47c876e026fe025444b165f8753ec50ca49646681c",
+  "/api/planner/tasks": "50243e35517acde8c780c74322e2483456c78182c26083a8a5d168f2271295dd",
+  "/api/planner/tasks/{id}": "9c46c432f854e85b3799e151c6ddf120778ed2c63c1c5a5c089824fbdd83cbd1",
+  "/api/planner/history": "c75a998fd90a574d1c9971c977dc1e72b4c4981c649bc12639960ca2fd69a0be",
+  "/api/planner/preferences": "ec247b3013b2814fdd8146e3c459e00bcb77238aa5efdac4a96f9c7ff0956119",
+  "/api/system/info": "3851d44e8cd8c4fd12da8d47c876e026fe025444b165f8753ec50ca49646681c"
+}

@@ -22,6 +22,7 @@ import {
   LANES,
   PRIORITIES,
   RECURRENCE_FREQUENCIES,
+  type PlannerClient,
   type Lane,
   type PlannerView,
   type Priority,
@@ -321,7 +322,9 @@ function TaskEditor({
   );
 }
 
-export default function App() {
+export default function App({ client = plannerApi }: { client?: PlannerClient } = {}) {
+  const activeClient = useRef(client);
+  activeClient.current = client;
   const initialUrl = parseFiltersFromUrl(window.location.search);
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -353,7 +356,8 @@ export default function App() {
       const query = serverFiltered
         ? { ...taskFilter, timezone, page, pageSize: 50 }
         : undefined;
-      const result = await plannerApi.list(query);
+      const result = await client.list(query);
+      if (activeClient.current !== client) return;
       if (isPaginatedTasks(result)) {
         setTasks(result.items);
         setTotalTasks(result.total);
@@ -362,16 +366,19 @@ export default function App() {
         setTotalTasks(result.length);
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t.loadFailed);
+      if (activeClient.current === client) setError(cause instanceof Error ? cause.message : t.loadFailed);
     } finally {
-      setLoading(false);
+      if (activeClient.current === client) setLoading(false);
     }
-  }, [page, serverFiltered, taskFilter, timezone, t.loadFailed]);
+  }, [client, page, serverFiltered, taskFilter, timezone, t.loadFailed]);
 
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => {
-    void plannerApi.preferences.get().then(setPreferences).catch(() => undefined);
-  }, []);
+    let cancelled = false;
+    setTasks([]); setLoading(true); setPreferences(DEFAULT_PREFERENCES); setEditingTask(null); setConflictTask(null);
+    void client.preferences.get().then(value => { if (!cancelled) setPreferences(value); }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [client]);
   useEffect(() => {
     syncUrl(taskFilter, view, page);
   }, [taskFilter, view, page]);
@@ -406,11 +413,12 @@ export default function App() {
     const parsed = parseQuickTask(quickTitle, preferences.locale, today, preferences.weekStart);
     if (!parsed.title) return;
     try {
-      const task = await plannerApi.create(parsed);
+      const task = await client.create(parsed);
+      if (activeClient.current !== client) return;
       setTasks((current) => [...current, task]);
       setQuickTitle('');
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t.createFailed);
+      if (activeClient.current === client) setError(cause instanceof Error ? cause.message : t.createFailed);
     }
   };
 
@@ -421,7 +429,8 @@ export default function App() {
     setConflictTask(null);
     setTasks((current) => current.map((task) => task.id === id ? { ...task, ...changes, labels: changes.labels ?? task.labels, updatedAt: new Date().toISOString() } : task));
     try {
-      const updated = await plannerApi.update(id, { ...changes, version: existing.version });
+      const updated = await client.update(id, { ...changes, version: existing.version });
+      if (activeClient.current !== client) return updated;
       if (changes.lane === 'done' && existing.lane !== 'done' && existing.recurrence) {
         await refresh();
         return updated;
@@ -433,6 +442,7 @@ export default function App() {
       setTasks((current) => current.map((task) => task.id === id ? updated : task));
       return updated;
     } catch (cause) {
+      if (activeClient.current !== client) throw cause;
       setTasks(snapshot);
       if (cause instanceof ApiConflictError) {
         setConflictTask(cause.task);
@@ -474,7 +484,8 @@ export default function App() {
   };
 
   const savePreferences = async (next: UserPreferences) => {
-    const saved = await plannerApi.preferences.update(next);
+    const saved = await client.preferences.update(next);
+    if (activeClient.current !== client) return;
     setPreferences(saved);
     setView(saved.defaultView);
     setShowPreferences(false);
@@ -513,7 +524,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <Topbar
-        brand={<TopbarBrand mark="D" title={t.brand} subtitle={t.appName} />}
+        brand={<TopbarBrand mark="D" title={t.brand} subtitle={`${t.appName} · ${client.workspaceId}`} />}
         nav={(['board', 'scheduled', 'history'] as const).map((item) => (
           <TopbarNavItem key={item} active={view === item} onClick={() => setView(item)}>
             {i18n.viewLabel(item)}{item === 'scheduled' ? <span>{futureTasks.length}</span> : null}
@@ -679,7 +690,8 @@ export default function App() {
             });
           }}
           onDelete={async (task) => {
-            await plannerApi.remove(task.id);
+            await client.remove(task.id);
+            if (activeClient.current !== client) return;
             setTasks((current) => current.filter(({ id }) => id !== task.id));
           }}
         />

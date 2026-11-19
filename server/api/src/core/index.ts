@@ -1,10 +1,10 @@
 import { registerApiModules } from './compose.js';
 import { registerOpenApi } from './openapi.js';
-import { plannerModule } from '../modules/planner/index.js';
+import { plannerModule, plannerWorkspaceModule } from '../modules/planner/index.js';
 import { systemModule } from '../modules/system/index.js';
 import type { ApiModule } from './module.js';
 
-export const apiModules: ApiModule[] = [plannerModule, systemModule];
+export const apiModules: ApiModule[] = [plannerModule, systemModule, plannerWorkspaceModule];
 
 export async function registerPlatformApi(app: Parameters<typeof registerApiModules>[0]) {
   await registerOpenApi(app);

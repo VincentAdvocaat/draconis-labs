@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { Task } from '@draconis/shared';
+import { createPlannerClient, LOCAL_WORKSPACE_ID, type Task } from '@draconis/shared';
 import './bridge.js';
+
+const client = createPlannerClient(window.plannerProbe.invoke, LOCAL_WORKSPACE_ID);
+// The local probe runner exercises the exact client used by the UI.
+window.plannerClient = client;
+async function listTasks() {
+  const result = await client.list();
+  if (!Array.isArray(result)) throw new Error('Unexpected paginated result');
+  return result;
+}
 
 function Probe() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -9,19 +18,19 @@ function Probe() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   useEffect(() => {
-    window.plannerProbe.list().then(async items => {
+    listTasks().then(async items => {
       setTasks(items);
       await window.plannerProbe.ready();
     }).catch(e => setError(String(e)));
   }, []);
   return <main>
     <h1>Planner desktopproef</h1>
-    <p>Lokale proefwerkruimte. SQLite op dit apparaat.</p>
+    <p>Werkruimte {client.workspaceId}. SQLite op dit apparaat.</p>
     <form onSubmit={async e => {
       e.preventDefault(); setBusy(true); setError('');
       try {
-        await window.plannerProbe.create({ title });
-        setTasks(await window.plannerProbe.list()); setTitle('');
+        await client.create({ title });
+        setTasks(await listTasks()); setTitle('');
       } catch (err) { setError(String(err)); }
       finally { setBusy(false); }
     }}>
@@ -33,8 +42,8 @@ function Probe() {
       <button disabled={busy} onClick={async () => {
         setBusy(true); setError('');
         try {
-          await window.plannerProbe.update(task.id, { lane: task.lane === 'todo' ? 'doing' : task.lane === 'doing' ? 'done' : 'todo', version: task.version });
-          setTasks(await window.plannerProbe.list());
+          await client.update(task.id, { lane: task.lane === 'todo' ? 'doing' : task.lane === 'doing' ? 'done' : 'todo', version: task.version });
+          setTasks(await listTasks());
         } catch (err) { setError(String(err)); }
         finally { setBusy(false); }
       }}>Verplaatsen</button>

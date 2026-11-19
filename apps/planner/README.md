@@ -1,3 +1,8 @@
+De Planner gebruikt een injecteerbare client met expliciete lokale
+werkruimtecontext. `App` accepteert een `PlannerClient`; de standaard gebruikt
+HTTP en werkruimte `local`. Taken, historie en voorkeuren volgen dezelfde context.
+Zie [het lokale contract](../../docs/planner/pl11-lokale-client.md).
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.

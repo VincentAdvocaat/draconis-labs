@@ -76,6 +76,9 @@ of koude-VM-test. Pakketgrootte van beide versies was 403.309.964 bytes.
 
 ## Storygrens
 
+Dit was de status van PR #12. De aansluitende [lokale clientstap](pl11-lokale-client.md)
+heeft de hieronder nog open werkruimte-/client-/foutcriteria inmiddels uitgevoerd.
+
 | PL-11-criterium | Status |
 | --- | --- |
 | Injecteerbare taak-use-cases en opslag | Gereed voor de bestaande lokale taakflow, inclusief geïnjecteerde HTTP-routefactory. |

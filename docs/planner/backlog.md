@@ -26,8 +26,9 @@ fictieve schemafixtures, 22 tests en de resterende UI-controle vast. De
 meetresultaten en harde grenzen. PL-02 blijft voorlopig zolang de schone-VM-
 vergelijking, installatie-/upgradetest en identity-/signingcontroles ontbreken.
 De [eerste PL-11-opslagstap](pl11-core-en-opslag.md) deelt inmiddels service en
-SQLite-adapter met desktop. Werkruimteroutes en de gedeelde foutenenvelop staan
-nog open. Dit wijzigt geen Azure Boards-status.
+SQLite-adapter met desktop. De [lokale clientstap](pl11-lokale-client.md) gebruikt inmiddels expliciete
+werkruimtecontext en dezelfde foutenvelop over HTTP en desktop. PL-12 en PL-13
+blijven afzonderlijke vervolgstappen. Dit wijzigt geen Azure Boards-status.
 
 | Story | Prioriteit · vereist | Uitvoering en acceptatie |
 | --- | --- | --- |

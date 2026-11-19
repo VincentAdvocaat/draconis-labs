@@ -73,3 +73,10 @@ ontbrekend ID atomair overgenomen; de brontabel blijft behouden. Met
 meetprocedure die oude tabel met vijf fictieve records aanmaken in een nieuw
 profiel. Gebruik deze optie alleen voor de eerste run van dat nieuwe profiel.
 Zie [PL-11 en zijn resterende criteria](../../docs/planner/pl11-core-en-opslag.md).
+
+De gewone renderer gebruikt nu dezelfde `createPlannerClient` als de webapp,
+met expliciet workspaceId `local`. Preload biedt alleen `invoke` en de meet-
+readyfunctie. Main valideert commando, context en afzender. De meetprocedure
+roept de echte rendererclient aan en controleert gedeelde foutcodes. De import
+heeft een duurzame voltooiingsmarker; verwijderen van oude proeftaken wordt
+na herstart niet teruggedraaid. Zie [de lokale clientacceptatie](../../docs/planner/pl11-lokale-client.md).

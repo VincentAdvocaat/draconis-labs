@@ -1,9 +1,7 @@
-import type { CreateTaskInput, Task, UpdateTaskInput } from '@draconis/shared';
+import type { PlannerClient, PlannerCommand, PlannerReply } from '@draconis/shared';
 
 export interface ProbeBridge {
-  list(): Promise<Task[]>;
-  create(input: CreateTaskInput): Promise<Task>;
-  update(id: string, input: UpdateTaskInput): Promise<Task>;
+  invoke(command: PlannerCommand): Promise<PlannerReply>;
   ready(): Promise<void>;
 }
-declare global { interface Window { plannerProbe: ProbeBridge } }
+declare global { interface Window { plannerProbe: ProbeBridge; plannerClient: PlannerClient } }

@@ -41,7 +41,11 @@ try {
   assert.equal(moved.lane, 'doing');
   assert.deepEqual(await request('/api/v1/planner/tasks'), [moved]);
   assert.deepEqual(await request('/api/planner/tasks'), [moved]);
-  console.log(JSON.stringify({ startCommand: 'node --import tsx dist/index.js', health: true, createMoveRead: true, legacy: true, node: process.version }));
+  assert.deepEqual(await request('/api/v1/workspaces/local/tasks'), { ok: true, value: [moved] });
+  const wrong = await fetch(base + '/api/v1/workspaces/other/tasks');
+  assert.equal(wrong.status, 404);
+  assert.equal((await wrong.json()).error.code, 'WORKSPACE_NOT_FOUND');
+  console.log(JSON.stringify({ startCommand: 'node --import tsx dist/index.js', health: true, createMoveRead: true, legacy: true, workspace: true, wrongWorkspaceRejected: true, node: process.version }));
 } finally {
   child.kill();
   await ended;

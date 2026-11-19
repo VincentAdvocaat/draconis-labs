@@ -9,3 +9,12 @@ export const plannerModule: ApiModule = {
   description: 'Task planning, scheduling, and user preferences',
   register: createPlannerRoutes(plannerService, identifyActor),
 };
+
+import { LOCAL_WORKSPACE_ID } from '@draconis/shared';
+import { createWorkspacePlannerRoutes } from './workspace-routes.js';
+
+export const plannerWorkspaceModule: ApiModule = {
+  name: 'planner-workspaces', prefix: '/workspaces/:workspaceId', legacyAlias: false,
+  description: 'Explicit local workspace task contract',
+  register: createWorkspacePlannerRoutes(plannerService, LOCAL_WORKSPACE_ID, identifyActor),
+};
