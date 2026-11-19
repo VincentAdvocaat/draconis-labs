@@ -1,0 +1,48 @@
+{
+  "pr": "https://github.com/VincentAdvocaat/draconis-labs/pull/33",
+  "sourceChat": "01a1f49b-5c08-7343-9126-c4dee4c3ffe3",
+  "reviewerKind": "subagent, fork_turns none",
+  "reviewerId": "/root/review_pr33",
+  "reviewerModel": "gpt-6-astra",
+  "reviewerReasoningEffort": "medium",
+  "fixAgentId": "/root/fix_pr33_vite_cache",
+  "fixModel": "gpt-6.1-sol",
+  "fixReasoningEffort": "low",
+  "baseSha": "fd9530db6c6a6ca1b0e7a255bcf6a7c59f176780",
+  "optionalScopeExtensions": [],
+  "reports": [
+    {
+      "kind": "full-review",
+      "checkedSha": "c8f911b1843a63264970cfb6c28a24b9b05a3552",
+      "text": "Reviewstatus: wijziging nodig, één noodzakelijke P2-bevinding. Reviewer /root/review_pr33, GPT-6 Astra medium. Lokale en actuele remote head c8f911b1843a63264970cfb6c28a24b9b05a3552; base fd9530db6c6a6ca1b0e7a255bcf6a7c59f176780. Bronchat 01a1f49b-5c08-7343-9126-c4dee4c3ffe3.\n\n[P2] Geef de publieke ontwikkelserver een eigen Vite-cache. Bestand apps/planner/vite.public.config.ts:4. De publieke configuratie verandert root, maar configureert geen eigen cacheDir. Vite resolveConfig bevestigt dat beide configuraties apps/planner/node_modules/.vite gebruiken. De servers hebben verschillende roots en daardoor verschillende optimizer-configuratiehashes. De geïnstalleerde Vite-code neemt root op in getConfigHash en verwijdert bij een afwijkende hash de bestaande deps-cache. Bij starten of herstarten van public kan deze de bestanden van de private server verwijderen en vervangen. De private server houdt zijn eigen optimizermetadata en moduleverwijzingen in geheugen. Dit kan ontbrekende of onderling verschillende dependency-chunks veroorzaken en de interne ontwikkelpagina laten falen.\n\nBewijs: daadwerkelijk opgeloste configuraties en Vite-code dist/node/chunks/node.js bij getConfigHash, loadCachedDepOptimizationMetadata en optimizer-commit. De gemelde lege private pagina is hiermee verenigbaar; de exacte browserwaarneming is niet onafhankelijk gereproduceerd. Oplossing: aparte bij voorkeur absolute public cacheDir. Controleer beide ontwikkelpagina's tegelijk, private verversen na publieke start en herstart. Gebouwde preview dekt dit niet.\n\nGeen verdere noodzakelijke bevindingen in publieke projecties, origincontrole, limiter, payloadvalidatie, transacties, idempotentie, bevestigingsopslag of migratie4. Onafhankelijk 27 API-tests (core/HTTP/procesraces, beide bindings) en 4 publieke UI-tests geslaagd. Ruwe snapshots/receipts, rollback, publieke/staff-concurrentie en onbekende uitkomst zijn passend afgedekt. Geen optionele scope-uitbreidingen. Alleen-lezen voor bronbestanden; geen externe comments/merge/deployment. Volledige suite en browseracceptatie niet herhaald. Later toegevoegde ongecommitte acceptatiedocumentatie valt buiten deze SHA-review. Dezelfde reviewer kan de cachefix herbeoordelen."
+    },
+    {
+      "kind": "verified-fix",
+      "text": "Fix uitgevoerd door /root/fix_pr33_vite_cache, GPT-6.1 Sol low, zonder commit/push. apps/planner/vite.public.config.ts:4 gebruikt nu absolute apps/planner/node_modules/.vite-public via import.meta.url. resolveConfig voor wijziging beide .vite/equal true, na wijziging private .vite en public .vite-public/equal false. Planner typecheck, build en git diff --check geslaagd. Alleen bestaande private bundelgroottewaarschuwing. Geen dubbele devservers door fixagent getest. Implementatiechat heeft beide devservers tegelijk via Chrome gecontroleerd, private na publicstart en herstart ververst, Afspraken geladen, publieke beschikbaarheid opnieuw opgezocht. Alle eigen acceptatieprocessen en tabs daarna gestopt."
+    },
+    {
+      "kind": "targeted-re-review",
+      "checkedSha": "006c1f55af994dbb41dbbcf6b68a3fd0371152c1",
+      "text": "Gerichte herreview afgerond: goedgekeurd, geen open noodzakelijke bevindingen. Lokale en actuele remote head 006c1f55af994dbb41dbbcf6b68a3fd0371152c1. Reviewer /root/review_pr33, GPT-6 Astra medium. Bronchat 01a1f49b-5c08-7343-9126-c4dee4c3ffe3.\n\nDe eerdere P2 is opgelost. De publieke configuratie gebruikt een afzonderlijke absolute cachemap. Onafhankelijk met resolveConfig gecontroleerd: private apps/planner/node_modules/.vite, public apps/planner/node_modules/.vite-public. Daarmee kunnen de ontwikkelservers elkaars dependencycache niet meer vervangen. Aangeleverd browserbewijs beschrijft gelijktijdig gebruik, private verversen na publieke start en herstart, werkende publieke beschikbaarheid. Screenshot toont correct gerenderde interne Afspraken-pagina. Dit sluit aan op de benodigde verificatie.\n\nGewijzigde documentatie en bewijsregistratie zijn consistent met de fix. Acceptatiematrix onderscheidt lokale proeven van resterende installatie-, cloud- en productieacceptatie. Geen aanvullende noodzakelijke of optionele bevindingen.\n\nSinds oorspronkelijke review alleen Vite-configuratie, documentatie en bewijs gewijzigd. Daarom eerdere onafhankelijke 27 API-tests en 4 UI-tests niet herhaald. Typecheck/build en browserhandelingen na fix zijn door implementatiechat aangeleverd, niet zelfstandig herhaald. Geen bestanden gewijzigd, externe comments geplaatst, merge of deployment uitgevoerd."
+    }
+  ],
+  "status": "closed: required P2 fixed and targeted re-review passed",
+  "checkedCodeSha": "006c1f55af994dbb41dbbcf6b68a3fd0371152c1",
+  "validation": {
+    "fullSuite": 148,
+    "api": 117,
+    "ui": 13,
+    "core": 7,
+    "shared": 5,
+    "desktop": 6,
+    "typecheck": "passed",
+    "lint": "passed",
+    "build": "passed; existing private bundle size advisory",
+    "privateStartupSmoke": "passed",
+    "publicStartupSmoke": "passed including exact HTTP replay after restart",
+    "normalBrowserBooking": "passed; synthetic data only",
+    "dualDevServersAfterFix": "passed including public start/restart and private reload",
+    "githubCheckRollup": "empty; no hosted CI success claimed",
+    "ownTestProcesses": "stopped"
+  }
+}
