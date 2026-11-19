@@ -1,6 +1,6 @@
 # Gezamenlijke CMS-acceptatiematrix
 
-Stand op 19 november 2026 na onafhankelijke sluiting van PR34 op codecommit `7378fae161873b40cd66ad8c6c036a983c5c5cfa`. Dit beschrijft lokale proeven met fictieve gegevens. Er is niets samengevoegd of uitgerold.
+Stand op 19 november 2026 na onafhankelijke review van PR36 op codecommit `fbb583f09c94411b9a4dadaf977d5daec31cce55`. Dit beschrijft lokale proeven met fictieve gegevens. Er is niets samengevoegd of uitgerold.
 
 | Criterium | Bewijs en status |
 | --- | --- |
@@ -18,14 +18,15 @@ Stand op 19 november 2026 na onafhankelijke sluiting van PR34 op codecommit `737
 | Minimale CMS22-tekstpagina | PR27 onafhankelijk gereviewd op `f9538988`: dezelfde pagina-/blok-ID's, handmatige EN-titel/slug/SEO/tekst, EN-route/taalnav, expliciete publicatie en structuur-CAS. Legacy `/en.html` blijft bewerkbaar. |
 | EN-afbeelding per gebruik | PR32 onafhankelijk gereviewd op `cbf5c544`; drie noodzakelijke editorbevindingen opgelost en herreview gesloten. NL-bronbinding, EN-alt/bijschrift, expliciete bronbevestiging en immutable revisies. Zie [proef](engelse-afbeelding-proef.md). |
 | Portfolio op EN-pagina | PR34 onafhankelijk gereviewd, legacy-P2 opgelost en herreview akkoord op `7378fae1`. Zie [proef](engels-portfolio-proef.md). |
-| Volledige CMS22 contenttalen | Nog open: home, meer talen, uitgebreidere fallbackdiagnostiek en localeconfiguratie. Eerste tekstvertical heeft expliciet geen fallback en bewaart leeg/ontbrekend. |
+| EN-home | PR36 onafhankelijk gereviewd op `fbb583f0`, geen bevindingen. Bestaande NL-bron/index behouden, additieve home-EN/FK, exacte revisies en expliciete publicatie; [proef](home-en-proef.md). |
+| Volledige CMS22 contenttalen | Nog open: meer talen, uitgebreidere fallbackdiagnostiek en localeconfiguratie. Eerste tekstvertical heeft expliciet geen fallback en bewaart leeg/ontbrekend. |
 | CMS-bediening NL/EN | PR29 onafhankelijk gereviewd op `69b43c54`, geen noodzakelijke fixes. Getypeerde namespace, eigen tabbladkeuze, bestaande schermen/status/foutcodes en statebehoud. Nederlandse bevestiging verduidelijkt op `7b77a7b8`; 16 relevante tests groen. |
 | Bestaande klanten importeren | Open: reproduceerbare bron, fictieve migratievergelijking, dry-run/idempotency, herstelproef en expliciete aansluiting. |
 | Productie-identiteit, back-up/restore en deployment | Open en apart te autoriseren. Lokale testtokens zijn geen productie-identiteit. |
 
 De centrale tekstcriteria uit [centrale tekstredactie](centrale-tekstredactie.md) blijven leidend. Een taalstap is pas compleet wanneer de redacteur bestaande zichtbare tekst zonder codewijziging kan bewerken, de gekozen locale in preview en release overeenkomt en een nieuwer concept de actieve publicatie niet verandert.
 
-De lokale publieke renderer gebruikt nu beheerde paginatitels voor navigatielinks, pagina-/SEO-velden, tekstblokken, beeld-alt/bijschrift, portfolio-kop/leegstaat en gepinde catalogusitemvelden. De taalkeuzekop en endoniemen staan in de gedeelde navigatierevisie. In deze renderer zijn geen footer, formulier of extra vaste linklabels aanwezig. Daarvoor is dus geen nieuwe tekstbinding gebouwd. Aansluiting van echte klanttemplates en hun eventuele vaste teksten blijft open, evenals EN voor home. Portfolio binnen een volledige EN-pagina is in PR34 lokaal gebouwd en onafhankelijk gereviewd. Een catalogusitem bewerken gebeurt in de catalogus; het CMS kiest een immutable snapshot. Dit is nog geen bewijs dat alle tekst van een echte klantwebsite centraal is aangesloten.
+De lokale publieke renderer gebruikt nu beheerde paginatitels voor navigatielinks, pagina-/SEO-velden, tekstblokken, beeld-alt/bijschrift, portfolio-kop/leegstaat en gepinde catalogusitemvelden. De taalkeuzekop en endoniemen staan in de gedeelde navigatierevisie. In deze renderer zijn geen footer, formulier of extra vaste linklabels aanwezig. Daarvoor is dus geen nieuwe tekstbinding gebouwd. Aansluiting van echte klanttemplates en hun eventuele vaste teksten blijft open, Algemene taalconfiguratie en echte klanttemplate-aansluiting blijven open. Portfolio binnen een volledige EN-pagina is in PR34 lokaal gebouwd en onafhankelijk gereviewd. Een catalogusitem bewerken gebeurt in de catalogus; het CMS kiest een immutable snapshot. Dit is nog geen bewijs dat alle tekst van een echte klantwebsite centraal is aangesloten.
 
 Teststand PR27: volledige 123 API/componenttests en 15 shared-tests plus workspacechecks groen. De review vond één legacy-slugregressie. Na fix slagen de 16 relevante tests bij implementatie en gerichte herreview; de extra upgradefixture brengt het API-totaal op 124. Typecheck/lint/diffcheck zijn na de codefix opnieuw groen. Browser op 3022 bewees handmatige EN-invoer, selectie, preview, taalnav, SEO en normale herstart.
 
@@ -34,8 +35,8 @@ Teststand PR25: reviewer draaide de volledige 113-test-suite op de initiële int
 
 ## Afhankelijkheden en integratiegrens
 
-Deze acceptatie geldt voor afzonderlijke lokale worktrees en fictieve gegevens. De CMS-PR-keten is open en niet samengevoegd: #7 → #10 → #13 → #17 → #21 → #25 → #26 → #27 → #29 → #31 → #32 → #34. PR34 heeft feature/cms-english-image als base, niet main. Iedere volgende stap bevat eerdere ongeïntegreerde code. Dit is geen volledig geïntegreerd of productiegereed CMS.
+Deze acceptatie geldt voor afzonderlijke lokale worktrees en fictieve gegevens. De CMS-PR-keten is open en niet samengevoegd: #7 → #10 → #13 → #17 → #21 → #25 → #26 → #27 → #29 → #31 → #32 → #34 → #36. PR34 heeft feature/cms-english-image als base, niet main. Iedere volgende stap bevat eerdere ongeïntegreerde code. Dit is geen volledig geïntegreerd of productiegereed CMS.
 
 Media-, upload-, locale- en catalogusconsumercontracten zijn als eerder gereviewde subsets in deze CMS-keten opgenomen. De zelfstandige media/catalogus-PR's staan eveneens open. Gezamenlijke landing op main, eventuele overlappende wijzigingen, samengestelde integratietests, productieconfiguratie en deployment zijn nog niet uitgevoerd. Mergevolgorde en consolidatie vragen een afzonderlijke opdracht. Bestaande lokale proefbewijzen blijven geldig binnen hun opgegeven codehead; ze bewijzen geen echte klantimport of livewebsitewerking.
 
-De volgende voorgestelde kleine stap is [EN-home in de eigen fixture](home-en-acceptatievoorstel.md). Dat is een concreet acceptatievoorstel, nog geen implementatie. Echte klanttemplates en alle daarin aanwezige vaste tekstbindings blijven een aparte open aansluiting. De lokale renderer heeft geen footer of formulier; die worden niet als ontbrekende gebouwde functies verzonnen.
+EN-home is inmiddels lokaal gebouwd en gereviewd in PR36. De volgende prioriteit is gezamenlijke integratie/consolidatie in één checkout. Geen nieuwe contentuitbreiding tot de integratiegaten concrete eigenaren hebben. Echte klanttemplates en alle daarin aanwezige vaste tekstbindings blijven een aparte open aansluiting. De lokale renderer heeft geen footer of formulier; die worden niet als ontbrekende gebouwde functies verzonnen.
