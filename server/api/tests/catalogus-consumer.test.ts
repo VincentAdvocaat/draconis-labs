@@ -136,6 +136,52 @@ describe('catalog consumer pins and two independent databases', () => {
     expect(fixture.consumer.getPin(fixture.website, first.pinId).state).toBe('prepared');
   });
 
+  it('requires all durable slots, including an omitted withdrawn slot, before the callback', () => {
+    const first = pin();
+    const second = fixture.consumer.preparePin(fixture.website, fixture.request(fixture.en, { slot: 'portfolio-two' }));
+    fixture.catalog.withdraw(fixture.website, fixture.en.snapshotId,
+      { expectedVersion: 1, confirmed: true, employee: 'Test', reason: 'Withdraw omitted slot' });
+    let calls = 0;
+    expect(() => fixture.consumer.finalize(fixture.website, [first.pinId], () => { calls++; return activate(); })).toThrow('complete');
+    expect(() => fixture.consumer.finalize(fixture.website, [first.pinId, second.pinId], () => { calls++; return activate(); })).toThrow('snapshot not found');
+    expect(calls).toBe(0);
+    expect(active()).toBe('previous-release');
+    expect(fixture.consumer.listPins(fixture.website).map(p => p.state)).toEqual(['prepared', 'prepared']);
+  });
+
+  it('prevents split finalization and adding another slot to an already activated attempt', () => {
+    const first = pin();
+    fixture.consumer.finalize(fixture.website, [first.pinId], activate);
+    expect(() => fixture.consumer.preparePin(fixture.website, fixture.request(fixture.en, { slot: 'late-slot' }))).toThrow('cannot add');
+    expect(pin().pinId).toBe(first.pinId);
+    expect(fixture.consumer.listPins(fixture.website)).toHaveLength(1);
+  });
+
+  it('rejects nested gates and mutations across handles before a second callback and releases the guard after failure', () => {
+    const prepared = pin();
+    const other = new CatalogSnapshotConsumer(fixture.root);
+    let nestedCalls = 0;
+    try {
+      const nested = () => { nestedCalls++; return { status: 'published' as const, activationId: 'cms-attempt-one' }; };
+      expect(() => fixture.consumer.finalize(fixture.website, [prepared.pinId], () => {
+        fixture.consumer.finalize(fixture.website, [prepared.pinId], nested);
+        return activate();
+      })).toThrow('Nested');
+      expect(nestedCalls).toBe(0);
+      expect(active()).toBe('previous-release');
+      expect(fixture.consumer.getPin(fixture.website, prepared.pinId).state).toBe('prepared');
+      const result = fixture.consumer.finalize(fixture.website, [prepared.pinId], () => {
+        expect(() => other.finalize(fixture.website, [prepared.pinId], nested)).toThrow('Nested');
+        expect(() => other.reconcile(fixture.website, [prepared.pinId], () => { nestedCalls++; return { status: 'unknown' }; })).toThrow('Nested');
+        expect(() => other.preparePin(fixture.website, fixture.request(fixture.en, { slot: 'nested-slot' }))).toThrow('Nested');
+        return activate();
+      });
+      expect(result.pins[0]).toMatchObject({ state: 'activated', version: 2 });
+      expect(nestedCalls).toBe(0);
+      expect(active()).toBe('cms-attempt-one');
+    } finally { other.close(); }
+  });
+
   it('retains consumer references independently of source usage rows and supports same-process handles', () => {
     const prepared = pin();
     const another = new CatalogSnapshotConsumer(fixture.root);
