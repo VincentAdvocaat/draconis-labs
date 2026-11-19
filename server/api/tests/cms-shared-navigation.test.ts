@@ -80,6 +80,26 @@ describe('CMS shared public navigation text',()=>{
     const oldPreview=await test.running.app.inject({method:'POST',url:base+'/shared-navigation/previews',headers,payload:{pageId:doc.pageId,revisionId:en.revisionId,locale:'en',sharedRevisionId:draft.revisionId,sharedVersion:draft.version}});
     expect(oldPreview.body).toContain('Choose &lt;language&gt;');await test.reopen();expect((await test.running.app.inject('/sites/demo-cms/en/english-page.html')).body).toBe(output);
   });
+  it('preserves literal replacement tokens in pinned shared previews and releases',async()=>{
+    const test=await start();const doc=await create(test);const en=await english(test,doc.pageId);
+    let draft=await shared(test);
+    const literal="English $& $` $' $$ <literal>";
+    const escaped="English $&amp; $` $&#39; $$ &lt;literal&gt;";
+    draft.content.fields['navigation.languageLabel'].values.en=literal;
+    draft.content.fields['navigation.locale.en'].value=literal;
+    const saved=await save(test,draft);expect(saved.statusCode).toBe(200);draft=saved.json();
+    const selected=await plan(test,true);
+    expect(selected.expectedShared).toEqual({revisionId:draft.revisionId,version:draft.version});
+    expect(selected.expectedLocales).toContainEqual(expect.objectContaining({pageId:doc.pageId,revisionId:en.revisionId,locale:'en'}));
+    const preview=await test.running.app.inject({method:'POST',url:base+'/shared-navigation/previews',headers,payload:{pageId:doc.pageId,revisionId:en.revisionId,locale:'en',sharedRevisionId:draft.revisionId,sharedVersion:draft.version}});
+    expect(preview.statusCode).toBe(200);
+    const published=await publish(test,selected);expect(published.statusCode).toBe(200);
+    const output=(await test.running.app.inject('/sites/demo-cms/en/english-page.html')).body;
+    for(const html of [preview.body,output]){
+      expect(html).toContain(`aria-label="${escaped}"`);expect(html).toContain(`>${escaped}</a>`);
+      expect(html.match(/<body\b/g)).toHaveLength(1);expect(html.match(/<head\b/g)).toHaveLength(1);
+    }
+  });
   it('requires the explicit current shared pin and refuses incomplete EN while preserving active publication',async()=>{
     const test=await start();const doc=await create(test);await english(test,doc.pageId);
     const initial=await publish(test,await plan(test,true));expect(initial.statusCode).toBe(200);

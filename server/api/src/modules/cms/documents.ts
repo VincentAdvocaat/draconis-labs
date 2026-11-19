@@ -229,7 +229,7 @@ export class CmsDocuments {
     const nav = languageNavigation(selected.content,input.locale,[{locale:'nl',href:'#nl'},{locale:'en',href:'#en'}]);
     const html = input.locale === 'en' ? this.previewEnglish(websiteId,input.pageId,input.revisionId)
       : this.preview(websiteId,input.pageId,input.revisionId);
-    return html.replace('<body>','<body>'+nav);
+    return html.replace('<body>',()=>'<body>'+nav);
   }
   persist(releaseId: string, snapshot: string): void {
     this.repository.db.prepare('INSERT INTO cms_site_snapshots VALUES(?,?)').run(releaseId, snapshot);
