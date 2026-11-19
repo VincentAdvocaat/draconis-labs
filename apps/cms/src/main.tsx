@@ -459,9 +459,11 @@ function App() {
       {selectedDocument && <div className="actions"><button disabled={busy || englishDirty} onClick={() => {setEnglishLatest(null); setEnglishConfirmedStructure(''); setEnglish(null); setEnglishDraft(null); setPreview('');}}>{t.editDutch}</button>
         <button disabled={busy || dirty || documentDirty || englishDirty} onClick={openEnglish}>{t.editEnglish}</button>
         {english && <button disabled={busy} onClick={() => { if (englishDirty && !window.confirm(t.confirmDiscardEnglish)) return;
-          setEnglishDraft(english.content); }}>{t.discardEnglish}</button>}
+          setEnglishConfirmedStructure(''); setEnglishDraft(english.content); }}>{t.discardEnglish}</button>}
       </div>}
       {englishLatest && <aside><p>{t.englishConflictHelp}</p>
+        {english && englishLatest.version===english.version && englishLatest.revisionId===english.revisionId && englishLatest.structure!==english.structure &&
+          <button disabled={busy} onClick={() => {if(busy)return; setEnglishConfirmedStructure(''); setEnglish(englishLatest); setEnglishLatest(null); setPreview(''); invalidateSiteChoice();}}>{t.reloadEnglishSource}</button>}
         <button disabled={busy} onClick={() => {if (busy) return; setEnglishConfirmedStructure(''); setEnglish(englishLatest); setEnglishDraft(englishLatest.content); setEnglishLatest(null); setPreview(''); invalidateSiteChoice();}}>{t.adoptEnglish}</button></aside>}
       {english && englishDraft && <EnglishEditor uiLocale={uiLocale} sourceConfirmed={!!english&&englishConfirmedStructure===english.structure} onAlign={()=>{if(english)setEnglishConfirmedStructure(english.structure);}} record={english} draft={englishDraft} onChange={(content) => {setEnglishDraft(content); setPreview(''); invalidateSiteChoice();}} busy={busy} dirty={englishDirty} onSave={saveEnglish} onPreview={previewEnglish} />}
       {selectedDocument && !english && documentDraft && <DocumentEditor uiLocale={uiLocale} draft={documentDraft} onChange={changeDocument} busy={busy} dirty={documentDirty}

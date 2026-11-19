@@ -114,7 +114,7 @@ function editorHarness() {
     return nodes(label).find((node) => node.type === 'input')!;
   };
   render();
-  return { results, requests, action, button, title,
+  return { results, requests, action, button, title, text: () => text(tree),
     settle: async () => { await new Promise<void>((resolve) => setImmediate(resolve)); render(); },
     field: (label: string, index = 0) => {
       const owner = nodes(tree).filter((node) => node.type === 'label' && Array.isArray(node.props.children) &&
@@ -132,6 +132,19 @@ function editorHarness() {
 
 const pageA = { revisionId: 'revision-A', pageVersion: 1, values: { title: 'Revisie A', intro: '' }, activeReleaseId: null, activeVersion: 0 };
 const pageB = { ...pageA, revisionId: 'revision-B', pageVersion: 2, values: { title: 'Revisie B', intro: '' } };
+
+async function openImageEnglish(needsUpdate=true) {
+  const ui=editorHarness();ui.results.push({status:200,body:{...pageA,pagesEnabled:true}});await ui.open();
+  const content={schemaVersion:1,locale:'nl',title:'NL image',slug:'nl-image',seoTitle:'NL image',seoDescription:'',blocks:[]};
+  ui.results.push({status:201,body:{pageId:'page-one',revisionId:'nl-one',version:1,content,published:false}},
+    {status:200,body:{activeVersion:0,activeReleaseId:null,pages:[]}});
+  await ui.action(ui.button('Nieuwe pagina aanmaken'));
+  const english={pageId:'page-one',revisionId:'en-one',version:1,structure:'source-one',savedStructure:needsUpdate?'old-source':'source-one',supported:true,needsUpdate,
+    sourceBlocks:[{blockId:'image-one',type:'image'}],sourceImages:[{blockId:'image-one',assetId:'photo',fileVersion:1,usage:'block-image-one',decorative:false}],
+    content:{...content,locale:'en',title:'English image',blocks:[{blockId:'image-one',type:'image',altText:'Saved English alt',caption:'Saved English caption'}]}};
+  ui.results.push({status:200,body:english});await ui.action(ui.button('English bewerken'));
+  return {ui,english};
+}
 
 describe('CMS editor recovery and selected revision', () => {
   it('requires an explicit shared pin, preserves it across retry/language changes and sends only its revision/version',async()=>{
@@ -217,6 +230,46 @@ describe('CMS editor recovery and selected revision', () => {
     await ui.action(ui.button('EN-concept opslaan'));
     expect(JSON.parse(ui.requests.at(-1)!.init.body!)).toEqual({expectedVersion:1,expectedStructure:'image-two',confirmSourceChange:true,content:english.content});
     expect(ui.button('EN-concept opslaan').props.disabled).toBe(true);
+  });
+
+  it('clears source confirmation when local English changes are discarded', async () => {
+    const {ui}=await openImageEnglish();
+    await ui.action(ui.button('EN-structuur en beeldbinding bevestigen'));
+    expect(ui.button('EN-concept opslaan').props.disabled).toBe(false);
+    await ui.action(ui.button('Lokale EN-wijzigingen verwerpen'));
+    expect(ui.button('EN-concept opslaan').props.disabled).toBe(true);
+    expect(ui.button('Nederlands bewerken').props.disabled).toBe(false);
+  });
+
+  it('reloads only changed source metadata while preserving local English until explicit confirmation', async () => {
+    const {ui,english}=await openImageEnglish(false);
+    await ui.action(ui.field('EN-bijschrift'),'onChange',{target:{value:'My unsaved caption'}});
+    const latest={...english,structure:'source-two',needsUpdate:true,
+      sourceBlocks:[{blockId:'new-text',type:'text'},...english.sourceBlocks],
+      sourceImages:[{...english.sourceImages[0],fileVersion:2}]};
+    ui.results.push({status:409,body:{message:'Source changed'}},{status:200,body:latest});
+    await ui.action(ui.button('EN-concept opslaan'));
+    expect(ui.field('EN-bijschrift').props.value).toBe('My unsaved caption');
+    await ui.action(ui.button('Actuele NL-bron laden met behoud van EN-invoer'));
+    expect(ui.field('EN-bijschrift').props.value).toBe('My unsaved caption');
+    expect(ui.text()).toContain('NL-bronbeeld: photo \u00b7 versie 2');
+    expect(ui.button('EN-concept opslaan').props.disabled).toBe(true);
+    await ui.action(ui.button('EN-structuur en beeldbinding bevestigen'));
+    ui.results.push({status:200,body:{...latest,version:2,needsUpdate:false,savedStructure:'source-two'}});
+    await ui.action(ui.button('EN-concept opslaan'));
+    expect(JSON.parse(ui.requests.at(-1)!.init.body!)).toMatchObject({expectedVersion:1,expectedStructure:'source-two',confirmSourceChange:true,
+      content:{blocks:[{blockId:'new-text',type:'text',heading:null,body:null},{blockId:'image-one',type:'image',altText:'Saved English alt',caption:'My unsaved caption'}]}});
+  });
+
+  it('does not offer source-only recovery when another editor saved English content', async () => {
+    const {ui,english}=await openImageEnglish(false);
+    await ui.action(ui.field('EN-bijschrift'),'onChange',{target:{value:'My unsaved caption'}});
+    ui.results.push({status:409,body:{message:'English changed'}},{status:200,body:{...english,version:2,revisionId:'en-two',structure:'source-two',needsUpdate:true}});
+    await ui.action(ui.button('EN-concept opslaan'));
+    expect(()=>ui.button('Actuele NL-bron laden met behoud van EN-invoer')).toThrow();
+    expect(ui.field('EN-bijschrift').props.value).toBe('My unsaved caption');
+    await ui.action(ui.button('Actuele EN-versie overnemen'));
+    expect(ui.field('EN-bijschrift').props.value).toBe('Saved English caption');
   });
 
   it('preserves unsaved English text after CAS failure until the user explicitly adopts the latest variant', async () => {
