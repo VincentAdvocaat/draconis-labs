@@ -2,6 +2,8 @@ import { createRoot } from 'react-dom/client';
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import './style.css';
+import { DocumentEditor, documentCopy } from './documents';
+import type { DocumentContent, DocumentDto, SitePlan, DocumentImageReference } from './documents';
 
 interface ImageReference {
   assetId: string; fileVersion: number; usage: 'hero'; altText: Record<string, string>; decorative: boolean;
@@ -11,6 +13,7 @@ interface Page {
   revisionId: string; pageVersion: number; values: Values;
   activeReleaseId: string | null; activeVersion: number;
   uploadEnabled?: boolean;
+  pagesEnabled?: boolean;
 }
 interface UploadStatus { assetId: string; fileVersion: number; state: string; error: string | null; rights: string; metadataVersion?: number }
 interface RightsMetadata { assetId: string; metadataVersion: number; rights: string }
@@ -38,11 +41,21 @@ function App() {
   const [uploadStatus, setUploadStatus] = useState<UploadStatus | null>(null);
   const [rightsTarget, setRightsTarget] = useState<RightsMetadata | null>(null);
   const [rightsDecision, setRightsDecision] = useState({ owner: '', source: '', basis: '', confirmed: false });
+  const [overview, setOverview] = useState<SitePlan | null>(null);
+  const [newPage, setNewPage] = useState({ title: '', slug: '' });
+  const [selectedDocument, setSelectedDocument] = useState<DocumentDto | null>(null);
+  const [documentDraft, setDocumentDraft] = useState<DocumentContent | null>(null);
+  const [documentConflict, setDocumentConflict] = useState<DocumentDto | null>(null);
+  const [sitePlan, setSitePlan] = useState<SitePlan | null>(null);
+  const [siteChoice, setSiteChoice] = useState<{ plan: SitePlan; key: string } | null>(null);
   // Scope generation prevents late responses from a previous token/site reaching this view.
   const generation = useRef(0);
 
   const base = `/api/v1/cms/websites/${website}`;
   const dirty = !!page && JSON.stringify(values) !== JSON.stringify(page.values);
+  const documentDirty = !!selectedDocument && JSON.stringify(documentDraft) !== JSON.stringify(selectedDocument.content);
+  const selectedImage = selectedDocument ? documentDraft?.blocks.find((block) => block.type === 'image')?.reference : values.image;
+  const dc = documentCopy.nl;
   async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const result = await fetch(base + path, { ...init,
       headers: { Authorization: `Bearer ${token}`, ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...init.headers } });
@@ -51,6 +64,7 @@ function App() {
       throw new ApiError(result.status, body.errorCode === 'media_not_publishable'
         ? 'Afbeelding is niet publiceerbaar. Controleer alt-tekst, gereedstatus en rechten.'
         : body.errorCode === 'media_unavailable' ? 'Mediaopslag niet beschikbaar. Herstel de mediamap en herstart de proef.'
+        : body.errorCode === 'content_not_publishable' ? 'Niet alle pagina’s zijn compleet. Vul titel, SEO-titel en tekstblok in.'
         : body.message ?? body.errorCode ?? `Verzoek mislukt (${result.status})`);
     }
     return result.json() as Promise<T>;
@@ -60,6 +74,8 @@ function App() {
     setPage(null); setPreview(''); setAttempt(null); setDraftConflict(null);
     setPendingChoice(null); setPublicationConflict(false); setError(''); setBusy(false);
     setFile(null); setUploadJobId(''); setUploadStatus(null);
+    setOverview(null); setSelectedDocument(null); setDocumentDraft(null); setDocumentConflict(null); invalidateSiteChoice();
+    setNewPage({ title: '', slug: '' });
     resetRights();
     setStatus('Open de pagina met dit token.');
     // Keep unsaved text visible until the user explicitly opens another page.
@@ -71,14 +87,15 @@ function App() {
     catch (err) { if (epoch === generation.current) setError((err as Error).message); }
     finally { if (epoch === generation.current) setBusy(false); }
   }
-  function open(event: FormEvent) {
-    event.preventDefault();
-    if (dirty && !window.confirm('Je hebt onopgeslagen tekst. Nieuwste opgeslagen versie openen?')) return;
+  function open(event?: FormEvent) {
+    event?.preventDefault();
+    if ((dirty || documentDirty) && !window.confirm('Je hebt onopgeslagen tekst. Nieuwste opgeslagen versie openen?')) return;
     void perform(async (current) => {
       const result = await request<Page>('/pages/home');
       if (!current()) return;
       setPage(result); setValues(result.values); setDraftConflict(null); setAttempt(null);
       setPendingChoice(null); setPublicationConflict(false); setPreview('');
+      setSelectedDocument(null); setDocumentDraft(null); setDocumentConflict(null); invalidateSiteChoice();
       resetRights();
       setStatus(`Conceptversie ${result.pageVersion} geladen.`);
     });
@@ -91,6 +108,7 @@ function App() {
         const result = await request<Page>('/pages/home/draft', { method: 'PUT', body: JSON.stringify({ expectedVersion: choice.pageVersion, values }) });
         if (!current()) return;
         setPage(result); setValues(result.values); setPreview(''); setPendingChoice(null);
+        invalidateSiteChoice();
         setStatus(`Conceptversie ${result.pageVersion} opgeslagen. De publieke pagina blijft ongewijzigd.`);
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {
@@ -115,8 +133,17 @@ function App() {
     });
   }
   function useUpload(result: UploadStatus) {
-    setValues((prior) => ({ ...prior, image: { assetId: result.assetId, fileVersion: result.fileVersion,
-      usage: 'hero', decorative: prior.image?.decorative ?? false, altText: prior.image?.altText ?? { nl: '' } } }));
+    if (selectedDocument && documentDraft) {
+      const prior = documentDraft.blocks.find((block) => block.type === 'image');
+      if (!prior && documentDraft.blocks.length >= 16) throw new Error('Er is geen ruimte voor een extra blok. Het bestand is wel verwerkt.');
+      const blockId = prior?.blockId ?? crypto.randomUUID();
+      const image = { blockId, type: 'image' as const, reference: { assetId: result.assetId, fileVersion: result.fileVersion,
+        usage: `block-${blockId}`, decorative: prior?.reference.decorative ?? false, altText: prior?.reference.altText ?? { nl: '' } }, caption: prior?.caption ?? '' };
+      changeDocument({ ...documentDraft, blocks: prior ? documentDraft.blocks.map((block) => block.blockId === blockId ? image : block) : [...documentDraft.blocks, image] });
+    } else {
+      setValues((prior) => ({ ...prior, image: { assetId: result.assetId, fileVersion: result.fileVersion,
+        usage: 'hero', decorative: prior.image?.decorative ?? false, altText: prior.image?.altText ?? { nl: '' } } }));
+    }
     setPreview('');
     resetRights();
   }
@@ -124,7 +151,7 @@ function App() {
     setRightsTarget(null); setRightsDecision({ owner: '', source: '', basis: '', confirmed: false });
   }
   function loadRights() {
-    const assetId = values.image?.assetId;
+    const assetId = selectedImage?.assetId;
     if (!assetId) return;
     void perform(async (current) => {
       const metadata = await request<RightsMetadata>(`/media/${encodeURIComponent(assetId)}/rights`);
@@ -136,7 +163,7 @@ function App() {
   }
   function decideRights(decision: 'cleared' | 'blocked') {
     const target = rightsTarget;
-    if (!target || target.assetId !== values.image?.assetId || !rightsDecision.confirmed) return;
+    if (!target || target.assetId !== selectedImage?.assetId || !rightsDecision.confirmed) return;
     void perform(async (current) => {
       const result = await request<{ rights: string; metadataVersion: number }>(`/media/${encodeURIComponent(target.assetId)}/rights`, {
         method: 'PUT', body: JSON.stringify({ ...rightsDecision, expectedVersion: target.metadataVersion, status: decision }),
@@ -144,6 +171,7 @@ function App() {
       if (!current()) return;
       setRightsTarget({ ...target, ...result }); setRightsDecision((prior) => ({ ...prior, confirmed: false }));
       setPendingChoice(null);
+      setSiteChoice(null);
       setUploadStatus((prior) => prior?.assetId === target.assetId ? { ...prior, ...result } : prior);
       setStatus(decision === 'cleared' ? 'Rechten expliciet vrijgegeven. Sla eventuele conceptwijzigingen op en kies daarna bewust Publiceren.' : 'Afbeelding geblokkeerd voor nieuwe publicaties.');
     });
@@ -207,13 +235,115 @@ function App() {
       }
     });
   }
-  const publicUrl = attempt?.publicUrl ?? (page?.activeReleaseId ? `/sites/${website}/index.html` : null);
+  function invalidateSiteChoice() { setSitePlan(null); setSiteChoice(null); }
+  function changeDocument(content: DocumentContent) {
+    const before = documentDraft?.blocks.find((block) => block.type === 'image')?.reference.assetId;
+    const after = content.blocks.find((block) => block.type === 'image')?.reference.assetId;
+    if (before !== after) resetRights();
+    setDocumentDraft(content); setPreview(''); invalidateSiteChoice();
+  }
+  function refreshOverview() {
+    void perform(async (current) => { const result = await request<SitePlan>('/site-plan'); if (current()) setOverview(result); });
+  }
+  function openDocument(pageId: string) {
+    if (busy || dirty || documentDirty) return;
+    if (pageId === 'home') { open(); return; }
+    void perform(async (current) => {
+      const result = await request<DocumentDto>(`/documents/${pageId}`);
+      if (!current()) return;
+      setSelectedDocument(result); setDocumentDraft(result.content); setDocumentConflict(null);
+      setPreview(''); resetRights(); invalidateSiteChoice(); setStatus(dc.selected);
+    });
+  }
+  function createDocument() {
+    if (busy || dirty || documentDirty) return;
+    void perform(async (current) => {
+      const result = await request<DocumentDto>('/documents', { method: 'POST', body: JSON.stringify(newPage) });
+      if (!current()) return;
+      setSelectedDocument(result); setDocumentDraft(result.content); setDocumentConflict(null); setNewPage({ title: '', slug: '' });
+      setPreview(''); resetRights(); invalidateSiteChoice(); setStatus(dc.selected);
+      const list = await request<SitePlan>('/site-plan'); if (current()) setOverview(list);
+    });
+  }
+  function saveDocument() {
+    if (busy || !selectedDocument || !documentDraft) return;
+    void perform(async (current) => {
+      try {
+        const result = await request<DocumentDto>(`/documents/${selectedDocument.pageId}/draft`, {
+          method: 'PUT', body: JSON.stringify({ expectedVersion: selectedDocument.version, content: documentDraft }),
+        });
+        if (!current()) return;
+        setSelectedDocument(result); setDocumentDraft(result.content); setDocumentConflict(null);
+        setPreview(''); invalidateSiteChoice(); setStatus(dc.saved);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 409) {
+          const result = await request<DocumentDto>(`/documents/${selectedDocument.pageId}`);
+          if (current() && result.version !== selectedDocument.version) { setDocumentConflict(result); setStatus(dc.conflict); }
+        }
+        throw err;
+      }
+    });
+  }
+  function previewDocument() {
+    if (busy || !selectedDocument || documentDirty) return;
+    void perform(async (current) => {
+      const result = await fetch(`${base}/documents/${selectedDocument.pageId}/previews/${selectedDocument.revisionId}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!result.ok) throw new ApiError(result.status, (await result.json()).message ?? 'Preview niet beschikbaar');
+      const html = await result.text(); if (current()) { setPreview(html); setStatus('Privépreview van de opgeslagen paginaversie.'); }
+    });
+  }
+  function prepareSite() {
+    if (busy || dirty || documentDirty || documentConflict || draftConflict) return;
+    void perform(async (current) => {
+      const plan = await request<SitePlan>('/site-plan');
+      if (!current()) return;
+      const home = plan.pages.find((item) => item.pageId === 'home');
+      const selected = selectedDocument ? plan.pages.find((item) => item.pageId === selectedDocument.pageId) : null;
+      if (!page || home?.revisionId !== page.revisionId || home.version !== page.pageVersion ||
+          (selectedDocument && (selected?.revisionId !== selectedDocument.revisionId || selected.version !== selectedDocument.version))) {
+        invalidateSiteChoice(); setStatus(dc.planConflict);
+        throw new ApiError(409, 'Een geopende paginaversie is gewijzigd. Open die pagina opnieuw voordat je publiceert.');
+      }
+      setSitePlan(plan); setSiteChoice(null); setStatus(dc.planTitle);
+    });
+  }
+  function publishSite() {
+    if (busy || !sitePlan || dirty || documentDirty || documentConflict || draftConflict) return;
+    const choice = siteChoice ?? { plan: sitePlan, key: crypto.randomUUID() };
+    setSiteChoice(choice);
+    void perform(async (current) => {
+      try {
+        const plan = choice.plan;
+        const result = await request<Attempt>('/releases', { method: 'POST', headers: { 'Idempotency-Key': choice.key },
+          body: JSON.stringify({ revisionId: plan.pages.find((item) => item.pageId === 'home')!.revisionId,
+            expectedActiveVersion: plan.activeVersion, expectedPages: plan.pages.map(({ pageId, revisionId, version }) => ({ pageId, revisionId, version })) }),
+        });
+        if (!current()) return;
+        setAttempt(result);
+        if (result.status === 'building') { setStatus('Website wordt gebouwd. Controleer opnieuw met dezelfde keuze.'); return; }
+        invalidateSiteChoice();
+        setPage((prior) => prior ? { ...prior, activeReleaseId: result.releaseId, activeVersion: plan.activeVersion + 1 } : prior);
+        setSelectedDocument((prior) => prior ? { ...prior, published: true } : prior);
+        setStatus(`Website lokaal gepubliceerd. Actieve versie ${plan.activeVersion + 1}.`);
+      } catch (err) {
+        if (err instanceof ApiError && [409, 422, 428].includes(err.status) && current()) {
+          invalidateSiteChoice(); setStatus(err.status === 422 ? dc.planFailed : dc.planConflict);
+        }
+        throw err;
+      }
+    });
+  }
+  const availableImage: DocumentImageReference | null = uploadStatus?.state === 'ready'
+    ? { assetId: uploadStatus.assetId, fileVersion: uploadStatus.fileVersion, usage: 'hero', decorative: false, altText: { nl: '' } }
+    : values.image ?? null;
+  const publicUrl = selectedDocument ? selectedDocument.published ? `/sites/${website}/${selectedDocument.content.slug}.html` : null
+    : attempt?.publicUrl ?? (page?.activeReleaseId ? `/sites/${website}/index.html` : null);
   return <main>
     <header><p className="eyebrow">Draconis Labs · lokale proef</p><h1>Pagina bewerken</h1><p>Fictieve inhoud. Bewaar je concept en publiceer daarna naar de lokale website.</p></header>
     <section aria-labelledby="access-title"><h2 id="access-title">Website openen</h2>
       <form onSubmit={open}>
         <label>Website<select value={website} disabled={busy} onChange={(event) => {
-          if (dirty && !window.confirm('Onopgeslagen tekst behouden tot je de andere pagina opent?')) return;
+          if ((dirty || documentDirty) && !window.confirm('Je hebt onopgeslagen wijzigingen. Wisselen naar de andere website?')) return;
           reset(); setWebsite(event.target.value);
         }}><option value="demo-cms">Proeftuin</option><option value="demo-other">Tweede testwebsite</option></select></label>
         <label>Lokaal testtoken<input type="password" autoComplete="off" value={token} onChange={(event) => {
@@ -225,10 +355,22 @@ function App() {
     </section>
     <p role="status" aria-live="polite" className="status">{status}</p>
     {error && <p role="alert" className="error">{error}</p>}
-    {page && <section aria-labelledby="content-title"><h2 id="content-title">Home · Nederlands</h2>
-      <p>Conceptversie {page.pageVersion} · Actieve publicatieversie {page.activeVersion}{dirty ? ' · Onopgeslagen wijzigingen' : ''}</p>
+    {page?.pagesEnabled && <section><h2>{dc.pages}</h2>
+      <button disabled={busy} onClick={refreshOverview}>{dc.refresh}</button>
+      {overview && <ul>{overview.pages.map((item) => <li key={item.pageId}>{item.title} · {item.file} · v{item.version}{' '}
+        <button disabled={busy || dirty || documentDirty} onClick={() => openDocument(item.pageId)}>{item.pageId === 'home' ? dc.openHome : dc.openPage}</button></li>)}</ul>}
+      <fieldset disabled={busy}><legend>{dc.create}</legend>
+        <label>{dc.newTitle}<input value={newPage.title} maxLength={200} onChange={(event) => setNewPage({ ...newPage, title: event.target.value })} /></label>
+        <label>{dc.newSlug}<input value={newPage.slug} maxLength={80} onChange={(event) => setNewPage({ ...newPage, slug: event.target.value })} /></label>
+        <button disabled={!newPage.title.trim() || !newPage.slug.trim() || dirty || documentDirty} onClick={createDocument}>{dc.create}</button>
+      </fieldset>
+    </section>}
+    {page && <section aria-labelledby="content-title"><h2 id="content-title">{selectedDocument ? documentDraft?.title : 'Home · Nederlands'}</h2>
+      <p>Conceptversie {selectedDocument?.version ?? page.pageVersion} · Actieve publicatieversie {page.activeVersion}{(selectedDocument ? documentDirty : dirty) ? ' · Onopgeslagen wijzigingen' : ''}</p>
+      {!selectedDocument && <>
       <label>Titel<input value={values.title} maxLength={200} disabled={busy} onChange={(event) => setValues({ ...values, title: event.target.value })} /></label>
       <label>Introductie<textarea value={values.intro} maxLength={4000} rows={5} disabled={busy} onChange={(event) => setValues({ ...values, intro: event.target.value })} /></label>
+      </>}
       {page.uploadEnabled && <fieldset disabled={busy}><legend>Eigen afbeelding uploaden</legend>
         <label>PNG-, JPEG- of WebP-bestand<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></label>
         <button disabled={!file} onClick={upload}>Bestand uploaden</button>
@@ -243,7 +385,12 @@ function App() {
           {uploadStatus.state === 'ready' && <button onClick={() => useUpload(uploadStatus)}>Deze upload gebruiken</button>}
         </aside>}
       </fieldset>}
-      <fieldset disabled={busy}><legend>Afbeelding in concept</legend>
+      {selectedDocument && documentDraft && <DocumentEditor draft={documentDraft} onChange={changeDocument} busy={busy} dirty={documentDirty}
+        onSave={saveDocument} onPreview={previewDocument} availableImage={availableImage} />}
+      {documentConflict && <aside><p>{dc.conflict}</p><p>{documentConflict.content.title}</p>
+        <button disabled={busy} onClick={() => { if (busy) return; setSelectedDocument(documentConflict); setDocumentDraft(documentConflict.content);
+          setDocumentConflict(null); setPreview(''); resetRights(); invalidateSiteChoice(); }}>{dc.latest}</button></aside>}
+      {!selectedDocument && <fieldset disabled={busy}><legend>Afbeelding in concept</legend>
         <p className="hint">{page.uploadEnabled ? 'Kies je upload of een vaste testafbeelding. De vaste testafbeeldingen zijn vergrote pixels; je eigen upload gebruikt geschoonde beeldvarianten.'
           : 'De testafbeelding is één gekleurde pixel, hier vergroot. Kies expliciet een bestandsversie; uploads zijn niet aangesloten.'}</p>
         <label>Afbeelding<select value={values.image ? `${values.image.assetId}:${values.image.fileVersion}` : ''} onChange={(event) => {
@@ -265,11 +412,11 @@ function App() {
           }} /></label>
           <p className="hint">{values.image.decorative ? 'De export krijgt een leeg alt-attribuut.' : 'Vul een beschrijving in voordat je previewt of publiceert.'}</p>
         </>}
-      </fieldset>
-      {page.uploadEnabled && values.image && <fieldset disabled={busy}><legend>Rechten beoordelen</legend>
+      </fieldset>}
+      {page.uploadEnabled && selectedImage && <fieldset disabled={busy}><legend>Rechten beoordelen</legend>
         <p>Een gereed beeld kan privé bekeken worden. Publiceren vereist een expliciete vrijgave; een upload alleen geeft geen toestemming.</p>
         <button onClick={loadRights}>Rechtenstatus ophalen</button>
-        {rightsTarget?.assetId === values.image.assetId && <>
+        {rightsTarget?.assetId === selectedImage.assetId && <>
           <p>Huidige status: {rightsTarget.rights} · versie {rightsTarget.metadataVersion}</p>
           <label>Rechthebbende<input value={rightsDecision.owner} onChange={(event) => setRightsDecision({ ...rightsDecision, owner: event.target.value })} /></label>
           <label>Bron<input value={rightsDecision.source} onChange={(event) => setRightsDecision({ ...rightsDecision, source: event.target.value })} /></label>
@@ -280,7 +427,7 @@ function App() {
             <button disabled={!rightsDecision.confirmed} className="secondary" onClick={() => decideRights('blocked')}>Nieuwe publicatie blokkeren</button></div>
         </>}
       </fieldset>}
-      {draftConflict && <aside><h3>Nieuwste opgeslagen tekst</h3><p>{draftConflict.values.title}</p><p>{draftConflict.values.intro}</p>
+      {!selectedDocument && draftConflict && <aside><h3>Nieuwste opgeslagen tekst</h3><p>{draftConflict.values.title}</p><p>{draftConflict.values.intro}</p>
         <button disabled={busy} onClick={() => {
           if (busy) return;
           setPage(draftConflict); setValues(draftConflict.values); setDraftConflict(null); setPreview('');
@@ -289,10 +436,15 @@ function App() {
           setStatus('Nieuwste versie overgenomen. Kies Lokaal publiceren om deze revisie te publiceren.');
         }}>Nieuwste versie overnemen</button>
         <p>Jouw invoer blijft hierboven staan totdat je deze keuze maakt. Kopieer tekst die je wilt bewaren.</p></aside>}
-      <div className="actions"><button disabled={busy || !dirty || !!draftConflict} onClick={save}>Concept opslaan</button>
+      {!selectedDocument && <div className="actions"><button disabled={busy || !dirty || !!draftConflict} onClick={save}>Concept opslaan</button>
         <button className="secondary" disabled={busy || dirty || !!draftConflict} onClick={previewDraft}>Privépreview openen</button>
-        <button disabled={busy || dirty || !!draftConflict || publicationConflict} onClick={publish}>{pendingChoice ? 'Publicatie opnieuw controleren' : 'Lokaal publiceren'}</button></div>
-      {publicationConflict && <aside><p>Een andere publicatie is inmiddels actief. Wil je nog steeds deze opgeslagen conceptversie publiceren?</p><button disabled={busy} onClick={() => { if (busy) return; setPublicationConflict(false); setStatus('Nieuwe publicatiekeuze bevestigd. Klik Lokaal publiceren.'); }}>Deze revisie opnieuw kiezen</button></aside>}
+        {!page.pagesEnabled && <button disabled={busy || dirty || !!draftConflict || publicationConflict} onClick={publish}>{pendingChoice ? 'Publicatie opnieuw controleren' : 'Lokaal publiceren'}</button>}</div>}
+      {!page.pagesEnabled && publicationConflict && <aside><p>Een andere publicatie is inmiddels actief. Wil je nog steeds deze opgeslagen conceptversie publiceren?</p><button disabled={busy} onClick={() => { if (busy) return; setPublicationConflict(false); setStatus('Nieuwe publicatiekeuze bevestigd. Klik Lokaal publiceren.'); }}>Deze revisie opnieuw kiezen</button></aside>}
+      {page.pagesEnabled && <fieldset disabled={busy}><legend>{dc.planTitle}</legend>
+        <button disabled={dirty || documentDirty || !!draftConflict || !!documentConflict} onClick={prepareSite}>{dc.plan}</button>
+        {sitePlan && <><ul>{sitePlan.pages.map((item) => <li key={item.pageId}>{item.title} · {item.file} · v{item.version}</li>)}</ul>
+          <button disabled={dirty || documentDirty || !!draftConflict || !!documentConflict} onClick={publishSite}>{siteChoice ? dc.retry : dc.publish}</button></>}
+      </fieldset>}
       {publicUrl && <p><a href={publicUrl} target="_blank" rel="noreferrer">Gepubliceerde lokale pagina openen</a></p>}
       {preview && <div><h3>Privépreview</h3><iframe title="Privépreview opgeslagen concept" sandbox="" srcDoc={preview} /></div>}
     </section>}

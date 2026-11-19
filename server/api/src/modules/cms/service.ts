@@ -1,22 +1,24 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { CmsError, render, type Attempt, type ReleaseInput } from './model.js';
 import { CmsRepository } from './repository.js';
 import type { CmsMedia } from './media.js';
 import { MediaContractError } from '../../media-fixture/contracts.js';
 import type { CmsUploads } from './upload.js';
+import type { CmsDocuments, RenderedSite } from './documents.js';
 
 export interface BuildHooks {
   beforeBuild?: () => Promise<void>;
   beforeActivate?: () => Promise<void>;
   afterActivate?: () => Promise<void>;
 }
-const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
+const sha256 = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
 
 export class CmsService {
   constructor(readonly repository: CmsRepository, readonly releasesRoot: string, private hooks: BuildHooks = {},
-    readonly media?: CmsMedia, private mediaUnavailable = false, readonly uploads?: CmsUploads, readonly uploadEnabled = false) {}
+    readonly media?: CmsMedia, private mediaUnavailable = false, readonly uploads?: CmsUploads, readonly uploadEnabled = false,
+    readonly documents?: CmsDocuments) {}
 
   private requireMedia(): void {
     if (!this.media) throw new CmsError(this.mediaUnavailable ? 503 : 409,
@@ -31,63 +33,71 @@ export class CmsService {
       ? this.uploads.preview(websiteId, values.image) : this.media!.preview(websiteId, mediaRevision) : undefined);
   }
 
+  private legacyBuild(websiteId: string, input: ReleaseInput, releaseId: string): RenderedSite {
+    const mediaRevision = this.repository.mediaRevision(websiteId, input.revisionId);
+    if (mediaRevision) this.requireMedia();
+    const values = this.repository.revision(websiteId, input.revisionId);
+    const validate = () => {
+      if (values.image && this.uploads) this.uploads.requireApproval(websiteId, values.image.assetId);
+      return mediaRevision ? this.media!.resolve(websiteId, mediaRevision, releaseId) : undefined;
+    };
+    const image = validate();
+    const html = render(values, image ? { src: `media/${releaseId}/hero.${image.extension}`, alt: image.alt } : undefined);
+    return { files: [{ path: 'index.html', bytes: Buffer.from(html) },
+      ...(image ? [{ path: `media/${releaseId}/hero.${image.extension}`, bytes: image.bytes }] : [])],
+      metadata: { template: 'plain-page@3', ...(image ? { media: image.manifest } : {}) },
+      revalidate: () => { validate(); } };
+  }
+
   async publish(websiteId: string, input: ReleaseInput, key: string, actor: string): Promise<Attempt> {
     const start = this.repository.begin(websiteId, input, key, actor);
     if (!start.created) return start.attempt;
     const attempt = start.attempt;
     try {
       await this.hooks.beforeBuild?.();
-      const mediaRevision = this.repository.mediaRevision(websiteId, input.revisionId);
-      if (mediaRevision) this.requireMedia();
-      const values = this.repository.revision(websiteId, input.revisionId);
-      if (values.image && this.uploads) this.uploads.requireApproval(websiteId, values.image.assetId);
-      const image = mediaRevision ? this.media!.resolve(websiteId, mediaRevision, attempt.releaseId) : undefined;
-      const html = render(values,
-        image ? { src: `media/${attempt.releaseId}/hero.${image.extension}`, alt: image.alt } : undefined);
+      const output = this.documents ? this.documents.build(websiteId, attempt.releaseId)
+        : this.legacyBuild(websiteId, input, attempt.releaseId);
       const siteRoot = join(this.releasesRoot, websiteId);
       const staging = join(siteRoot, `.staging-${randomUUID()}`);
       const complete = join(siteRoot, attempt.releaseId);
       await mkdir(staging, { recursive: true });
-      await writeFile(join(staging, 'index.html'), html, { flag: 'wx', flush: true });
-      const files: Record<string, string> = { 'index.html': sha256(html) };
-      if (image) {
-        await mkdir(join(staging, 'media', attempt.releaseId), { recursive: true });
-        await writeFile(join(staging, 'media', attempt.releaseId, `hero.${image.extension}`), image.bytes, { flag: 'wx', flush: true });
-        files[`media/${attempt.releaseId}/hero.${image.extension}`] = createHash('sha256').update(image.bytes).digest('hex');
+      const files: Record<string, string> = {};
+      if (new Set(output.files.map((file) => file.path)).size !== output.files.length) throw new CmsError(400, 'Dubbel uitvoerpad');
+      for (const file of output.files) {
+        const target = join(staging, file.path);
+        await mkdir(dirname(target), { recursive: true });
+        await writeFile(target, file.bytes, { flag: 'wx', flush: true });
+        files[file.path] = sha256(file.bytes);
+        if (sha256(await readFile(target)) !== files[file.path]) throw new Error('Output validation failed');
       }
       const manifest = JSON.stringify({ schemaVersion: 1, websiteId, releaseId: attempt.releaseId,
-        revisionId: input.revisionId, template: 'plain-page@3', files,
-        ...(image ? { media: image.manifest } : {}) });
+        revisionId: input.revisionId, ...output.metadata, files });
       await writeFile(join(staging, 'release.json'), manifest, { flag: 'wx', flush: true });
-      if (sha256(await readFile(join(staging, 'index.html'), 'utf8')) !== sha256(html)) {
-        throw new Error('Output validation failed');
-      }
       await rename(staging, complete);
       await this.hooks.beforeActivate?.();
       // The supported local writer model is one owning CMS process. All rights routes
       // run on this event loop. No await may separate this final synchronous validation
       // (including ready, exact variants/hash and current approval) from pointer activation.
       // Multiple independent writer processes need a shared transaction/lock protocol.
-      if (mediaRevision) {
-        if (values.image && this.uploads) this.uploads.requireApproval(websiteId, values.image.assetId);
-        this.media!.resolve(websiteId, mediaRevision, attempt.releaseId);
-      }
+      output.revalidate();
       const activated = this.repository.activate(attempt);
       await this.hooks.afterActivate?.();
       return activated;
     } catch (error) {
       // A failure after a committed activation cannot downgrade or undo the published release.
       this.repository.finish(attempt, 'failed', error instanceof MediaContractError ? 'media_not_publishable'
-        : error instanceof CmsError && error.statusCode === 503 ? 'media_unavailable' : 'build_failed');
+        : error instanceof CmsError && error.statusCode === 503 ? 'media_unavailable'
+        : error instanceof CmsError && error.statusCode === 400 ? 'content_not_publishable' : 'build_failed');
       return this.repository.attempt(websiteId, attempt.releaseId);
     }
   }
 
-  async publicHtml(websiteId: string): Promise<string> {
+  async publicHtml(websiteId: string, file = 'index.html'): Promise<string> {
     this.publicSite(websiteId);
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*\.html$/.test(file)) throw new CmsError(404, 'Pagina niet gevonden');
     const active = this.repository.active(websiteId);
     if (!active.activeReleaseId) throw new CmsError(404, 'Nog geen gepubliceerde pagina');
-    return (await this.releaseBytes(websiteId, active.activeReleaseId, 'index.html')).toString('utf8');
+    return (await this.releaseBytes(websiteId, active.activeReleaseId, file)).toString('utf8');
   }
 
   private publicSite(websiteId: string): void {
@@ -97,7 +107,7 @@ export class CmsService {
   async publicImage(websiteId: string, releaseId: string, filename = 'hero.png'): Promise<Buffer> {
     this.publicSite(websiteId);
     if (!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(releaseId)) throw new CmsError(404, 'Publicatie niet gevonden');
-    if (!['hero.png', 'hero.jpg', 'hero.webp'].includes(filename)) throw new CmsError(404, 'Afbeelding niet gevonden');
+    if (!/^(?:hero|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})\.(png|jpg|webp)$/.test(filename)) throw new CmsError(404, 'Afbeelding niet gevonden');
     return this.releaseBytes(websiteId, releaseId, `media/${releaseId}/${filename}`);
   }
 

@@ -11,6 +11,7 @@ import { CmsMedia } from './media.js';
 import { CmsError } from './model.js';
 import { CmsUploads } from './upload.js';
 import { UploadError } from '../../media-upload/processor.js';
+import { CmsDocuments } from './documents.js';
 
 const credentialSchema = z.array(z.object({
   name: z.string().min(1).max(80),
@@ -28,6 +29,7 @@ export interface CmsAppOptions {
   enableMedia?: boolean;
   mediaRoot?: string;
   enableUploads?: boolean;
+  enablePages?: boolean;
 }
 
 function lockRuntime(root: string): () => void {
@@ -71,7 +73,8 @@ export async function buildCmsApp(options: CmsAppOptions) {
     if (options.enableUploads && media) { uploads = new CmsUploads(media); await uploads.recover(); }
     repository.reconcile();
     if (options.seed) repository.seed();
-    const service = new CmsService(repository, join(root, 'releases'), options.hooks, media, mediaUnavailable, uploads, options.enableUploads);
+    const documents = options.enablePages ? new CmsDocuments(repository, media, uploads) : undefined;
+    const service = new CmsService(repository, join(root, 'releases'), options.hooks, media, mediaUnavailable, uploads, options.enableUploads, documents);
     app.addHook('onClose', async () => { repository!.close(); uploads?.close(); media?.close(); unlock(); });
     app.addHook('onSend', async (_request, reply, payload) => {
       reply.header('X-Content-Type-Options', 'nosniff');
@@ -87,16 +90,17 @@ export async function buildCmsApp(options: CmsAppOptions) {
     });
     const mod = cmsModule(service, credentials);
     await app.register(mod.register, { prefix: `/api/v1${mod.prefix}` });
-    app.get('/sites/:websiteId/index.html', async (request, reply) => {
+    app.get('/sites/:websiteId/:filename', async (request, reply) => {
       reply.header('Cache-Control', 'no-store');
       reply.header('Content-Security-Policy', "default-src 'none'; img-src 'self'; frame-ancestors 'self'; form-action 'none'; base-uri 'none'");
-      return reply.type('text/html; charset=utf-8').send(await service.publicHtml((request.params as { websiteId: string }).websiteId));
+      const { websiteId, filename } = request.params as { websiteId: string; filename: string };
+      return reply.type('text/html; charset=utf-8').send(await service.publicHtml(websiteId, filename));
     });
     app.get('/sites/:websiteId/media/:releaseId/:filename', async (request, reply) => {
       reply.header('Cache-Control', 'no-store');
       const { websiteId, releaseId, filename } = request.params as { websiteId: string; releaseId: string; filename: string };
       const bytes = await service.publicImage(websiteId, releaseId, filename);
-      const mime = filename === 'hero.png' ? 'image/png' : filename === 'hero.jpg' ? 'image/jpeg' : 'image/webp';
+      const mime = filename.endsWith('.png') ? 'image/png' : filename.endsWith('.jpg') ? 'image/jpeg' : 'image/webp';
       return reply.type(mime).send(bytes);
     });
     if (options.uiRoot) {
@@ -114,7 +118,7 @@ export async function buildCmsApp(options: CmsAppOptions) {
       });
     }
     await app.ready();
-    return { app, repository, service, media, uploads };
+    return { app, repository, service, media, uploads, documents };
   } catch (error) {
     if (repository) repository.close();
     uploads?.close();

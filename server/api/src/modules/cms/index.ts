@@ -5,6 +5,7 @@ import { CmsError, draftSchema, releaseSchema } from './model.js';
 import { CmsService } from './service.js';
 import { MAX_BYTES } from '../../media-upload/processor.js';
 import { rightsInputSchema } from '../../media-upload/rights.js';
+import { createDocumentSchema, saveDocumentSchema } from './documents.js';
 
 export interface LocalCredential {
   name: string;
@@ -48,8 +49,31 @@ export function cmsModule(service: CmsService, credentials: LocalCredential[]): 
         }
       });
       app.get('/websites/:websiteId/pages/home', async (request) => ({
-        ...service.repository.page(parameters(request).websiteId), uploadEnabled: service.uploadEnabled,
+        ...service.repository.page(parameters(request).websiteId), uploadEnabled: service.uploadEnabled, pagesEnabled: !!service.documents,
       }));
+      if (service.documents) {
+        const documents = service.documents;
+        app.get('/websites/:websiteId/site-plan', async (request) => documents.plan(parameters(request).websiteId));
+        app.post('/websites/:websiteId/documents', async (request, reply) => {
+          const actor = authorize(request);
+          return reply.code(201).send(documents.create(parameters(request).websiteId, createDocumentSchema.parse(request.body), actor.name));
+        });
+        app.get('/websites/:websiteId/documents/:pageId', async (request) => {
+          const { websiteId, pageId } = request.params as { websiteId: string; pageId: string };
+          return documents.get(websiteId, pageId);
+        });
+        app.put('/websites/:websiteId/documents/:pageId/draft', { bodyLimit: 128_000 }, async (request) => {
+          const actor = authorize(request);
+          if (typeof request.body === 'object' && request.body !== null && !('expectedVersion' in request.body)) throw new CmsError(428, 'Verwachte paginaversie vereist');
+          const { websiteId, pageId } = request.params as { websiteId: string; pageId: string };
+          return documents.save(websiteId, pageId, saveDocumentSchema.parse(request.body), actor.name);
+        });
+        app.get('/websites/:websiteId/documents/:pageId/previews/:revisionId', async (request, reply) => {
+          const { websiteId, pageId, revisionId } = request.params as { websiteId: string; pageId: string; revisionId: string };
+          reply.header('Content-Security-Policy', "default-src 'none'; img-src data:; frame-ancestors 'self'; form-action 'none'; base-uri 'none'");
+          return reply.type('text/html; charset=utf-8').send(documents.preview(websiteId, pageId, revisionId));
+        });
+      }
       if (service.uploadEnabled) {
         const admitted = new Set<string>();
         const release = (request: FastifyRequest) => { admitted.delete(request.id); };
@@ -102,7 +126,7 @@ export function cmsModule(service: CmsService, credentials: LocalCredential[]): 
         }
         const input = draftSchema.parse(request.body);
         return { ...service.repository.save(parameters(request).websiteId, input.expectedVersion, input.values, actor.name),
-          uploadEnabled: service.uploadEnabled };
+          uploadEnabled: service.uploadEnabled, pagesEnabled: !!service.documents };
       });
       app.get('/websites/:websiteId/previews/:revisionId', async (request, reply) => {
         const { websiteId, revisionId } = parameters(request);

@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { CmsError, type Attempt, type Page, type ReleaseInput, type Values } from './model.js';
+import { CmsError, type Attempt, type Page, type ReleaseInput, type Values, type SiteSnapshotParticipant } from './model.js';
 import type { CmsMedia } from './media.js';
 
 interface PageRow { revision_id: string; version: number; values_json: string }
@@ -13,6 +13,8 @@ interface AttemptRow {
 
 export class CmsRepository {
   readonly db: Database.Database;
+  private siteSnapshots?: SiteSnapshotParticipant;
+  setSiteSnapshots(participant: SiteSnapshotParticipant): void { this.siteSnapshots = participant; }
   constructor(databasePath: string, private media?: CmsMedia, private mediaUnavailable = false) {
     mkdirSync(dirname(databasePath), { recursive: true });
     this.db = new Database(databasePath);
@@ -146,11 +148,13 @@ export class CmsRepository {
         return { attempt: this.map(existing), created: false };
       }
       this.revision(websiteId, input.revisionId);
+      const snapshot = this.siteSnapshots?.capture(websiteId, input);
       const conflict = this.active(websiteId).activeVersion !== input.expectedActiveVersion;
       const id = randomUUID();
       this.db.prepare('INSERT INTO cms_attempts VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
         .run(id, websiteId, input.revisionId, input.expectedActiveVersion, key, payload, actor,
           conflict ? 'conflict' : 'building', conflict ? 'active_version_changed' : null, new Date().toISOString());
+      if (snapshot) this.siteSnapshots!.persist(id, snapshot);
       return { attempt: this.attempt(websiteId, id), created: !conflict };
     }).immediate();
   }

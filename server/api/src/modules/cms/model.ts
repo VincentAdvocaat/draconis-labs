@@ -13,9 +13,15 @@ export const draftSchema = z.object({
 export const releaseSchema = z.object({
   revisionId: z.string().uuid(),
   expectedActiveVersion: z.number().int().nonnegative(),
+  expectedPages: z.array(z.object({ pageId: z.string().min(1).max(64), revisionId: z.string().uuid(),
+    version: z.number().int().positive() }).strict()).max(100).optional(),
 }).strict();
 export type Values = z.infer<typeof valuesSchema>;
 export type ReleaseInput = z.infer<typeof releaseSchema>;
+export interface SiteSnapshotParticipant {
+  capture(websiteId: string, input: ReleaseInput): string;
+  persist(releaseId: string, snapshot: string): void;
+}
 export type AttemptStatus = 'building' | 'published' | 'failed' | 'conflict';
 export interface Page {
   revisionId: string;

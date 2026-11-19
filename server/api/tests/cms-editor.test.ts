@@ -33,6 +33,13 @@ function editorHarness() {
     return slots[position];
   }
   const jsx = (type: Element['type'], props: Element['props']) => ({ type, props });
+  const documentExports: Record<string, unknown> = {};
+  const documentSource = readFileSync(new URL('../../../apps/cms/src/documents.tsx', import.meta.url), 'utf8');
+  const documentCompiled = ts.transpileModule(documentSource, { compilerOptions: {
+    module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
+  } }).outputText;
+  runInNewContext(documentCompiled, { exports: documentExports, crypto: { randomUUID: () => `new-block-${++key}` },
+    require: (name: string) => { if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx }; throw new Error(`Unexpected document import ${name}`); } });
   const source = readFileSync(new URL('../../../apps/cms/src/main.tsx', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
@@ -53,10 +60,17 @@ function editorHarness() {
       if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx };
       if (name === 'react-dom/client') return { createRoot: () => ({ render: (element: Element) => { component = element.type as () => Element; } }) };
       if (name === './style.css') return {};
+      if (name === './documents') return documentExports;
       throw new Error(`Unexpected component import ${name}`);
     },
   });
-  function render() { cursor = 0; tree = component(); }
+  function expand(node: Child | Child[] | undefined): Child | Child[] | undefined {
+    if (Array.isArray(node)) return node.map((child) => expand(child) as Child);
+    if (!node || typeof node !== 'object') return node;
+    if (typeof node.type === 'function') return expand((node.type as unknown as (props: Element['props']) => Element)(node.props));
+    return { ...node, props: { ...node.props, children: expand(node.props.children) } };
+  }
+  function render() { cursor = 0; tree = expand(component()) as Element; }
   function nodes(node: Child | Child[] | undefined): Element[] {
     if (Array.isArray(node)) return node.flatMap(nodes);
     if (!node || typeof node !== 'object') return [];
@@ -87,9 +101,10 @@ function editorHarness() {
   render();
   return { results, requests, action, button, title,
     settle: async () => { await new Promise<void>((resolve) => setImmediate(resolve)); render(); },
-    field: (label: string) => {
-      const owner = find((node) => node.type === 'label' && Array.isArray(node.props.children) &&
-        node.props.children.some((child) => typeof child === 'string' && child.trim() === label));
+    field: (label: string, index = 0) => {
+      const owner = nodes(tree).filter((node) => node.type === 'label' && Array.isArray(node.props.children) &&
+        node.props.children.some((child) => typeof child === 'string' && child.trim() === label))[index];
+      if (!owner) throw new Error(`Missing field ${label}/${index}`);
       return nodes(owner).find((node) => ['input', 'select', 'textarea'].includes(String(node.type)))!;
     },
     publicationButton: () => find((node) => node.type === 'button' &&
@@ -104,6 +119,60 @@ const pageA = { revisionId: 'revision-A', pageVersion: 1, values: { title: 'Revi
 const pageB = { ...pageA, revisionId: 'revision-B', pageVersion: 2, values: { title: 'Revisie B', intro: '' } };
 
 describe('CMS editor recovery and selected revision', () => {
+  it('does not prepare a site publication containing a newer unseen home revision', async () => {
+    const ui = editorHarness();
+    ui.results.push({ status: 200, body: { ...pageA, pagesEnabled: true } }); await ui.open();
+    const plan = { activeReleaseId: null, activeVersion: 0,
+      pages: [{ pageId: 'home', revisionId: 'revision-B', version: 2, title: 'Revisie B', file: 'index.html' }] };
+    ui.results.push({ status: 200, body: plan }); await ui.action(ui.button('Publicatieselectie ophalen'));
+    expect(ui.error()).toContain('Open die pagina opnieuw');
+    expect(() => ui.button('Website lokaal publiceren')).toThrow();
+    ui.results.push({ status: 200, body: { ...pageB, pagesEnabled: true } }); await ui.open();
+    ui.results.push({ status: 200, body: plan }); await ui.action(ui.button('Publicatieselectie ophalen'));
+    ui.results.push({ status: 200, body: { releaseId: 'site-one', status: 'published', publicUrl: '/sites/demo-cms/index.html' } });
+    await ui.action(ui.button('Website lokaal publiceren'));
+    expect(JSON.parse(ui.requests.at(-1)!.init.body!)).toMatchObject({ revisionId: 'revision-B',
+      expectedPages: [{ pageId: 'home', revisionId: 'revision-B', version: 2 }] });
+  });
+
+  it('retains the exact site selection and key when the publication response is lost', async () => {
+    const ui = editorHarness();
+    ui.results.push({ status: 200, body: { ...pageA, pagesEnabled: true } }); await ui.open();
+    ui.results.push({ status: 200, body: { activeVersion: 0, activeReleaseId: null,
+      pages: [{ pageId: 'home', revisionId: pageA.revisionId, version: 1, title: 'A', file: 'index.html' }] } });
+    await ui.action(ui.button('Publicatieselectie ophalen'));
+    ui.results.push(new Error('response lost')); await ui.action(ui.button('Website lokaal publiceren'));
+    const first = ui.requests.at(-1)!;
+    ui.results.push({ status: 200, body: { releaseId: 'retained-site', status: 'published', publicUrl: '/sites/demo-cms/index.html' } });
+    await ui.action(ui.button('Websitepublicatie opnieuw controleren'));
+    expect(ui.requests.at(-1)!.init.body).toBe(first.init.body);
+    expect(ui.requests.at(-1)!.init.headers['Idempotency-Key']).toBe(first.init.headers['Idempotency-Key']);
+  });
+
+  it('uses the real document editor to add and reorder blocks while keeping their IDs in the save request', async () => {
+    const ui = editorHarness();
+    ui.results.push({ status: 200, body: { ...pageA, pagesEnabled: true } }); await ui.open();
+    await ui.action(ui.field('Titel nieuwe pagina'), 'onChange', { target: { value: 'New page' } });
+    await ui.action(ui.field('Slug nieuwe pagina'), 'onChange', { target: { value: 'new-page' } });
+    const content = { schemaVersion: 1, locale: 'nl', title: 'New page', slug: 'new-page', seoTitle: 'New page', seoDescription: '',
+      blocks: [{ blockId: 'original-block', type: 'text', heading: '', body: '' }] };
+    ui.results.push({ status: 201, body: { pageId: 'new-page-id', revisionId: 'doc-revision', version: 1, content, published: false } },
+      { status: 200, body: { activeVersion: 0, activeReleaseId: null, pages: [] } });
+    await ui.action(ui.button('Nieuwe pagina aanmaken'));
+    await ui.action(ui.field('Bloktekst'), 'onChange', { target: { value: 'First text' } });
+    await ui.action(ui.button('Tekstblok toevoegen'));
+    await ui.action(ui.field('Bloktekst', 1), 'onChange', { target: { value: 'Second text' } });
+    await ui.action(ui.button('Blok 2 omhoog'));
+    expect(ui.field('Bloktekst', 0).props.value).toBe('Second text');
+    ui.results.push({ status: 200, body: { pageId: 'new-page-id', revisionId: 'doc-revision-2', version: 2, content, published: false } });
+    await ui.action(ui.button('Paginaconcept opslaan'));
+    const saved = JSON.parse(ui.requests.at(-1)!.init.body!);
+    expect(saved.expectedVersion).toBe(1);
+    expect(saved.content.blocks.map((block: { body: string }) => block.body)).toEqual(['Second text', 'First text']);
+    expect(saved.content.blocks[1].blockId).toBe('original-block');
+    expect(saved.content.blocks[0].blockId).not.toBe('original-block');
+  });
+
   it('blocks explicit conflict adoption while an upload is outstanding, then preserves B and its image on adoption', async () => {
     const ui = editorHarness();
     const withImage = { ...pageA, uploadEnabled: true, values: { ...pageA.values,
