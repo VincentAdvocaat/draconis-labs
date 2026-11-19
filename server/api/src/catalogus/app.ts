@@ -27,6 +27,7 @@ export async function buildCatalogApp(root: string, token: string) {
   app.get('/catalogus/instance', async () => ({ module: 'catalogus', instanceId }));
   app.get<{ Params: { site: string } }>('/catalogus/api/:site', async request => catalog.list(request.params.site));
   app.get<{ Params: { site: string } }>('/catalogus/api/:site/assets', async request => catalog.assets(request.params.site));
+  app.put<{ Params: { site: string } }>('/catalogus/api/:site/order', async request => catalog.saveOrder(request.params.site, request.body));
   app.get<{ Params: { site: string } }>('/catalogus/api/:site/categories', async request => catalog.listCategories(request.params.site));
   app.post<{ Params: { site: string } }>('/catalogus/api/:site/categories', async request => catalog.saveCategory(request.params.site, undefined, request.body));
   app.put<{ Params: { site: string; id: string } }>('/catalogus/api/:site/categories/:id', async request => catalog.saveCategory(request.params.site, request.params.id, request.body));

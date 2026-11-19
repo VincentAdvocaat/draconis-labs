@@ -108,7 +108,7 @@ describe('website categories and pinned publication labels', () => {
         const old = { ...data, checksum: checksum(Buffer.from(JSON.stringify(data))) };
         db.prepare('INSERT INTO catalog_snapshots(website,id,json) VALUES(?,?,?)').run(site, old.snapshotId, JSON.stringify(old)); snapshots.push(old);
       }
-      db.exec('DROP TABLE catalog_categories; UPDATE catalog_schema SET version=3');
+      db.exec('ALTER TABLE catalog_items DROP COLUMN position; DROP TABLE catalog_categories; UPDATE catalog_schema SET version=3');
     } finally { db.close(); }
     service.close(); service = new CatalogService(fixture.root);
     const consumer = new CatalogSnapshotConsumer(fixture.root);

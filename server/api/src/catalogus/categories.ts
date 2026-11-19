@@ -14,7 +14,7 @@ export class CatalogCategories {
   constructor(private db: Database.Database) {
     db.transaction(() => {
       const schema = db.prepare('SELECT version FROM catalog_schema').get() as { version: number };
-      if (schema.version === 4) return;
+      if (schema.version === 4 || schema.version === 5) return;
       if (schema.version !== 3) throw new Error('Category migration requires catalog schema 3');
       db.exec(`CREATE TABLE IF NOT EXISTS catalog_categories(website TEXT NOT NULL,id TEXT NOT NULL,version INTEGER NOT NULL,
         archived INTEGER NOT NULL DEFAULT 0,labels TEXT NOT NULL,PRIMARY KEY(website,id));`);

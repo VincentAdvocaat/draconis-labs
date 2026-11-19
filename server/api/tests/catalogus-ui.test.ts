@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { adminHtml } from '../src/catalogus/html.js';
 
 class Element {
+  static focused?: Element;
+  static setFocused(element: Element) { Element.focused = element; }
   private val = '';
   get value() { return this.val; }
   set value(value: string | number) { this.val = String(value); }
@@ -18,10 +20,10 @@ class Element {
   append(child: Element) { this.children.push(child); if (this.children.length === 1) this.value = child.value; }
   add(child: Element) { this.append(child); }
   replaceChildren(...children: Element[]) { this.children = children; this.value = children[0]?.value ?? ''; }
-  focus() {}
+  focus() { Element.setFocused(this); }
 }
 
-function browserHarness() {
+function browserHarness(withOrder = false) {
   const elements = new Map<string, Element>();
   const el = (id: string) => {
     if (!elements.has(id)) elements.set(id, new Element());
@@ -32,6 +34,7 @@ function browserHarness() {
   const categories = [{ categoryId: 'algemeen', version: 1, archived: false, labels: { nl: 'Algemeen', en: 'General' as string | null } }];
   let stored = { itemId: 'item-1', version: 1, title: 'Oude titel', slug: 'oud', description: 'Oud',
     metadata: { year: 2025 }, media: { assetId: 'photo', fileVersion: 1, altText: { nl: 'Oud alt' }, decorative: false } };
+  let orderCollectionVersion = 3, storedOrder = ['item-1', 'item-2', 'item-3'];
   const assets = [{ assetId: 'photo', fileVersion: 1, metadataVersion: 1, rights: 'cleared', state: 'ready' },
     { assetId: 'photo', fileVersion: 2, metadataVersion: 1, rights: 'cleared', state: 'ready' }];
   const sent: Array<Record<string, unknown>> = [];
@@ -42,6 +45,13 @@ function browserHarness() {
   const response = (json: unknown, ok = true) => ({ ok, json: async () => JSON.parse(JSON.stringify(json)) });
   const context = vm.createContext({ document: { getElementById: el, createElement: () => new Element(), querySelectorAll: () => [...elements.values()] }, Option: Element,
     fetch: async (path: string, options: { method?: string; body?: string } = {}) => {
+      if (path.endsWith('/order')) {
+        const body = JSON.parse(options.body!) as { expectedVersion: number; itemIds: string[] }; sent.push(body);
+        if (body.expectedVersion !== orderCollectionVersion) return response({ message: 'Collection order version conflict' }, false);
+        storedOrder = body.itemIds; orderCollectionVersion++;
+        return response({ version: orderCollectionVersion, itemIds: storedOrder });
+      }
+      if (withOrder && path.endsWith('/publish')) { sent.push(JSON.parse(options.body!)); return response({ snapshotId: 'published-order' }); }
       if (path.includes('/categories')) {
         if (options.method === 'POST' || options.method === 'PUT') {
           const body = JSON.parse(options.body!) as { expectedVersion: number; labels: { nl: string; en: string | null } };
@@ -91,13 +101,15 @@ function browserHarness() {
         sent.push(body);
         if (body.expectedVersion !== stored.version) return response({ message: 'Item version conflict' }, false);
         stored = { ...body, version: stored.version + 1 };
+        if (withOrder) orderCollectionVersion++;
         return response(stored);
       }
-      return response({ items: [stored], version: stored.version, categories });
+      return response({ items: withOrder ? storedOrder.map((itemId, index) => itemId === stored.itemId ? stored : { ...stored, itemId, title: 'Item '+itemId, slug: 'item-'+index }) : [stored], version: withOrder ? orderCollectionVersion : stored.version, categories });
     },
   });
   vm.runInContext(adminHtml.match(/<script>([\s\S]*?)<\/script>/)![1], context);
   return { el, sent, context, get stored() { return stored; },
+    externalOrderUpdate() { storedOrder = [...storedOrder].reverse(); orderCollectionVersion++; },
     externalCategoryUpdate() { categories[0].version++; categories[0].labels.nl = 'Actueel algemeen'; },
     externalUpdate() { stored = { ...stored, version: 2, title: 'Nieuwe titel', slug: 'nieuw', description: 'Nieuw',
       metadata: { year: 2026 }, media: { ...stored.media, fileVersion: 2, altText: { nl: 'Nieuw alt' }, decorative: true } }; },
@@ -268,6 +280,54 @@ describe('actual admin script optimistic form binding', () => {
     await browser.el('saveLocale').onclick!();
     expect(browser.sent).toEqual([]);
     expect(browser.el('message').textContent).toContain('Laad eerst de EN-variant');
+  });
+});
+
+describe('explicit order editor and dirty item preservation', () => {
+  it('saves a moved exact set with collection CAS, preserves item inputs and uses the acknowledged version for publication', async () => {
+    const browser = browserHarness(true); await browser.selectVersionOne(); await browser.el('loadLocale').onclick!();
+    browser.el('title').value = 'Pending NL'; browser.el('enTitle').value = 'Pending EN';
+    const asset = browser.el('asset').value;
+    await browser.el('orderItems').children[1].children[0].onclick!();
+    expect(browser.el('orderItems').children[0].textContent).toContain('item-2');
+    expect(browser.el('orderItems').children[0].children[0].disabled).toBe(true);
+    expect(Element.focused).toBe(browser.el('orderItems').children[0].children[1]);
+    await browser.el('saveOrder').onclick!();
+    expect(browser.sent[0]).toMatchObject({ expectedVersion: 3, itemIds: ['item-2', 'item-1', 'item-3'] });
+    expect(browser.el('title').value).toBe('Pending NL'); expect(browser.el('enTitle').value).toBe('Pending EN'); expect(browser.el('asset').value).toBe(asset);
+    expect(Element.focused).toBe(browser.el('saveOrder'));
+    expect(browser.el('orderItems').children[0].children[0].disabled).toBe(true);
+    await browser.el('publish').onclick!(); expect(browser.sent.at(-1)?.expectedVersion).toBe(4);
+  });
+
+  it('preserves the proposed order on conflict and explicitly reloads the current set/version for recovery', async () => {
+    const browser = browserHarness(true); await browser.selectVersionOne();
+    await browser.el('orderItems').children[1].children[0].onclick!(); browser.externalOrderUpdate();
+    await browser.el('saveOrder').onclick!();
+    expect(browser.el('orderMessage').textContent).toContain('voorgestelde volgorde is behouden');
+    expect(browser.el('orderItems').children[0].textContent).toContain('item-2');
+    await browser.el('load').onclick!();
+    expect(browser.el('orderItems').children[0].textContent).toContain('item-3');
+    await browser.el('orderItems').children[1].children[0].onclick!(); await browser.el('saveOrder').onclick!();
+    expect(browser.sent.at(-1)?.expectedVersion).toBe(4); expect(browser.el('orderMessage').textContent).toContain('Volgorde opgeslagen');
+  });
+
+  it('does not silently advance a pending order CAS during an internal item-save refresh', async () => {
+    const browser = browserHarness(true); await browser.selectVersionOne();
+    await browser.el('orderItems').children[1].children[0].onclick!(); await browser.el('save').onclick!();
+    expect(browser.el('orderItems').children[0].textContent).toContain('item-2');
+    await browser.el('saveOrder').onclick!(); expect(browser.sent.at(-1)?.expectedVersion).toBe(3);
+    expect(browser.el('orderMessage').textContent).toContain('Collection order version conflict');
+  });
+
+  it('guards website navigation before resets and permits it after explicit cancellation', async () => {
+    const browser = browserHarness(true); await browser.selectVersionOne();
+    browser.el('title').value = 'Pending item'; await browser.el('orderItems').children[1].children[0].onclick!();
+    browser.el('site').value = 'fixture-beta'; browser.el('site').onchange!();
+    expect(browser.el('site').value).toBe('fixture-alpha'); expect(browser.el('title').value).toBe('Pending item');
+    expect(browser.el('orderMessage').textContent).toContain('Sla de volgorde eerst op');
+    await browser.el('cancelOrder').onclick!(); browser.el('site').value = 'fixture-beta'; browser.el('site').onchange!();
+    expect(browser.el('site').value).toBe('fixture-beta'); expect(browser.el('title').value).toBe(''); expect(browser.el('saveOrder').disabled).toBe(true);
   });
 });
 

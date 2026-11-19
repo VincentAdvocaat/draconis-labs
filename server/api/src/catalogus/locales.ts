@@ -14,7 +14,7 @@ export class CatalogLocales {
   constructor(private readonly db: Database.Database) {
     db.transaction(() => {
       const schema = db.prepare('SELECT version FROM catalog_schema').get() as { version: number };
-      if (schema.version === 3 || schema.version === 4) return;
+      if (schema.version === 3 || schema.version === 4 || schema.version === 5) return;
       if (schema.version !== 2) throw new Error('Catalog locale migration requires schema 2');
       db.exec(`ALTER TABLE catalog_collections ADD COLUMN default_locale TEXT NOT NULL DEFAULT 'nl';
         CREATE TABLE catalog_locale_values(website TEXT NOT NULL,revision TEXT NOT NULL,locale TEXT NOT NULL,
