@@ -14,6 +14,7 @@ Een beeldbibliotheek bewaart afbeeldingen en hun herkomst. Catalogusitems verwij
 - [M0 contractproef](m0-proef.md), [M1 HTTP-upload](m1-upload.md) en [opgeslagen catalogusflow](catalogus-flow.md) beschrijven de daaropvolgende lokale implementaties en hun grenzen.
 - [Snapshotbeheer en normale start](snapshotbeheer.md) beschrijft intrekken, audit en de eigen `catalogus start`-opdracht.
 - [Gedeeld localecontract](content-locale-contract.md) en [kleine NL/EN-flow](locale-flow.md) beschrijven de handmatige taalvarianten en expliciete fallback.
+- [Gebouwd, geïntegreerd en open](status.md) vergelijkt de gerealiseerde flow met de backlog en begrenst de volgende CMS-publicatie-integratie.
 
 ## Afbakening en besluitvoorstel
 
