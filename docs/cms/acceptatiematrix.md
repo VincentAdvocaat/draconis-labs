@@ -12,9 +12,10 @@ Stand op 19 november 2026 na onafhankelijke sluiting van PR25 op `741cacf595b2b2
 | Intrekking en rechten tijdens build | Integratietests voorkomen nieuwe activatie en behouden vorige complete release. Geen automatische intrekking van al gekopieerde sites. |
 | Twee databases en crashgap | Consumer test echte child-exit; CMS test echte CMS-commit met rollback mediatransactie en reconcile bij heropenen. Geen crash-atomiciteitsclaim. |
 | NL-pagina met NL/EN-portfolio | Gebouwd. Snapshot bepaalt bloklocale en expliciete fallback. Pagina blijft NL. |
-| Portfolio-kop en lege-staattekst redigeren | Gebouwd in afzonderlijke kleine taalstap: CMS-owned localevelden, immutable paginarevisie en release, gedeeld localecontract. Onafhankelijke review volgt op de PR. |
+| Portfolio-kop en lege-staattekst redigeren | PR26 onafhankelijk gereviewd op `2fea3e3d`: CMS-owned localevelden, immutable paginarevisie/release en gedeeld localecontract. |
 | Alle publieke tekst centraal redigeerbaar | Nog open: onder meer gedeelde navigatie/footer, bestaande templatebindings en formulier-/linklabels waar aanwezig. Geen claim van volledige dekking. |
-| Volledige CMS22 contenttalen | Nog open: pagina-/SEO-/slug-/blokvarianten, taalroutes, localevalidatie, zichtbare fallbackdiagnostiek en behoud leeg/ontbrekend. |
+| Minimale CMS22-tekstpagina | Gebouwd: dezelfde pagina-/blok-ID's, handmatige EN-titel/slug/SEO/tekst, EN-route/taalnav, expliciete publicatie en structuur-CAS. Onafhankelijke review volgt op de PR. |
+| Volledige CMS22 contenttalen | Nog open: andere bloktypen en home, meer talen, uitgebreidere fallbackdiagnostiek en localeconfiguratie. Eerste tekstvertical heeft expliciet geen fallback en bewaart leeg/ontbrekend. |
 | CMS-bediening NL/EN | Deels typed keys voor nieuwe pagina-editor; overige huidige appteksten en localekeuze nog open. UI-taal staat los van inhoudstaal. |
 | Bestaande klanten importeren | Open: reproduceerbare bron, fictieve migratievergelijking, dry-run/idempotency, herstelproef en expliciete aansluiting. |
 | Productie-identiteit, back-up/restore en deployment | Open en apart te autoriseren. Lokale testtokens zijn geen productie-identiteit. |

@@ -168,7 +168,7 @@ describe('CMS pages, blocks and complete site snapshots', () => {
     const result = await publish(running, await plan(running), 'site-with-new-page'); expect(result.statusCode).toBe(200);
     const output = await running.app.inject('/sites/demo-cms/over-proeftuin.html');
     expect(output.body).toContain('<title>Proeftuin SEO</title>'); expect(output.body).toContain('&quot; onload=&quot;bad()');
-    expect(output.body).toContain('href="index.html"'); expect(output.body).not.toContain('data:image');
+    expect(output.body).toContain('href="/sites/demo-cms/index.html"'); expect(output.body).not.toContain('data:image');
     const imageUrl = `/sites/demo-cms/media/${result.json().releaseId}/${doc.pageId}.png`;
     expect((await running.app.inject(imageUrl)).statusCode).toBe(200);
     const manifest = JSON.parse(readFileSync(join(running.root, 'releases', 'demo-cms', result.json().releaseId, 'release.json'), 'utf8'));

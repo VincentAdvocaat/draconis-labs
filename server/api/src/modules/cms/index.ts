@@ -5,6 +5,7 @@ import { CmsError, draftSchema, releaseSchema } from './model.js';
 import { CmsService } from './service.js';
 import { MAX_BYTES } from '../../media-upload/processor.js';
 import { rightsInputSchema } from '../../media-upload/rights.js';
+import { localeSaveSchema } from './page-locales.js';
 import { createDocumentSchema, saveDocumentSchema } from './documents.js';
 
 export interface LocalCredential {
@@ -56,6 +57,19 @@ export function cmsModule(service: CmsService, credentials: LocalCredential[]): 
         app.get('/websites/:websiteId/portfolio-snapshots', async (request) => {
           if (!documents.portfolio) throw new CmsError(503, 'Catalogus niet beschikbaar');
           return documents.portfolio.selections(parameters(request).websiteId);
+        });
+        app.get('/websites/:websiteId/documents/:pageId/locales/en', async (request) => {
+          const {websiteId, pageId} = request.params as {websiteId: string; pageId: string};
+          return documents.locales.get(websiteId, pageId);
+        });
+        app.put('/websites/:websiteId/documents/:pageId/locales/en', {bodyLimit: 128_000}, async (request) => {
+          const actor = authorize(request); const {websiteId, pageId} = request.params as {websiteId: string; pageId: string};
+          return documents.locales.save(websiteId, pageId, localeSaveSchema.parse(request.body), actor.name);
+        });
+        app.get('/websites/:websiteId/documents/:pageId/locales/en/previews/:revisionId', async (request, reply) => {
+          const {websiteId, pageId, revisionId} = request.params as {websiteId: string; pageId: string; revisionId: string};
+          reply.header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'self'; form-action 'none'; base-uri 'none'");
+          return reply.type('text/html; charset=utf-8').send(documents.previewEnglish(websiteId, pageId, revisionId));
         });
         app.get('/websites/:websiteId/site-plan', async (request) => documents.plan(parameters(request).websiteId));
         app.post('/websites/:websiteId/documents', async (request, reply) => {

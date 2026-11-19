@@ -113,6 +113,10 @@ describe('CMS portfolio integration', () => {
 
   it('rejects cross-site refs, wrong checksums and locale contexts without advancing the draft', async () => {
     const test = await start(); const doc = await document(test, 'nl');
+    const english = (await test.running.app.inject({url: `${base}/documents/${doc.pageId}/locales/en`, headers})).json();
+    expect(english.supported).toBe(false);
+    expect((await test.running.app.inject({method: 'PUT', url: `${base}/documents/${doc.pageId}/locales/en`, headers,
+      payload: {expectedVersion: 0, expectedStructure: english.structure, content: english.content}})).statusCode).toBe(409);
     const selected = doc.content.blocks[1];
     for (const change of [
       { ref: { ...selected.ref, websiteId: 'fixture-beta' } },

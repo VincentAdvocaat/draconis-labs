@@ -5,7 +5,7 @@ export interface PortfolioSelection { ref: {websiteId: string; collectionId: 'po
 export interface PortfolioBlock extends PortfolioSelection { blockId: string; type: 'portfolio'; labels?: {heading: Partial<Record<'nl' | 'en', string | null>>; empty: Partial<Record<'nl' | 'en', string | null>>} }
 export interface DocumentContent { schemaVersion: 1; locale: 'nl'; title: string; slug: string; seoTitle: string; seoDescription: string; blocks: Array<TextBlock | ImageBlock | PortfolioBlock> }
 export interface DocumentDto { pageId: string; revisionId: string; version: number; content: DocumentContent; published: boolean }
-export interface SitePlan { activeReleaseId: string | null; activeVersion: number; pages: Array<{ pageId: string; revisionId: string; version: number; title: string; file: string }> }
+export interface SitePlan { localeVariants?: import('./page-locales').LocaleChoice[]; retainedLocales?: Array<{pageId: string; title: string; file: string}>; activeReleaseId: string | null; activeVersion: number; pages: Array<{ pageId: string; revisionId: string; version: number; title: string; file: string }> }
 
 // Fixed app copy follows the existing typed NL/EN approach; editorial records are separate.
 const nl = {

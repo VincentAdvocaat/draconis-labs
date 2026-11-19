@@ -13,6 +13,7 @@ export const draftSchema = z.object({
 export const releaseSchema = z.object({
   revisionId: z.string().uuid(),
   expectedActiveVersion: z.number().int().nonnegative(),
+  expectedLocales: z.array(z.object({ pageId: z.string().uuid(), locale: z.literal('en'), revisionId: z.string().uuid(), version: z.number().int().positive(), structure: z.string().regex(/^[a-f0-9]{64}$/) }).strict()).max(32).optional(),
   expectedPages: z.array(z.object({ pageId: z.string().min(1).max(64), revisionId: z.string().uuid(),
     version: z.number().int().positive() }).strict()).max(100).optional(),
 }).strict();

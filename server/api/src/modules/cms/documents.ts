@@ -10,9 +10,9 @@ import type { CmsRepository } from './repository.js';
 import type { CmsMedia } from './media.js';
 import type { CmsUploads } from './upload.js';
 
-const reserved = /^(index|api|sites|media|assets|con|prn|aux|nul|com[1-9]|lpt[1-9])$/;
-export const documentSlugSchema = z.string().trim().toLowerCase().min(1).max(80)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).refine((slug) => !reserved.test(slug), 'Deze slug is gereserveerd');
+import { documentSlugSchema } from './slugs.js';
+export { documentSlugSchema } from './slugs.js';
+import { CmsPageLocales } from './page-locales.js';
 const textBlock = z.object({ blockId: z.string().uuid(), type: z.literal('text'),
   heading: z.string().max(200), body: z.string().max(10_000) }).strict();
 const imageBlock = z.object({ blockId: z.string().uuid(), type: z.literal('image'),
@@ -43,13 +43,14 @@ export const createDocumentSchema = z.object({ title: z.string().trim().min(1).m
 export const saveDocumentSchema = z.object({ expectedVersion: z.number().int().positive(), content: documentContentSchema }).strict();
 export type DocumentContent = z.infer<typeof documentContentSchema>;
 export interface DocumentDto { pageId: string; revisionId: string; version: number; content: DocumentContent; published: boolean }
-interface SnapshotPage { pageId: string; revisionId: string; version: number; file: string;
-  content: DocumentContent; mediaRevisionId: string | null }
+export interface SnapshotPage { pageId: string; revisionId: string; version: number; file: string;
+  content: Omit<DocumentContent, 'locale'> & { locale: 'nl' | 'en' }; mediaRevisionId: string | null }
 export interface SiteSnapshot { schemaVersion: 1; websiteId: string; pages: SnapshotPage[] }
 export interface RenderedSite { files: Array<{ path: string; bytes: Buffer }>; metadata: Record<string, unknown>; revalidate: () => void; activate?: (callback: () => import('./model.js').Attempt) => import('./model.js').Attempt }
 interface DocumentRow { id: string; revision_id: string; version: number; content: string; media_revision_id: string | null }
 
 export class CmsDocuments {
+  readonly locales: CmsPageLocales;
   constructor(private repository: CmsRepository, private media?: CmsMedia, private uploads?: CmsUploads, readonly portfolio?: CmsPortfolio) {
     const db = repository.db;
     db.transaction(() => {
@@ -72,6 +73,7 @@ export class CmsDocuments {
         INSERT OR IGNORE INTO cms_migrations VALUES(3);
       `);
     })();
+    this.locales = new CmsPageLocales(repository, (site, page) => this.get(site, page));
     repository.setSiteSnapshots(this);
   }
 
@@ -89,7 +91,7 @@ export class CmsDocuments {
   }
   plan(websiteId: string) {
     const home = this.repository.page(websiteId);
-    return { ...this.repository.active(websiteId), pages: [
+    return { ...this.repository.active(websiteId), defaultLocale: 'nl' as const, localeVariants: this.locales.plan(websiteId), retainedLocales: this.retainedLocales(websiteId).map((page) => ({ pageId: page.pageId, locale: 'en', revisionId: page.revisionId, file: page.file, title: page.content.title })), pages: [
       { pageId: 'home', revisionId: home.revisionId, version: home.pageVersion, title: home.values.title, file: 'index.html' },
       ...this.rows(websiteId).map((row) => { const content = JSON.parse(row.content) as DocumentContent;
         return { pageId: row.id, revisionId: row.revision_id, version: row.version, title: content.title, file: `${content.slug}.html` }; }),
@@ -113,7 +115,7 @@ export class CmsDocuments {
       .get(websiteId, slug, excludeId);
     if (occupied) throw new CmsError(409, 'Deze slug bestaat al binnen de website');
   }
-  private references(content: DocumentContent): MediaReference[] {
+  private references(content: SnapshotPage['content']): MediaReference[] {
     return content.blocks.flatMap((block) => block.type === 'image' ? [block.reference] : []);
   }
   private insert(websiteId: string, pageId: string, parent: string | null, content: DocumentContent,
@@ -162,7 +164,7 @@ export class CmsDocuments {
     const snapshots = this.repository.db.prepare(`SELECT s.snapshot FROM cms_site_snapshots s JOIN cms_attempts a ON a.id=s.release_id
       WHERE a.website_id=? AND a.status IN ('building','published')`).all(websiteId) as Array<{ snapshot: string }>;
     for (const row of snapshots) {
-      const pinned = (JSON.parse(row.snapshot) as SiteSnapshot).pages.find((page) => page.pageId === pageId);
+      const pinned = (JSON.parse(row.snapshot) as SiteSnapshot).pages.find((page) => page.pageId === pageId && page.content.locale === 'nl');
       if (pinned && pinned.content.slug !== slug)
         throw new CmsError(409, 'De slug staat vast tijdens en na publicatie. Wijzigen vereist een redirect en valt buiten deze stap');
     }
@@ -191,7 +193,28 @@ export class CmsDocuments {
         ...(values.image ? [{ blockId: 'home-image', type: 'image' as const, reference: values.image, caption: '' }] : [])] };
     const pages: SnapshotPage[] = [{ ...home, content: homeContent, mediaRevisionId: this.repository.mediaRevision(websiteId, home.revisionId) },
       ...plan.pages.slice(1).map((page) => ({ ...page, ...this.revision(websiteId, page.pageId, page.revisionId) }))];
+    const selected = input.expectedLocales ?? [];
+    if (new Set(selected.map((item) => item.pageId)).size !== selected.length) throw new CmsError(409, 'Dubbele taalvariant');
+    for (const choice of selected) {
+      const current = this.locales.get(websiteId, choice.pageId);
+      if (current.revisionId !== choice.revisionId || current.version !== choice.version || current.structure !== choice.structure)
+        throw new CmsError(409, 'De geselecteerde EN-variant of blokstructuur is gewijzigd');
+      const content = this.locales.complete(websiteId, choice.pageId, choice.revisionId);
+      pages.push({ pageId: choice.pageId, revisionId: choice.revisionId, version: choice.version, file: `en/${content.slug}.html`, content, mediaRevisionId: null });
+    }
+    // Previously explicit EN publications remain pinned when publishing NL alone.
+    // Omitting a new draft never silently removes an already published route.
+    for (const retained of this.retainedLocales(websiteId)) if (!selected.some((item) => item.pageId === retained.pageId)) pages.push(retained);
     return JSON.stringify({ schemaVersion: 1, websiteId, pages } satisfies SiteSnapshot);
+  }
+  private retainedLocales(websiteId: string): SnapshotPage[] {
+    const active = this.repository.active(websiteId).activeReleaseId;
+    if (!active) return [];
+    const row = this.repository.db.prepare('SELECT snapshot FROM cms_site_snapshots WHERE release_id=?').get(active) as {snapshot: string} | undefined;
+    return row ? (JSON.parse(row.snapshot) as SiteSnapshot).pages.filter((page) => page.content.locale === 'en') : [];
+  }
+  previewEnglish(websiteId: string, pageId: string, revisionId: string): string {
+    return this.render(this.locales.previewRevision(websiteId, pageId, revisionId), new Map());
   }
   persist(releaseId: string, snapshot: string): void {
     this.repository.db.prepare('INSERT INTO cms_site_snapshots VALUES(?,?)').run(releaseId, snapshot);
@@ -202,12 +225,12 @@ export class CmsDocuments {
     if (!row) throw new CmsError(404, 'Website-snapshot niet gevonden');
     return JSON.parse(row.snapshot) as SiteSnapshot;
   }
-  private render(content: DocumentContent, images: Map<string, { src: string; alt: string }>, navigation = '', portfolio = new Map<string, string>()): string {
+  private render(content: SnapshotPage['content'], images: Map<string, { src: string; alt: string }>, navigation = '', portfolio = new Map<string, string>()): string {
     const blocks = content.blocks.map((block) => block.type === 'text'
       ? `<section>${block.heading ? `<h2>${encode(block.heading)}</h2>` : ''}<p>${encode(block.body).replace(/\n/g, '<br>')}</p></section>`
       : block.type === 'portfolio' ? portfolio.get(block.blockId) ?? '' : `<figure><img src="${encode(images.get(block.reference.usage)!.src)}" alt="${encode(images.get(block.reference.usage)!.alt)}" width="160" height="160">` +
         (block.caption ? `<figcaption>${encode(block.caption)}</figcaption>` : '') + '</figure>').join('');
-    return '<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+    return `<!doctype html><html lang="${content.locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
       `<title>${encode(content.seoTitle)}</title><meta name="description" content="${encode(content.seoDescription)}"></head><body>` +
       navigation + `<main><h1>${encode(content.title)}</h1>${blocks}</main></body></html>`;
   }
@@ -240,13 +263,13 @@ export class CmsDocuments {
             (page.pageId !== 'home' && !page.content.blocks.some((block) => block.type === 'text' && block.body.trim())))
           throw new CmsError(400, 'Elke nieuwe pagina vereist titel, SEO-titel en een ingevuld tekstblok');
         const refs = this.references(page.content);
-        if (!refs.length) { output.set(page.pageId, []); continue; }
+        if (!refs.length) { output.set(page.file, []); continue; }
         if (!this.media || !this.uploads || !page.mediaRevisionId) throw new CmsError(503, 'Mediaopslag niet beschikbaar voor publicatie');
         for (const ref of refs) this.uploads.requireApproval(websiteId, ref.assetId);
         const manifest = this.media.store.resolveRelease(this.media.websiteScope(websiteId), {
           releaseId: `${releaseId}-${page.pageId}`, revisionId: page.mediaRevisionId, locales: ['nl'],
         });
-        output.set(page.pageId, manifest.references.map((reference) => {
+        output.set(page.file, manifest.references.map((reference) => {
           const variant = reference.variants.find((item) => item.mime === 'image/png')
             ?? reference.variants.find((item) => item.mime === 'image/jpeg') ?? reference.variants.find((item) => item.mime === 'image/webp');
           if (!variant) throw new CmsError(409, 'Publieke beeldvariant ontbreekt');
@@ -260,8 +283,12 @@ export class CmsDocuments {
     };
     const resolved = validate();
     const files: RenderedSite['files'] = [];
-    const nav = '<nav>' + snapshot.pages.map((page) => `<a href="${encode(page.file)}">${encode(page.content.title)}</a>`).join(' ') + '</nav>';
+    const href = (file: string) => `/sites/${websiteId}/${file}`;
     for (const page of snapshot.pages) {
+      const nav = '<nav>' + snapshot.pages.filter((other) => other.content.locale === page.content.locale)
+        .map((other) => `<a href="${encode(href(other.file))}">${encode(other.content.title)}</a>`).join(' ') + '</nav>' +
+        '<nav aria-label="' + (page.content.locale === 'en' ? 'Language' : 'Taal') + '">' + snapshot.pages.filter((other) => other.pageId === page.pageId)
+          .map((other) => `<a lang="${other.content.locale}" hreflang="${other.content.locale}" href="${encode(href(other.file))}">${other.content.locale === 'en' ? 'English' : 'Nederlands'}</a>`).join(' ') + '</nav>';
       const images = new Map<string, { src: string; alt: string }>();
       const portfolio = new Map<string, string>();
       for (const block of page.content.blocks) if (block.type === 'portfolio') {
@@ -269,15 +296,15 @@ export class CmsDocuments {
         const result = this.portfolio.render(websiteId, page.pageId, page.revisionId, block, releaseId);
         portfolio.set(block.blockId, result.html); files.push(...result.files);
       }
-      for (const image of resolved.get(page.pageId) ?? []) {
+      for (const image of resolved.get(page.file) ?? []) {
         const name = page.pageId === 'home' ? `hero.${image.extension}` : `${page.pageId}.${image.extension}`;
         const path = `media/${releaseId}/${name}`;
-        images.set(image.reference.usage, { src: path, alt: image.alt }); files.push({ path, bytes: image.bytes });
+        images.set(image.reference.usage, { src: href(path), alt: image.alt }); files.push({ path, bytes: image.bytes });
       }
       files.push({ path: page.file, bytes: Buffer.from(this.render(page.content, images, nav, portfolio)) });
     }
-    return { files, metadata: { schemaVersion: snapshot.schemaVersion, pages: snapshot.pages.map((page) => ({
-      pageId: page.pageId, revisionId: page.revisionId, version: page.version, file: page.file,
+    return { files, metadata: { schemaVersion: snapshot.schemaVersion, defaultLocale: 'nl', pages: snapshot.pages.map((page) => ({
+      pageId: page.pageId, revisionId: page.revisionId, version: page.version, file: page.file, locale: page.content.locale,
       mediaRevisionId: page.mediaRevisionId, media: this.references(page.content),
       portfolio: page.content.blocks.filter((block) => block.type === 'portfolio'),
     })) }, activate: (callback) => this.portfolio ? this.portfolio.activate(websiteId, releaseId, callback) : callback(), revalidate: () => { validate(); } };

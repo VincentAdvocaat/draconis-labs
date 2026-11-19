@@ -94,6 +94,12 @@ export async function buildCmsApp(options: CmsAppOptions) {
     });
     const mod = cmsModule(service, credentials);
     await app.register(mod.register, { prefix: `/api/v1${mod.prefix}` });
+    app.get('/sites/:websiteId/en/:filename', async (request, reply) => {
+      const {websiteId, filename} = request.params as {websiteId: string; filename: string};
+      reply.header('Cache-Control', 'no-store');
+      reply.header('Content-Security-Policy', "default-src 'none'; img-src 'self'; frame-ancestors 'self'; form-action 'none'; base-uri 'none'");
+      return reply.type('text/html; charset=utf-8').send(await service.publicHtml(websiteId, `en/${filename}`));
+    });
     app.get('/sites/:websiteId/:filename', async (request, reply) => {
       reply.header('Cache-Control', 'no-store');
       reply.header('Content-Security-Policy', "default-src 'none'; img-src 'self'; frame-ancestors 'self'; form-action 'none'; base-uri 'none'");

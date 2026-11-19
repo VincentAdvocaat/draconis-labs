@@ -40,6 +40,10 @@ function editorHarness() {
   } }).outputText;
   runInNewContext(documentCompiled, { exports: documentExports, crypto: { randomUUID: () => `new-block-${++key}` },
     require: (name: string) => { if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx }; throw new Error(`Unexpected document import ${name}`); } });
+  const englishExports: Record<string, unknown> = {};
+  const englishSource = readFileSync(new URL('../../../apps/cms/src/page-locales.tsx', import.meta.url), 'utf8');
+  runInNewContext(ts.transpileModule(englishSource, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX}}).outputText,
+    {exports: englishExports, require: (name: string) => {if (name === 'react/jsx-runtime') return {jsx, jsxs: jsx}; throw new Error(name);}});
   const source = readFileSync(new URL('../../../apps/cms/src/main.tsx', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
@@ -60,6 +64,7 @@ function editorHarness() {
       if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx };
       if (name === 'react-dom/client') return { createRoot: () => ({ render: (element: Element) => { component = element.type as () => Element; } }) };
       if (name === './style.css') return {};
+      if (name === './page-locales') return englishExports;
       if (name === './documents') return documentExports;
       throw new Error(`Unexpected component import ${name}`);
     },
@@ -119,6 +124,29 @@ const pageA = { revisionId: 'revision-A', pageVersion: 1, values: { title: 'Revi
 const pageB = { ...pageA, revisionId: 'revision-B', pageVersion: 2, values: { title: 'Revisie B', intro: '' } };
 
 describe('CMS editor recovery and selected revision', () => {
+  it('preserves unsaved English text after CAS failure until the user explicitly adopts the latest variant', async () => {
+    const ui = editorHarness();
+    ui.results.push({status: 200, body: {...pageA, pagesEnabled: true}}); await ui.open();
+    await ui.action(ui.field('Titel nieuwe pagina'), 'onChange', {target: {value: 'NL page'}});
+    await ui.action(ui.field('Slug nieuwe pagina'), 'onChange', {target: {value: 'nl-page'}});
+    const content = {schemaVersion: 1, locale: 'nl', title: 'NL page', slug: 'nl-page', seoTitle: 'NL page', seoDescription: '',
+      blocks: [{blockId: 'text-one', type: 'text', heading: '', body: 'NL text'}]};
+    ui.results.push({status: 201, body: {pageId: 'page-one', revisionId: 'nl-one', version: 1, content, published: false}},
+      {status: 200, body: {activeVersion: 0, activeReleaseId: null, pages: []}});
+    await ui.action(ui.button('Nieuwe pagina aanmaken'));
+    const english = {pageId: 'page-one', revisionId: 'en-one', version: 1, structure: 'structure-one', savedStructure: 'structure-one', supported: true, needsUpdate: false,
+      sourceBlocks: [{blockId: 'text-one', type: 'text'}], content: {...content, locale: 'en', title: 'English original'}};
+    ui.results.push({status: 200, body: english}); await ui.action(ui.button('English bewerken'));
+    await ui.action(ui.field('EN-paginatitel'), 'onChange', {target: {value: 'My unsaved English'}});
+    const latest = {...english, revisionId: 'en-two', version: 2, content: {...english.content, title: 'Other editor English'}};
+    ui.results.push({status: 409, body: {message: 'EN version changed'}}, {status: 200, body: latest});
+    await ui.action(ui.button('EN-concept opslaan'));
+    expect(ui.field('EN-paginatitel').props.value).toBe('My unsaved English');
+    expect(JSON.parse(ui.requests.at(-2)!.init.body!)).toMatchObject({expectedVersion: 1, expectedStructure: 'structure-one'});
+    await ui.action(ui.button('Actuele EN-versie overnemen'));
+    expect(ui.field('EN-paginatitel').props.value).toBe('Other editor English');
+  });
+
   it('does not prepare a site publication containing a newer unseen home revision', async () => {
     const ui = editorHarness();
     ui.results.push({ status: 200, body: { ...pageA, pagesEnabled: true } }); await ui.open();

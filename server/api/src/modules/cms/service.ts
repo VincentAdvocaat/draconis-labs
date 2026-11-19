@@ -95,7 +95,7 @@ export class CmsService {
 
   async publicHtml(websiteId: string, file = 'index.html'): Promise<string> {
     this.publicSite(websiteId);
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*\.html$/.test(file)) throw new CmsError(404, 'Pagina niet gevonden');
+    if (!/^(?:en\/)?[a-z0-9]+(?:-[a-z0-9]+)*\.html$/.test(file)) throw new CmsError(404, 'Pagina niet gevonden');
     const active = this.repository.active(websiteId);
     if (!active.activeReleaseId) throw new CmsError(404, 'Nog geen gepubliceerde pagina');
     return (await this.releaseBytes(websiteId, active.activeReleaseId, file)).toString('utf8');
