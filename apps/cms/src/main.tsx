@@ -96,7 +96,8 @@ function App() {
   }
   function publish() {
     if (!page || dirty || draftConflict) return;
-    const choice = pendingChoice ?? { revisionId: page.revisionId, expectedActiveVersion: page.activeVersion, key: crypto.randomUUID() };
+    const choice = pendingChoice?.revisionId === page.revisionId ? pendingChoice
+      : { revisionId: page.revisionId, expectedActiveVersion: page.activeVersion, key: crypto.randomUUID() };
     setPendingChoice(choice);
     void perform(async (current) => {
       try {
@@ -150,7 +151,11 @@ function App() {
       <label>Titel<input value={values.title} maxLength={200} disabled={busy} onChange={(event) => setValues({ ...values, title: event.target.value })} /></label>
       <label>Introductie<textarea value={values.intro} maxLength={4000} rows={5} disabled={busy} onChange={(event) => setValues({ ...values, intro: event.target.value })} /></label>
       {draftConflict && <aside><h3>Nieuwste opgeslagen tekst</h3><p>{draftConflict.values.title}</p><p>{draftConflict.values.intro}</p>
-        <button onClick={() => { setPage(draftConflict); setValues(draftConflict.values); setDraftConflict(null); setPreview(''); setStatus('Nieuwste versie overgenomen.'); }}>Nieuwste versie overnemen</button>
+        <button onClick={() => {
+          setPage(draftConflict); setValues(draftConflict.values); setDraftConflict(null); setPreview('');
+          setPendingChoice(null); setPublicationConflict(false); setAttempt(null);
+          setStatus('Nieuwste versie overgenomen. Kies Lokaal publiceren om deze revisie te publiceren.');
+        }}>Nieuwste versie overnemen</button>
         <p>Jouw invoer blijft hierboven staan totdat je deze keuze maakt. Kopieer tekst die je wilt bewaren.</p></aside>}
       <div className="actions"><button disabled={busy || !dirty || !!draftConflict} onClick={save}>Concept opslaan</button>
         <button className="secondary" disabled={busy || dirty || !!draftConflict} onClick={previewDraft}>Privépreview openen</button>

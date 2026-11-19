@@ -1,6 +1,6 @@
 # CMS-plan
 
-Ontwerp van 19 november 2026. Deze PR bevat alleen ontwerp; de beschreven modules, routes en migraties zijn bouwopdrachten. Er zijn geen klantgegevens gekopieerd, services ingericht of websites gepubliceerd.
+Ontwerp van 19 november 2026. De oorspronkelijke ontwerp-PR bevat alleen bouwopdrachten. De afzonderlijke lokale tekstproef is hieronder gelinkt; er zijn geen klantgegevens gekopieerd, cloudservices ingericht of bestaande websites gepubliceerd.
 
 - [Onderzoek en hergebruik](onderzoek.md) beschrijft de aangetroffen repositories, chats en beperkingen.
 - [Architectuur en gebruik](architectuur.md) legt pagina's, drafts, rollen, publicatie en modulegrenzen vast.
