@@ -1,6 +1,6 @@
 # Gezamenlijke CMS-acceptatiematrix
 
-Stand op 19 november 2026 na onafhankelijke sluiting van PR27 op codecommit `f95389882d7b69d246f66070dec1d37c81123c56`. Dit beschrijft lokale proeven met fictieve gegevens. Er is niets samengevoegd of uitgerold.
+Stand op 19 november 2026 na onafhankelijke review van PR29 op `69b43c54` en de gerichte copy-opvolging op `7b77a7b8`. Dit beschrijft lokale proeven met fictieve gegevens. Er is niets samengevoegd of uitgerold.
 
 | Criterium | Bewijs en status |
 | --- | --- |
@@ -16,7 +16,7 @@ Stand op 19 november 2026 na onafhankelijke sluiting van PR27 op codecommit `f95
 | Alle publieke tekst centraal redigeerbaar | Nog open: onder meer gedeelde navigatie/footer, bestaande templatebindings en formulier-/linklabels waar aanwezig. Geen claim van volledige dekking. |
 | Minimale CMS22-tekstpagina | PR27 onafhankelijk gereviewd op `f9538988`: dezelfde pagina-/blok-ID's, handmatige EN-titel/slug/SEO/tekst, EN-route/taalnav, expliciete publicatie en structuur-CAS. Legacy `/en.html` blijft bewerkbaar. |
 | Volledige CMS22 contenttalen | Nog open: andere bloktypen en home, meer talen, uitgebreidere fallbackdiagnostiek en localeconfiguratie. Eerste tekstvertical heeft expliciet geen fallback en bewaart leeg/ontbrekend. |
-| CMS-bediening NL/EN | Gebouwd in afzonderlijke UI-stap: getypeerde namespace, eigen tabbladkeuze, bestaande schermen/status/foutcodes en statebehoud. Gerichte browserproeven voltooid; onafhankelijke review volgt op de PR. |
+| CMS-bediening NL/EN | PR29 onafhankelijk gereviewd op `69b43c54`, geen noodzakelijke fixes. Getypeerde namespace, eigen tabbladkeuze, bestaande schermen/status/foutcodes en statebehoud. Nederlandse bevestiging verduidelijkt op `7b77a7b8`; 16 relevante tests groen. |
 | Bestaande klanten importeren | Open: reproduceerbare bron, fictieve migratievergelijking, dry-run/idempotency, herstelproef en expliciete aansluiting. |
 | Productie-identiteit, back-up/restore en deployment | Open en apart te autoriseren. Lokale testtokens zijn geen productie-identiteit. |
 
