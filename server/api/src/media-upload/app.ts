@@ -25,7 +25,8 @@ export async function buildUploadApp(root: string, token: string) {
   app.addContentTypeParser(/^image\/(jpeg|png|webp)$/, { parseAs: 'buffer', bodyLimit: MAX_BYTES }, (_request, bytes, done) => done(null, bytes));
   app.setErrorHandler((error, _request, reply) => {
     const status = error instanceof UploadError ? error.statusCode : (error as { statusCode?: number }).statusCode ?? 500;
-    reply.code(status >= 400 && status <= 599 ? status : 500).send({ message: status >= 500 ? 'Local upload failed' : (error as Error).message });
+    reply.code(status >= 400 && status <= 599 ? status : 500).send({ message: status >= 500 ? 'Local upload failed' : (error as Error).message,
+      ...(error instanceof UploadError && error.assetId ? { assetId: error.assetId, fileVersion: 1 } : {}) });
   });
   app.post<{ Params: { website: string } }>('/websites/:website/media', {
     bodyLimit: MAX_BYTES,
@@ -45,6 +46,9 @@ export async function buildUploadApp(root: string, token: string) {
   });
   app.get<{ Params: { website: string; id: string } }>('/websites/:website/media/:id', async request =>
     service.status(request.params.website, request.params.id));
+  app.post<{ Params: { website: string; id: string } }>('/websites/:website/media/:id/retry', {
+    bodyLimit: 1024,
+  }, async request => service.retryFailed(request.params.website, request.params.id));
   app.addHook('onRequestAbort', async request => { if (admitted.delete(request.id)) activeUpload = false; });
   app.addHook('onTimeout', async request => { if (admitted.delete(request.id)) activeUpload = false; });
   app.addHook('onClose', async () => { service.close(); });
