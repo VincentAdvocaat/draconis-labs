@@ -5,7 +5,7 @@ Deze backlog is een voorstel. Er zijn geen live taken of klantgegevens aangemaak
 | Fase | Werk en afhankelijkheid | Acceptatiecriteria | Raming |
 | --- | --- | --- | --- |
 | M0 | Contracten, fixtures en storage-adapter; startpunt | Twee fictieve websites, gepinde fileVersion, 409-concurrency, weigering cross-website, resolvermanifest en referentieblokkade testbaar; geen productieverbinding | 1-2 |
-| M1 | Upload en lokale processor na M0 | Alle formaat/byte/pixel/frame-grenzen uit ontwerp getest; fake MIME en kapotte files afgewezen; GPS ontbreekt publiek; oriëntatie klopt; varianten zonder opschalen; crash/herstart levert geen half-ready asset | 2-4 |
+| M1 | Upload en lokale processor na M0 | Alle formaat/byte/pixel/frame-grenzen uit ontwerp getest; fake MIME en kapotte files afgewezen; GPS ontbreekt publiek; oriëntatie klopt; varianten zonder opschalen; fixtures met breedtes 1, 200, 320 en 640 leveren elk minimaal één geschoonde publieke variant plus fallback, zonder origineel/GPS; crash/herstart levert geen half-ready asset | 2-4 |
 | M2 | Bibliotheek en hergebruik na M1 | Uploadstatus, zoeken/filter/paginering, detail/gebruikslijst en versiebeheer via UI; toetsenbordbediening; twee contexten gebruiken één binary; alt blijft contextgebonden; rechten blokkeren release | 2-3 |
 | M3 | Generieke catalogus na M0/M2 | Collectie, vlakke categorieën, getypeerde metadata en items CRUD met draft/archief; slugconflict afgewezen; categorie-in-gebruik niet stil verwijderd; volgorde blijft na herstart; immutable snapshot reproduceerbaar | 2-3 |
 | M4 | Portfolio boven media/catalogus na M2/M3 | Geordende selectie, cover en filter; mobiel raster en detail; lege staat; toetsenbord en focusherstel; geen dubbele originelen; vereiste alt/credits zichtbaar | 1-2 |
