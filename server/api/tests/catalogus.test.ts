@@ -172,6 +172,9 @@ describe('persisted catalog and portfolio module', () => {
       db.exec(`DROP TABLE catalog_snapshot_audit;
         ALTER TABLE catalog_snapshots DROP COLUMN status;
         ALTER TABLE catalog_snapshots DROP COLUMN version;
+        DROP TABLE catalog_locale_values;
+        DROP TABLE catalog_locale_slugs;
+        ALTER TABLE catalog_collections DROP COLUMN default_locale;
         UPDATE catalog_schema SET version=1;`);
     } finally { db.close(); }
     service = new CatalogService(fixture.root);

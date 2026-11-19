@@ -1,6 +1,6 @@
 # Catalogus en afbeeldingenportfolio
 
-Ontwerpvoorstel, 19 november 2026. Geen implementatie of migratie uitgevoerd.
+Het oorspronkelijke ontwerp is van 19 november 2026. De onderstaande vervolgrapporten beschrijven de lokaal gerealiseerde proeven en hun grenzen.
 
 De voorlopige aanname is dat een catalogus een herbruikbare collectie is met categorieën, metadata en detailpagina's. De gebruiker heeft geen shop of productcatalogus gedefinieerd. Prijzen, voorraad, checkout en betalingen vallen buiten dit voorstel.
 
@@ -13,6 +13,7 @@ Een beeldbibliotheek bewaart afbeeldingen en hun herkomst. Catalogusitems verwij
 - [Backlog en eerste bouwopdracht](backlog.md) bevat fasen, acceptatiecriteria, migratie en lokale uitvoering.
 - [M0 contractproef](m0-proef.md), [M1 HTTP-upload](m1-upload.md) en [opgeslagen catalogusflow](catalogus-flow.md) beschrijven de daaropvolgende lokale implementaties en hun grenzen.
 - [Snapshotbeheer en normale start](snapshotbeheer.md) beschrijft intrekken, audit en de eigen `catalogus start`-opdracht.
+- [Gedeeld localecontract](content-locale-contract.md) en [kleine NL/EN-flow](locale-flow.md) beschrijven de handmatige taalvarianten en expliciete fallback.
 
 ## Afbakening en besluitvoorstel
 

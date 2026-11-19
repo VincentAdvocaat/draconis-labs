@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { buildUploadApp } from '../media-upload/app.js';
 import { CatalogService } from './service.js';
 import { adminHtml, portfolioHtml } from './html.js';
+import { catalogPublishSchema } from './contracts.js';
 
 export async function buildCatalogApp(root: string, token: string) {
   const app = await buildUploadApp(root, token, {
@@ -12,7 +13,9 @@ export async function buildCatalogApp(root: string, token: string) {
       return address && typeof address !== 'string' ? `http://127.0.0.1:${address.port}` : undefined;
     },
   });
-  const catalog = new CatalogService(root);
+  let catalog: CatalogService;
+  try { catalog = new CatalogService(root); }
+  catch (error) { await app.close(); throw error; }
   const instanceId = randomUUID();
   const version = z.object({ expectedVersion: z.number().int().nonnegative() }).strict();
   app.addHook('onSend', async (request, reply, payload) => {
@@ -30,7 +33,14 @@ export async function buildCatalogApp(root: string, token: string) {
     catalog.archive(request.params.site, request.params.id, version.parse(request.body).expectedVersion);
     return { archived: true };
   });
-  app.post<{ Params: { site: string } }>('/catalogus/api/:site/publish', async request => catalog.publish(request.params.site, version.parse(request.body).expectedVersion));
+  app.post<{ Params: { site: string } }>('/catalogus/api/:site/publish', async request => {
+    const data = catalogPublishSchema.parse(request.body);
+    return catalog.publish(request.params.site, data.expectedVersion, data);
+  });
+  app.get<{ Params: { site: string; id: string; locale: string }; Querystring: { fallbackLocale?: string } }>('/catalogus/api/:site/items/:id/locales/:locale', async request =>
+    catalog.localeVariant(request.params.site, request.params.id, request.params.locale, request.query.fallbackLocale));
+  app.put<{ Params: { site: string; id: string; locale: string } }>('/catalogus/api/:site/items/:id/locales/:locale', async request =>
+    catalog.saveLocaleVariant(request.params.site, request.params.id, request.params.locale, request.body));
   app.get<{ Params: { site: string } }>('/catalogus/api/:site/snapshots', async request => catalog.listSnapshots(request.params.site));
   app.post<{ Params: { site: string; snapshot: string } }>('/catalogus/api/:site/snapshots/:snapshot/withdraw', async request =>
     catalog.withdraw(request.params.site, request.params.snapshot, request.body));

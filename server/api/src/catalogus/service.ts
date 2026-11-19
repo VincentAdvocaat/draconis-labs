@@ -2,27 +2,31 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import Database from 'better-sqlite3';
+import { CONTENT_LOCALES, contentLocaleSchema, type ContentLocale } from '@draconis/shared';
 import { FIXTURE_WEBSITES } from '../media-fixture/fixture.js';
 import { assertFixtureRoot } from '../media-fixture/safety.js';
 import { checksum, MediaFixtureStore } from '../media-fixture/storage.js';
 import { MediaContractError } from '../media-fixture/contracts.js';
-import { itemInputSchema, withdrawalSchema, type CatalogItem, type CatalogRef, type CatalogSnapshot } from './contracts.js';
+import { itemInputSchema, localeVariantInputSchema, withdrawalSchema, type CatalogItem, type CatalogRef, type CatalogSnapshot } from './contracts.js';
 import { MediaRightsService } from '../media-upload/rights.js';
+import { CatalogLocales } from './locales.js';
 
 export class CatalogService {
   private readonly db: Database.Database;
   private readonly media: MediaFixtureStore;
   private readonly rights: MediaRightsService;
   private readonly root: string;
+  private readonly locales: CatalogLocales;
   constructor(root: string) {
     this.root = assertFixtureRoot(root);
     this.db = new Database(join(this.root, 'media.sqlite'));
+    try {
     this.media = new MediaFixtureStore(this.root, FIXTURE_WEBSITES, this.db);
     this.rights = new MediaRightsService(this.root, this.db);
     this.db.transaction(() => {
       this.db.exec('CREATE TABLE IF NOT EXISTS catalog_schema(version INTEGER NOT NULL)');
       const version = this.db.prepare('SELECT version FROM catalog_schema').get() as { version: number } | undefined;
-      if (version && ![1, 2].includes(version.version)) throw new Error('Unsupported catalog schema version');
+      if (version && ![1, 2, 3].includes(version.version)) throw new Error('Unsupported catalog schema version');
       if (!version) {
         this.db.exec(`
           CREATE TABLE catalog_collections(website TEXT PRIMARY KEY, version INTEGER NOT NULL DEFAULT 0);
@@ -49,6 +53,8 @@ export class CatalogService {
         `);
       }
     })();
+    this.locales = new CatalogLocales(this.db);
+    } catch (error) { this.db.close(); throw error; }
   }
   close() { this.rights.close(); this.media.close(); this.db.close(); }
   private authorize(website: string) {
@@ -71,14 +77,16 @@ export class CatalogService {
       ON i.website=r.website AND i.revision=r.id WHERE i.website=? AND i.archived=0 ORDER BY i.slug`)
       .all(website) as { json: string }[];
     return { websiteId: website, collectionId: 'portfolio' as const, version: row.version,
+      defaultLocale: this.locales.defaultLocale(website), locales: CONTENT_LOCALES,
       category: { id: 'algemeen', name: 'Algemeen' }, items: items.map(r => JSON.parse(r.json) as CatalogItem) };
   }
   save(website: string, input: unknown) {
     this.authorize(website);
     const data = itemInputSchema.parse(input);
     return this.db.transaction(() => {
-      const old = data.itemId ? this.db.prepare('SELECT version FROM catalog_items WHERE website=? AND id=?')
-        .get(website, data.itemId) as { version: number } | undefined : undefined;
+      const old = data.itemId ? this.db.prepare(`SELECT i.version,r.json FROM catalog_items i JOIN catalog_revisions r
+        ON i.website=r.website AND i.revision=r.id WHERE i.website=? AND i.id=?`)
+        .get(website, data.itemId) as { version: number; json: string } | undefined : undefined;
       if (data.itemId && !old) throw new MediaContractError(404, 'Item not found');
       if ((old?.version ?? 0) !== data.expectedVersion) throw new MediaContractError(409, 'Item version conflict');
       const id = data.itemId ?? randomUUID();
@@ -86,16 +94,48 @@ export class CatalogService {
       if (duplicate) throw new MediaContractError(409, 'Slug already exists for website');
       const revisionId = randomUUID();
       const { expectedVersion, ...fields } = data;
-      const item: CatalogItem = { ...fields, itemId: id, revisionId, version: expectedVersion + 1 };
-      // Shared SQLite connection makes item revision and retained media references one transaction.
-      this.media.saveReferences(website, { module: 'catalogus', ownerId: id,
-        revisionId: `catalog-${revisionId}`, expectedVersion: 0, references: [item.media] });
-      this.db.prepare('INSERT INTO catalog_revisions VALUES(?,?,?,?)').run(website, revisionId, id, JSON.stringify(item));
-      this.db.prepare(`INSERT INTO catalog_items VALUES(?,?,?,?,?,0) ON CONFLICT(website,id)
-        DO UPDATE SET slug=excluded.slug,version=excluded.version,revision=excluded.revision,archived=0`)
-        .run(website, id, item.slug, item.version, revisionId);
-      this.db.prepare('UPDATE catalog_collections SET version=version+1 WHERE website=?').run(website);
+      const item = this.locales.writeRevision(website, old ? JSON.parse(old.json) as CatalogItem : undefined,
+        { ...fields, itemId: id, revisionId, version: expectedVersion + 1 });
+      this.commitRevision(website, item);
       return item;
+    })();
+  }
+  private commitRevision(website: string, item: CatalogItem) {
+    // Caller owns the outer transaction, including locale slugs, refs and revision writes.
+    this.media.saveReferences(website, { module: 'catalogus', ownerId: item.itemId,
+      revisionId: `catalog-${item.revisionId}`, expectedVersion: 0, references: [item.media] });
+    this.db.prepare('INSERT INTO catalog_revisions VALUES(?,?,?,?)').run(website, item.revisionId, item.itemId, JSON.stringify(item));
+    this.db.prepare(`INSERT INTO catalog_items VALUES(?,?,?,?,?,0) ON CONFLICT(website,id)
+      DO UPDATE SET slug=excluded.slug,version=excluded.version,revision=excluded.revision,archived=0`)
+      .run(website, item.itemId, item.slug, item.version, item.revisionId);
+    this.db.prepare('UPDATE catalog_collections SET version=version+1 WHERE website=?').run(website);
+  }
+  private currentItem(website: string, id: string) {
+    const row = this.db.prepare(`SELECT i.version,r.json FROM catalog_items i JOIN catalog_revisions r
+      ON i.website=r.website AND i.revision=r.id WHERE i.website=? AND i.id=? AND i.archived=0`)
+      .get(website, id) as { version: number; json: string } | undefined;
+    if (!row) throw new MediaContractError(404, 'Item not found');
+    return { ...JSON.parse(row.json) as CatalogItem, version: row.version };
+  }
+  localeVariant(website: string, id: string, localeInput: unknown, fallbackInput?: unknown) {
+    this.authorize(website);
+    const locale = contentLocaleSchema.parse(localeInput);
+    const fallbackLocale = fallbackInput === undefined ? undefined : contentLocaleSchema.parse(fallbackInput);
+    return this.locales.diagnostics(website, this.currentItem(website, id), this.locales.context(website, { locale, fallbackLocale }));
+  }
+  saveLocaleVariant(website: string, id: string, localeInput: unknown, input: unknown) {
+    this.authorize(website);
+    const locale = contentLocaleSchema.parse(localeInput);
+    if (locale === this.locales.defaultLocale(website)) throw new MediaContractError(400, 'Use the default item editor for the default locale');
+    const data = localeVariantInputSchema.parse(input);
+    return this.db.transaction(() => {
+      const source = this.currentItem(website, id);
+      if (source.version !== data.expectedVersion) throw new MediaContractError(409, 'Item version conflict');
+      const item = this.locales.writeRevision(website, source, { ...source, revisionId: randomUUID(), version: source.version + 1 }, {
+        locale, values: { title: data.title ?? null, slug: data.slug ?? null, description: data.description ?? null, alt: data.alt ?? null },
+      });
+      this.commitRevision(website, item);
+      return this.localeVariant(website, id, locale);
     })();
   }
   archive(website: string, id: string, expectedVersion: number) {
@@ -108,19 +148,21 @@ export class CatalogService {
       // Historical revisions and all media usages remain retained.
     })();
   }
-  publish(website: string, expectedCollectionVersion: number): CatalogSnapshot {
+  publish(website: string, expectedCollectionVersion: number, selection: { locale?: ContentLocale; fallbackLocale?: ContentLocale } = {}): CatalogSnapshot {
     this.authorize(website);
     return this.db.transaction(() => {
       const collection = this.list(website);
       if (collection.version !== expectedCollectionVersion) throw new MediaContractError(409, 'Collection version conflict');
+      const localeContext = this.locales.context(website, selection);
       const snapshotId = randomUUID();
       const items = collection.items.map(item => {
+        const localized = this.locales.publicationItem(website, item, localeContext);
         this.rights.requireApproval(website, item.media.assetId);
         const media = this.media.resolveRelease(website, { releaseId: `catalog-${snapshotId}-${item.itemId}`,
-          revisionId: `catalog-${item.revisionId}`, locales: ['nl'] });
-        return { ...item, resolvedMedia: media.references[0] };
+          revisionId: `catalog-${item.revisionId}`, locales: [localeContext.locale] });
+        return { ...localized, resolvedMedia: media.references[0] };
       });
-      const payload = { schemaVersion: 1 as const, websiteId: website, collectionId: 'portfolio' as const, snapshotId, items };
+      const payload = { schemaVersion: 2 as const, websiteId: website, collectionId: 'portfolio' as const, snapshotId, localeContext, items };
       const snapshot: CatalogSnapshot = { ...payload, checksum: checksum(Buffer.from(JSON.stringify(payload))) };
       this.db.prepare('INSERT INTO catalog_snapshots(website,id,json) VALUES(?,?,?)').run(website, snapshotId, JSON.stringify(snapshot));
       this.db.prepare('INSERT INTO catalog_snapshot_audit VALUES(?,?,1,?,?,?)')
@@ -143,7 +185,7 @@ export class CatalogService {
     return rows.map(row => {
       const snapshot = JSON.parse(row.json) as CatalogSnapshot;
       return { snapshotId: row.id, status: row.status, version: row.version,
-        checksum: snapshot.checksum, itemCount: snapshot.items.length };
+        checksum: snapshot.checksum, itemCount: snapshot.items.length, locale: snapshot.localeContext?.locale ?? 'nl' };
     });
   }
   withdraw(website: string, id: string, input: unknown) {

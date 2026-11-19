@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { contentLocaleSchema, type ContentLocaleContext, type ContentLocale, type ResolvedContentField } from '@draconis/shared';
 import { mediaReferenceSchema, type ReleaseManifest } from '../media-fixture/contracts.js';
 
 export const itemInputSchema = z.object({
@@ -18,13 +19,28 @@ export interface CatalogItem extends Omit<ItemInput, 'expectedVersion'> {
   version: number;
 }
 export interface CatalogSnapshot {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   websiteId: string;
   collectionId: 'portfolio';
   snapshotId: string;
   checksum: string;
-  items: Array<CatalogItem & { resolvedMedia: ReleaseManifest['references'][number] }>;
+  localeContext?: ContentLocaleContext;
+  items: Array<CatalogItem & { resolvedMedia: ReleaseManifest['references'][number];
+    localeValues?: Partial<Record<ContentLocale, CatalogLocaleFields>>;
+    fieldSources?: Record<keyof CatalogLocaleFields, ResolvedContentField> }>;
 }
+export interface CatalogLocaleFields { title: string | null; slug: string | null; description: string | null; alt: string | null }
+export const localeVariantInputSchema = z.object({
+  expectedVersion: z.number().int().positive(),
+  title: z.string().max(200).nullish(),
+  slug: z.union([z.literal(''), itemInputSchema.shape.slug]).nullish(),
+  description: z.string().max(5000).nullish(),
+  alt: z.string().max(2000).nullish(),
+}).strict();
+export const catalogPublishSchema = z.object({
+  expectedVersion: z.number().int().nonnegative(),
+  locale: contentLocaleSchema.optional(), fallbackLocale: contentLocaleSchema.optional(),
+}).strict();
 export interface CatalogRef { websiteId: string; collectionId: 'portfolio'; snapshotId: string }
 export const withdrawalSchema = z.object({
   expectedVersion: z.number().int().positive(),
