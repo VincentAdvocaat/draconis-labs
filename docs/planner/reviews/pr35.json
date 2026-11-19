@@ -28,5 +28,10 @@
     "supervisor": "two actual starts and Ctrl+C; four listeners stopped",
     "installation": "preparation only",
     "cloud": "not performed"
+  },
+  "additionalImpactReview": {
+    "checkedSha": "1246586b4e5329dcf5c9bd4af21d3b5cd2e142f8",
+    "status": "approved_with_no_required_findings",
+    "report": "Geen noodzakelijke fixes voor taakeditor/PreferencesModal. requestClose behoudt mutating- en onopgeslagenwijzigingencontrole. Callbackwijziging herstart focuseffect niet. Async save/delete/retry blijven bestaande handlers. Tab bepaalt controls iedere toets opnieuw; disabled overgeslagen, retry bereikbaar. Unmount verwijdert listener en herstelt alleen verbonden opener; open=false geen listener. Zelf modal-keyboard/client-context:7 geslaagd. Geen aparte browsertaakeditorfoutretry. Geen CMS in checkout, CMSacceptatie volgt integratie-eigenaar. Alleen-lezen."
   }
 }
