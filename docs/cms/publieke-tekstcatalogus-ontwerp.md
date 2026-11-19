@@ -2,6 +2,8 @@
 
 Dit is een ontwerp en inventaris, geen nieuwe runtime. Het gebruikersdoel blijft dat alle bestaande websitetekst centraal via het CMS bewerkbaar wordt. Code bepaalt veilige bindings en schemas; redacteuren beheren de tekst en taalvarianten.
 
+De eerste afzonderlijke vertical is inmiddels gerealiseerd en onafhankelijk gereviewd in [de navigatietekstenproef](gedeelde-navigatieteksten-proef.md). Onderstaande tabel blijft de oorspronkelijke inventaris en ontwerpkeuze documenteren.
+
 | Aangetroffen publieke binding | Huidige eigenaar | Beoogde redactie/publicatie |
 | --- | --- | --- |
 | Paginatitel, SEO, tekstblokken | NL-documenten en EN-localerevisies | Bestaande page-ID, immutable revisies en expliciete sitekeuze behouden. |
