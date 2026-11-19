@@ -5,6 +5,7 @@ import type { portfolioBlockSchema } from './documents.js';
 import { CmsError, encode, type Attempt } from './model.js';
 import type { CmsMedia } from './media.js';
 import type { CmsRepository } from './repository.js';
+import { validateContentField, CONTENT_PUBLICATION_RULES_V1 } from '@draconis/shared';
 
 type Block = z.infer<typeof portfolioBlockSchema>;
 export class CmsPortfolio {
@@ -43,7 +44,14 @@ export class CmsPortfolio {
     const pin = this.pin(website, pageId, revisionId, block, attemptId);
     const output = this.consumer.materialize(this.media.websiteScope(website), pin.pinId);
     const files: Array<{ path: string; bytes: Buffer }> = [];
-    const html = `<section lang="${encode(block.localeContext.locale)}"><h2>Portfolio</h2>` + output.snapshot.items.map((item) => {
+    // Earlier immutable revisions predate editorial labels. Their compatibility
+    // text is explicit in both supported locales; new saves persist these maps.
+    const labels = block.labels ?? { heading: { nl: 'Portfolio', en: 'Portfolio' }, empty: { nl: 'Er zijn nog geen projecten.', en: 'No projects yet.' } };
+    const heading = validateContentField(labels.heading, block.localeContext, CONTENT_PUBLICATION_RULES_V1.title);
+    const empty = validateContentField(labels.empty, block.localeContext, CONTENT_PUBLICATION_RULES_V1.title);
+    if (!heading.valid || !empty.valid) throw new CmsError(400, 'Vul portfolio-kop en lege-staattekst rechtstreeks in de gekozen bloktaal in');
+    const html = `<section lang="${encode(block.localeContext.locale)}"><h2>${encode(heading.value!)}</h2>` +
+      (output.snapshot.items.length ? '' : `<p>${encode(empty.value!)}</p>`) + output.snapshot.items.map((item) => {
       const image = output.files.find((file) => file.itemId === item.itemId && ['image/png', 'image/jpeg', 'image/webp'].includes(file.mime));
       if (!image) throw new CmsError(409, 'Publieke portfoliovariant ontbreekt');
       const extension = image.mime === 'image/png' ? 'png' : image.mime === 'image/jpeg' ? 'jpg' : 'webp';

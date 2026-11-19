@@ -1,8 +1,8 @@
 export interface DocumentImageReference { assetId: string; fileVersion: number; usage: string; altText: Record<string, string>; decorative: boolean }
 export interface TextBlock { blockId: string; type: 'text'; heading: string; body: string }
 export interface ImageBlock { blockId: string; type: 'image'; reference: DocumentImageReference; caption: string }
-export interface PortfolioSelection { ref: {websiteId: string; collectionId: 'portfolio'; snapshotId: string}; checksum: string; localeContext: {locale: 'nl' | 'en'; fallbackLocale?: 'nl' | 'en'}; itemCount?: number }
-export interface PortfolioBlock extends PortfolioSelection { blockId: string; type: 'portfolio' }
+export interface PortfolioSelection { ref: {websiteId: string; collectionId: 'portfolio'; snapshotId: string}; checksum: string; localeContext: {defaultLocale: 'nl' | 'en'; locale: 'nl' | 'en'; fallbackLocale?: 'nl' | 'en'}; itemCount?: number }
+export interface PortfolioBlock extends PortfolioSelection { blockId: string; type: 'portfolio'; labels?: {heading: Partial<Record<'nl' | 'en', string | null>>; empty: Partial<Record<'nl' | 'en', string | null>>} }
 export interface DocumentContent { schemaVersion: 1; locale: 'nl'; title: string; slug: string; seoTitle: string; seoDescription: string; blocks: Array<TextBlock | ImageBlock | PortfolioBlock> }
 export interface DocumentDto { pageId: string; revisionId: string; version: number; content: DocumentContent; published: boolean }
 export interface SitePlan { activeReleaseId: string | null; activeVersion: number; pages: Array<{ pageId: string; revisionId: string; version: number; title: string; file: string }> }
@@ -56,7 +56,20 @@ export function DocumentEditor({ draft, onChange, busy, dirty, onSave, onPreview
       {block.type === 'text' ? <>
         <label>{t.heading}<input value={block.heading} maxLength={200} onChange={(event) => onChange({ ...draft, blocks: draft.blocks.map((item) => item.blockId === block.blockId ? { ...block, heading: event.target.value } : item) })} /></label>
         <label>{t.body}<textarea rows={4} value={block.body} maxLength={10_000} onChange={(event) => onChange({ ...draft, blocks: draft.blocks.map((item) => item.blockId === block.blockId ? { ...block, body: event.target.value } : item) })} /></label>
-      </> : block.type === 'portfolio' ? <p>Snapshot {block.ref.snapshotId} · {block.localeContext.locale} · fallback {block.localeContext.fallbackLocale ?? 'geen'} · checksum {block.checksum}</p> : <>
+      </> : block.type === 'portfolio' ? <>
+        <p>Paginataal: {draft.locale} · Bloktaal: {block.localeContext.locale}</p>
+        <p>Snapshot {block.ref.snapshotId} · {block.localeContext.locale} · fallback {block.localeContext.fallbackLocale ?? 'geen'} · checksum {block.checksum}</p>
+        {(['nl', 'en'] as const).map((locale) => (['heading', 'empty'] as const).map((field) => {
+          const labels = block.labels ?? { heading: { nl: 'Portfolio', en: 'Portfolio' }, empty: { nl: 'Er zijn nog geen projecten.', en: 'No projects yet.' } };
+          const value = labels[field][locale];
+          const update = (value: string | null) => onChange({ ...draft, blocks: draft.blocks.map((item) => item.blockId === block.blockId
+            ? { ...block, labels: { ...labels, [field]: { ...labels[field], [locale]: value } } } : item) });
+          return <div key={`${locale}-${field}`}><label>{field === 'heading' ? 'Portfolio-kop' : 'Portfolio lege-staattekst'} {locale}
+            <input maxLength={500} value={value ?? ''} onChange={(event) => update(event.target.value)} /></label>
+            <label className="check"><input type="checkbox" checked={value == null} onChange={(event) => update(event.target.checked ? null : '')} />Deze {field === 'heading' ? 'kop' : 'lege-staattekst'} ontbreekt in {locale}</label>
+          </div>;
+        }))}
+      </> : <>
         <label className="check"><input type="checkbox" checked={block.reference.decorative} onChange={(event) => onChange({ ...draft, blocks: draft.blocks.map((item) => item.blockId === block.blockId ? { ...block,
           reference: { ...block.reference, decorative: event.target.checked, altText: event.target.checked ? { nl: '' } : block.reference.altText } } : item) })} />{t.decorative}</label>
         <label>{t.alt}<input value={block.reference.altText.nl ?? ''} maxLength={2000} disabled={block.reference.decorative} onChange={(event) => onChange({ ...draft, blocks: draft.blocks.map((item) => item.blockId === block.blockId ? { ...block,
@@ -79,7 +92,7 @@ export function DocumentEditor({ draft, onChange, busy, dirty, onSave, onPreview
         <button disabled={draft.blocks.length >= 16 && !draft.blocks.some((block) => block.type === 'portfolio')} onClick={() => {
           const prior = draft.blocks.find((block) => block.type === 'portfolio');
           const block = { blockId: prior?.blockId ?? crypto.randomUUID(), type: 'portfolio' as const,
-            ref: selection.ref, checksum: selection.checksum, localeContext: selection.localeContext };
+            ref: selection.ref, checksum: selection.checksum, localeContext: selection.localeContext, labels: prior?.type === 'portfolio' ? prior.labels : undefined };
           onChange({ ...draft, blocks: prior ? draft.blocks.map((item) => item.blockId === prior.blockId ? block : item) : [...draft.blocks, block] });
         }}>Snapshot {selection.localeContext.locale} kiezen</button>
       </p>)}

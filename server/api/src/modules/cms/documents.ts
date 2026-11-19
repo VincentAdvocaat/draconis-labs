@@ -2,7 +2,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { contentLocaleContextSchema } from '@draconis/shared';
+import { contentLocaleContextSchema, localizedTextValuesSchema } from '@draconis/shared';
 import type { CmsPortfolio } from './portfolio.js';
 import { mediaReferenceSchema, type MediaReference } from '../../media-fixture/contracts.js';
 import { CmsError, encode, type ReleaseInput } from './model.js';
@@ -19,7 +19,11 @@ const imageBlock = z.object({ blockId: z.string().uuid(), type: z.literal('image
   reference: mediaReferenceSchema, caption: z.string().max(1000) }).strict();
 export const portfolioBlockSchema = z.object({ blockId: z.string().uuid(), type: z.literal('portfolio'),
   ref: z.object({ websiteId: z.string(), collectionId: z.literal('portfolio'), snapshotId: z.string().uuid() }).strict(),
-  checksum: z.string().regex(/^[a-f0-9]{64}$/), localeContext: contentLocaleContextSchema }).strict();
+  checksum: z.string().regex(/^[a-f0-9]{64}$/), localeContext: contentLocaleContextSchema,
+  labels: z.object({ heading: localizedTextValuesSchema, empty: localizedTextValuesSchema }).strict()
+    .refine((labels) => Object.values(labels).every((values) => Object.values(values).every((value) => value == null || value.length <= 500)), 'Bloktekst maximaal 500 tekens')
+    .default(() => ({ heading: { nl: 'Portfolio', en: 'Portfolio' }, empty: { nl: 'Er zijn nog geen projecten.', en: 'No projects yet.' } })),
+}).strict();
 export const documentContentSchema = z.object({
   schemaVersion: z.literal(1), locale: z.literal('nl'), title: z.string().trim().min(1).max(200),
   slug: documentSlugSchema, seoTitle: z.string().trim().min(1).max(200), seoDescription: z.string().max(1000),

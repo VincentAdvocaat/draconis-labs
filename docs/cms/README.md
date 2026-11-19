@@ -1,5 +1,7 @@
 # CMS-plan
 
+De [actuele acceptatiematrix](acceptatiematrix.md) onderscheidt gebouwde en gereviewde lokale proeven van resterende centrale tekst- en taalcriteria.
+
 Ontwerp van 19 november 2026. De oorspronkelijke ontwerp-PR bevat alleen bouwopdrachten. De afzonderlijke lokale tekstproef is hieronder gelinkt; er zijn geen klantgegevens gekopieerd, cloudservices ingericht of bestaande websites gepubliceerd.
 
 - [Onderzoek en hergebruik](onderzoek.md) beschrijft de aangetroffen repositories, chats en beperkingen.
@@ -11,6 +13,7 @@ Ontwerp van 19 november 2026. De oorspronkelijke ontwerp-PR bevat alleen bouwopd
 - [Echte uploadproef](upload-proef.md) verbindt de M1-processor en expliciete rechtenvrijgave met de normale CMS-browserflow.
 - [Pagina's en blokken](paginas-blokken-proef.md) voegt nieuwe pagina's en volledige sitepublicaties toe met behoud van de bestaande home.
 - [Portfolio-blok](portfolio-proef.md) koppelt een expliciet gekozen catalogussnapshot aan preview, retained pins en de volledige siterelease.
+- [Portfolio-blokteksten](portfolio-blokteksten.md) maakt de kop en lege-staattekst redactioneel bewerkbaar in NL/EN.
 - [Centrale tekstredactie](centrale-tekstredactie.md) werkt de vervolgrichting voor pagina's, blokken en localevarianten uit.
 
 De bestaande sites blijven hun huidige ASP.NET Core CMS gebruiken. Labs krijgt eerst een geïsoleerde CMS-proef binnen zijn bestaande app/API-structuur. Daarna toetsen we de adapter en migratie op een fictieve kopie. Een productiemigratie, merge of deployment vraagt een aparte opdracht van de orchestrator.

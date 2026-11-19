@@ -41,6 +41,46 @@ async function document(test: Awaited<ReturnType<typeof start>>, locale: 'nl' | 
   expect(saved.statusCode).toBe(200); return saved.json();
 }
 describe('CMS portfolio integration', () => {
+  it('pins editable EN labels without changing an active release when a newer label draft is saved', async () => {
+    const test = await start(); let doc = await document(test);
+    doc.content.blocks[1].labels = { heading: { nl: 'Onze projecten', en: 'Our selected work <safe>' }, empty: { en: 'Nothing to show yet.' } };
+    const saved = await test.running.app.inject({ method: 'PUT', url: `${base}/documents/${doc.pageId}/draft`, headers,
+      payload: { expectedVersion: doc.version, content: doc.content } });
+    expect(saved.statusCode).toBe(200); doc = saved.json();
+    const preview = await test.running.app.inject({ url: `${base}/documents/${doc.pageId}/previews/${doc.revisionId}`, headers });
+    expect(preview.body).toContain('Our selected work &lt;safe&gt;'); expect(preview.body).toContain('<html lang="nl">');
+    expect(preview.body).toContain('<section lang="en">');
+    expect((await publish(test.running)).statusCode).toBe(200);
+    doc.content.blocks[1].labels.heading.en = 'New unpublished heading';
+    expect((await test.running.app.inject({ method: 'PUT', url: `${base}/documents/${doc.pageId}/draft`, headers,
+      payload: { expectedVersion: doc.version, content: doc.content } })).statusCode).toBe(200);
+    expect((await test.running.app.inject('/sites/demo-cms/portfolio-page.html')).body).toContain('Our selected work &lt;safe&gt;');
+    await test.reopen();
+    expect((await test.running.app.inject('/sites/demo-cms/portfolio-page.html')).body).not.toContain('New unpublished heading');
+  });
+
+  it('renders an empty snapshot with the pinned empty text and rejects missing or empty direct EN labels', async () => {
+    const test = await start(); let doc = await document(test);
+    test.fixture.catalog.archive(test.fixture.website, test.fixture.item.itemId, 2);
+    const snapshot = test.fixture.catalog.publish(test.fixture.website, 3, { locale: 'en', fallbackLocale: 'nl' });
+    const block = doc.content.blocks[1];
+    block.ref.snapshotId = snapshot.snapshotId; block.checksum = snapshot.checksum; block.localeContext = snapshot.localeContext;
+    block.labels = { heading: { en: 'Selected work' }, empty: { nl: 'Nog niets', en: 'Check back for new projects.' } };
+    const write = () => test.running.app.inject({ method: 'PUT', url: `${base}/documents/${doc.pageId}/draft`, headers,
+      payload: { expectedVersion: doc.version, content: doc.content } });
+    let saved = await write(); expect(saved.statusCode).toBe(200); doc = saved.json();
+    const first = await publish(test.running); expect(first.statusCode).toBe(200);
+    const html = (await test.running.app.inject('/sites/demo-cms/portfolio-page.html')).body;
+    expect(html).toContain('Check back for new projects.'); expect(html).not.toContain('<img');
+    for (const value of [null, '']) {
+      doc.content.blocks[1].labels.empty.en = value;
+      saved = await write(); expect(saved.statusCode).toBe(200); doc = saved.json();
+      expect(doc.content.blocks[1].labels.empty.en).toBe(value);
+      expect((await publish(test.running)).statusCode).toBe(422);
+      expect(test.running.repository.active('demo-cms').activeReleaseId).toBe(first.json().releaseId);
+    }
+  });
+
   it('publishes and serves a portfolio image with an uppercase accepted block UUID', async () => {
     const test = await start(); const doc = await document(test);
     doc.content.blocks[1].blockId = doc.content.blocks[1].blockId.toUpperCase();
