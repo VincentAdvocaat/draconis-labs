@@ -164,7 +164,8 @@
                   "VERSION_CONFLICT",
                   "UNAUTHORIZED",
                   "UNAVAILABLE",
-                  "INTERNAL_ERROR"
+                  "INTERNAL_ERROR",
+                  "IDEMPOTENCY_CONFLICT"
                 ]
               },
               "status": {
@@ -1569,6 +1570,16 @@
             "in": "path",
             "name": "id",
             "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+            },
+            "in": "header",
+            "name": "idempotency-key",
+            "required": false,
+            "description": "Retry task creation with the same key and validated input to receive the original 201 response. This key is scoped to the current actor and workspace."
           }
         ],
         "security": [

@@ -1,7 +1,13 @@
 import { plannerCommandSchema, type PlannerReply } from '@draconis/shared';
-import { TaskConflictError, type PlannerService } from './service.js';
+import { TaskConflictError, TaskCreationConflictError, type PlannerService } from './service.js';
 
-export function executePlannerCommand(service: PlannerService, workspaceId: string, actor: { name: string }, input: unknown): PlannerReply {
+export function executePlannerCommand(
+  service: PlannerService,
+  workspaceId: string,
+  actor: { name: string },
+  input: unknown,
+  taskCreation?: { key: string; actorKind: 'user' | 'agent' },
+): PlannerReply {
   const parsed = plannerCommandSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: { code: 'INVALID_INPUT', status: 400, message: 'Ongeldige invoer' } };
   const command = parsed.data;
@@ -10,7 +16,11 @@ export function executePlannerCommand(service: PlannerService, workspaceId: stri
     let value: unknown;
     switch (command.type) {
       case 'tasks.list': value = service.list(command.query ?? {}); break;
-      case 'tasks.create': value = service.create(command.input, actor); break;
+      case 'tasks.create':
+        value = service.create(command.input, actor, taskCreation && {
+          workspaceId, actor: JSON.stringify([taskCreation.actorKind, actor.name]), key: taskCreation.key,
+        });
+        break;
       case 'tasks.update': value = service.update(command.id, command.input); break;
       case 'tasks.remove': service.remove(command.id); value = null; break;
       case 'history.list': value = service.history(command.query ?? {}); break;
@@ -19,6 +29,7 @@ export function executePlannerCommand(service: PlannerService, workspaceId: stri
     }
     return { ok: true, value };
   } catch (error) {
+    if (error instanceof TaskCreationConflictError) return { ok: false, error: { code: 'IDEMPOTENCY_CONFLICT', status: 409, message: error.message } };
     if (error instanceof TaskConflictError) return { ok: false, error: { code: 'VERSION_CONFLICT', status: 409, message: error.message, task: error.task } };
     if (error instanceof Error && 'statusCode' in error && error.statusCode === 503) return { ok: false, error: { code: 'UNAVAILABLE', status: 503, message: error.message } };
     if (error instanceof Error && 'statusCode' in error && error.statusCode === 404) return { ok: false, error: { code: 'TASK_NOT_FOUND', status: 404, message: error.message } };

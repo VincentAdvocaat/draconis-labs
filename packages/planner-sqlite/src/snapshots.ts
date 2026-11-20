@@ -3,7 +3,8 @@ import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { initializePlannerSqlite } from './bootstrap.js';
-import { IMPORT_VERSION, PlannerSnapshotError, canonical, dataHash, preferenceColumns, readPlannerData, taskColumns, type SnapshotRow, type ImportConflict } from './snapshot-data.js';
+import { IMPORT_VERSION, PlannerSnapshotError, preferenceColumns, readPlannerData, taskColumns, type SnapshotRow, type ImportConflict } from './snapshot-data.js';
+import { canonical, dataHash } from './json-hash.js';
 
 export { IMPORT_VERSION, PlannerSnapshotError } from './snapshot-data.js';
 export function createPlannerSnapshotTools(DatabaseClass: typeof Database) {

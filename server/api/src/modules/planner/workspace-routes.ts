@@ -7,13 +7,15 @@ import { taskResponseSchema, paginatedTaskListSchema } from './schemas.js';
 
 const taskRef = { $ref: 'PlannerWorkspaceTask#' };
 const errorRef = { $ref: 'PlannerWorkspaceError#' };
+const idempotencyKeyPattern = '^[A-Za-z0-9._~-]{1,128}$';
+const idempotencyKeySchema = z.string().regex(new RegExp(idempotencyKeyPattern)).optional();
 const errorSchema = {
   $id: 'PlannerWorkspaceError',
   type: 'object', required: ['ok', 'error'],
   properties: {
     ok: { const: false },
     error: { type: 'object', required: ['code', 'status', 'message'], properties: {
-      code: { type: 'string', enum: ['INVALID_INPUT', 'WORKSPACE_NOT_FOUND', 'TASK_NOT_FOUND', 'VERSION_CONFLICT', 'UNAUTHORIZED', 'UNAVAILABLE', 'INTERNAL_ERROR'] },
+      code: { type: 'string', enum: ['INVALID_INPUT', 'WORKSPACE_NOT_FOUND', 'TASK_NOT_FOUND', 'VERSION_CONFLICT', 'UNAUTHORIZED', 'UNAVAILABLE', 'INTERNAL_ERROR', 'IDEMPOTENCY_CONFLICT'] },
       status: { type: 'integer' }, message: { type: 'string' }, task: taskRef,
     } },
   },
@@ -47,7 +49,15 @@ export function createWorkspacePlannerRoutes(service: PlannerService, workspaceI
       app.route({ method, url, schema: {
         tags: ['planner'], summary: `Local workspace ${type}`,
         security: [{ bearerAuth: [] }, {}],
-        ...(type === 'tasks.create' ? { body: z.toJSONSchema(createTaskSchema, { target: 'draft-7' }) } : {}),
+        ...(type === 'tasks.create' ? {
+          body: z.toJSONSchema(createTaskSchema, { target: 'draft-7' }),
+          headers: { type: 'object', properties: {
+            'idempotency-key': {
+              type: 'string', pattern: idempotencyKeyPattern,
+              description: 'Retry task creation with the same key and validated input to receive the original 201 response. This key is scoped to the current actor and workspace.',
+            },
+          } },
+        } : {}),
         ...(type === 'tasks.update' ? { body: z.toJSONSchema(workspaceUpdateTaskSchema, { target: 'draft-7' }) } : {}),
         ...(type === 'preferences.update' ? { body: z.toJSONSchema(updatePreferencesSchema, { target: 'draft-7' }) } : {}),
         ...(type === 'tasks.list' ? { querystring: z.toJSONSchema(taskListQuerySchema, { target: 'draft-7' }) } : {}),
@@ -63,9 +73,12 @@ export function createWorkspacePlannerRoutes(service: PlannerService, workspaceI
         }
         let outcome: PlannerReply;
         try {
-          outcome = executePlannerCommand(service, workspaceId, identifyActor(request), {
+          const actor = identifyActor(request);
+          const key = idempotencyKeySchema.safeParse(type === 'tasks.create' ? request.headers['idempotency-key'] : undefined);
+          if (!key.success) return reply.code(400).send({ ok: false, error: { code: 'INVALID_INPUT', status: 400, message: 'Ongeldige Idempotency-Key' } });
+          outcome = executePlannerCommand(service, workspaceId, actor, {
             workspaceId: params.workspaceId, type, id: params.id, query, input: request.body,
-          });
+          }, key.data === undefined ? undefined : { key: key.data, actorKind: actor.kind });
         } catch (error) {
           const unauthorized = typeof error === 'object' && error !== null && 'statusCode' in error && error.statusCode === 401;
           outcome = { ok: false, error: unauthorized
