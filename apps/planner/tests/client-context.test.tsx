@@ -2,7 +2,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_PREFERENCES, type PlannerClient, type Task } from '@draconis/shared';
+import { DEFAULT_PREFERENCES, PlannerConflictError, type PlannerClient, type Task } from '@draconis/shared';
 import { newTask } from '@draconis/planner-core';
 import App from '../src/App';
 
@@ -20,8 +20,9 @@ function fixture(name: string) {
 }
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>(done => { resolve = done; });
-  return { promise, resolve };
+  let reject!: (reason: Error) => void;
+  const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
+  return { promise, resolve, reject };
 }
 function button(text: string) {
   const found = [...document.querySelectorAll('button')].find(item => item.textContent?.trim() === text);
@@ -77,5 +78,105 @@ describe('client identity owns all open Planner UI', () => {
     expect((document.querySelector('[role="dialog"] input') as HTMLInputElement).value).toBe('Unsaved B');
     expect(b.client.update).not.toHaveBeenCalled();
     expect(b.client.remove).not.toHaveBeenCalled();
+  });
+
+  it('preserves the editor draft after a failed save and saves it on retry', async () => {
+    const { client, task } = fixture('Task A');
+    client.update = vi.fn<typeof client.update>().mockRejectedValueOnce(new Error('Connection lost'))
+      .mockResolvedValueOnce({ ...task, title: 'Saved draft', version: 2 });
+    await act(async () => root.render(<App client={client} />));
+    await openTask();
+    await editTitle('Saved draft');
+    await click(button('Opslaan'));
+    expect(document.querySelector('[role="alert"]')?.textContent).toBe('Connection lost');
+    expect(document.querySelector<HTMLInputElement>('[role="dialog"] input')?.value).toBe('Saved draft');
+    expect(document.querySelector('.task-card')?.textContent).toContain('Task A');
+    await click(button('Opnieuw proberen'));
+    expect(client.update).toHaveBeenCalledTimes(2);
+    expect(client.update).toHaveBeenLastCalledWith(task.id, expect.objectContaining({ title: 'Saved draft', version: task.version }));
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.querySelector('.task-card')?.textContent).toContain('Saved draft');
+  });
+
+  it('retries a failed confirmed deletion without sending a task update', async () => {
+    const { client, task } = fixture('Task A');
+    client.remove = vi.fn<typeof client.remove>().mockRejectedValueOnce(new Error('Connection lost')).mockResolvedValueOnce(undefined);
+    await act(async () => root.render(<App client={client} />));
+    await openTask();
+    await click(button('Verwijderen'));
+    await click(button('Definitief verwijderen'));
+    expect(document.querySelector('[role="alert"]')?.textContent).toBe('Connection lost');
+    expect(document.querySelector('.task-card')).not.toBeNull();
+    await click(button('Opnieuw proberen'));
+    expect(client.remove).toHaveBeenCalledTimes(2);
+    expect(client.remove).toHaveBeenLastCalledWith(task.id);
+    expect(client.update).not.toHaveBeenCalled();
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.querySelector('.task-card')).toBeNull();
+  });
+
+  it('uses the current version after explicitly loading the server copy', async () => {
+    const { client, task } = fixture('Task A');
+    const serverTask = { ...task, title: 'Server task', version: 2 };
+    client.update = vi.fn<typeof client.update>()
+      .mockRejectedValueOnce(new PlannerConflictError({ status: 409, code: 'VERSION_CONFLICT', message: 'Stale version', task: serverTask }))
+      .mockResolvedValueOnce({ ...serverTask, title: 'Merged title', version: 3 });
+    await act(async () => root.render(<App client={client} />));
+    await openTask();
+    await editTitle('Draft A');
+    await click(button('Opslaan'));
+    expect(document.querySelector<HTMLInputElement>('[role="dialog"] input')?.value).toBe('Draft A');
+    await click(document.querySelector('.editor-error-actions button')!);
+    expect(document.querySelector<HTMLInputElement>('[role="dialog"] input')?.value).toBe('Server task');
+    await editTitle('Merged title');
+    await click(button('Opslaan'));
+    expect(client.update).toHaveBeenLastCalledWith(task.id, expect.objectContaining({ title: 'Merged title', version: 2 }));
+    expect(document.querySelector('.task-card')?.textContent).toContain('Merged title');
+  });
+
+  it('waits for the owned update before another change to the same card', async () => {
+    const { client, task } = fixture('Task A');
+    const pending = deferred<Task>();
+    client.update = vi.fn(() => pending.promise);
+    await act(async () => root.render(<App client={client} />));
+    const moveRight = async () => {
+      await act(async () => {
+        document.querySelector('.task-card')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true }));
+      });
+    };
+    await moveRight();
+    await moveRight();
+    expect(client.update).toHaveBeenCalledOnce();
+    expect(client.update).toHaveBeenCalledWith(task.id, { lane: 'doing', version: task.version });
+    expect(document.body.textContent).toContain('Deze kaart wordt nog bijgewerkt.');
+    await act(async () => pending.reject(new Error('Move failed')));
+    await moveRight();
+    expect(client.update).toHaveBeenCalledTimes(2);
+    expect(client.update).toHaveBeenLastCalledWith(task.id, { lane: 'doing', version: task.version });
+  });
+
+  it('keeps a separate card update after a concurrent editor save fails', async () => {
+    const { client, task } = fixture('Task A');
+    const other = fixture('Task B').task;
+    const moved = { ...other, title: 'Task B (updated)', lane: 'doing' as const, version: 2 };
+    const move = deferred<Task>();
+    const save = deferred<Task>();
+    client.list = vi.fn<typeof client.list>().mockResolvedValueOnce([task, other]).mockResolvedValue([task, moved]);
+    client.update = vi.fn((id) => (id === other.id ? move.promise : save.promise));
+    await act(async () => root.render(<App client={client} />));
+    const secondCard = document.querySelectorAll('.task-card')[1];
+    await act(async () => {
+      secondCard.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true }));
+    });
+    await openTask();
+    await editTitle('Draft A');
+    await click(button('Opslaan'));
+    expect(client.update).toHaveBeenCalledTimes(2);
+    await act(async () => move.resolve(moved));
+    await act(async () => save.reject(new Error('Save failed')));
+    const cards = [...document.querySelectorAll('.task-card')].map(card => card.textContent);
+    expect(cards.some(text => text?.includes('Task B (updated)'))).toBe(true);
+    expect(cards.some(text => text?.includes('Task A'))).toBe(true);
+    expect(document.querySelector<HTMLInputElement>('[role="dialog"] input')?.value).toBe('Draft A');
   });
 });

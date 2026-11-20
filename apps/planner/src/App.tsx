@@ -194,8 +194,8 @@ function TaskEditor({
   const [draft, setDraft] = useState(task);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [mutating, setMutating] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [serverTask, setServerTask] = useState<Task | null>(null);
+  const [failure, setFailure] = useState<{ operation: 'save' | 'delete'; message: string; serverTask?: Task } | null>(null);
+  const serverTask = failure?.serverTask;
   const dirty = isTaskDirty(task, draft);
 
   const requestClose = () => {
@@ -206,18 +206,16 @@ function TaskEditor({
 
   const handleSave = async () => {
     setMutating(true);
-    setSaveError(null);
-    setServerTask(null);
+    setFailure(null);
     try {
       await onSave(draft);
       onClose();
     } catch (cause) {
-      if (cause instanceof ApiConflictError) {
-        setServerTask(cause.task);
-        setSaveError(cause.message);
-      } else {
-        setSaveError(cause instanceof Error ? cause.message : t.saveFailed);
-      }
+      setFailure({
+        operation: 'save',
+        message: cause instanceof Error ? cause.message : t.saveFailed,
+        serverTask: cause instanceof ApiConflictError ? cause.task : undefined,
+      });
     } finally {
       setMutating(false);
     }
@@ -225,12 +223,12 @@ function TaskEditor({
 
   const handleDelete = async () => {
     setMutating(true);
-    setSaveError(null);
+    setFailure(null);
     try {
       await onDelete(task);
       onClose();
     } catch (cause) {
-      setSaveError(cause instanceof Error ? cause.message : t.deleteFailed);
+      setFailure({ operation: 'delete', message: cause instanceof Error ? cause.message : t.deleteFailed });
       setConfirmingDelete(false);
     } finally {
       setMutating(false);
@@ -256,16 +254,22 @@ function TaskEditor({
         </div>
       )}
     >
-      {saveError && (
+      {failure && (
         <div className="editor-error">
-          <span>{saveError}</span>
+          <span role="alert">{failure.message}</span>
           <div className="editor-error-actions">
             {serverTask && (
-              <Button variant="secondary" disabled={mutating} onClick={() => { setDraft(serverTask); setServerTask(null); setSaveError(null); }}>
+              <Button variant="secondary" disabled={mutating || confirmingDelete} onClick={() => { setDraft(serverTask); setFailure(null); }}>
                 {t.loadServer}
               </Button>
             )}
-            <Button variant="primary" disabled={mutating} onClick={() => void handleSave()}>{t.retry}</Button>
+            <Button
+              variant={failure.operation === 'delete' ? 'danger' : 'primary'}
+              disabled={mutating || confirmingDelete || (failure.operation === 'save' && !draft.title.trim())}
+              onClick={() => void (failure.operation === 'delete' ? handleDelete() : handleSave())}
+            >
+              {t.retry}
+            </Button>
           </div>
         </div>
       )}
@@ -332,6 +336,7 @@ export default function App({ client = plannerApi }: { client?: PlannerClient } 
 
 function PlannerWorkspace({ client }: { client: PlannerClient }) {
   const activeClient = useRef(client);
+  const pendingUpdates = useRef(new Set<string>());
   activeClient.current = client;
   const initialUrl = parseFiltersFromUrl(window.location.search);
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES);
@@ -430,14 +435,20 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
     }
   };
 
-  const updateTask = async (id: string, changes: UpdateTaskInput) => {
+  const updateTask = async (id: string, changes: UpdateTaskInput, expectedVersion?: number) => {
     const existing = tasks.find((task) => task.id === id);
     if (!existing) return;
-    const snapshot = tasks;
+    if (pendingUpdates.current.has(id)) {
+      setError(t.updatePending);
+      throw new Error(t.updatePending);
+    }
+    pendingUpdates.current.add(id);
+    const optimistic = { ...existing, ...changes, labels: changes.labels ?? existing.labels, updatedAt: new Date().toISOString() };
     setConflictTask(null);
-    setTasks((current) => current.map((task) => task.id === id ? { ...task, ...changes, labels: changes.labels ?? task.labels, updatedAt: new Date().toISOString() } : task));
+    setError(null);
+    setTasks((current) => current.map((task) => task === existing ? optimistic : task));
     try {
-      const updated = await client.update(id, { ...changes, version: existing.version });
+      const updated = await client.update(id, { ...changes, version: expectedVersion ?? existing.version });
       if (activeClient.current !== client) return updated;
       if (changes.lane === 'done' && existing.lane !== 'done' && existing.recurrence) {
         await refresh();
@@ -447,11 +458,11 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
         await refresh();
         return updated;
       }
-      setTasks((current) => current.map((task) => task.id === id ? updated : task));
+      setTasks((current) => current.map((task) => task.id === id && task.version <= updated.version ? updated : task));
       return updated;
     } catch (cause) {
       if (activeClient.current !== client) throw cause;
-      setTasks(snapshot);
+      setTasks((current) => current.map((task) => task === optimistic ? existing : task));
       if (cause instanceof ApiConflictError) {
         setConflictTask(cause.task);
         setError(cause.message);
@@ -459,13 +470,15 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
         setError(cause instanceof Error ? cause.message : t.updateFailed);
       }
       throw cause;
+    } finally {
+      pendingUpdates.current.delete(id);
     }
   };
 
   const moveLane = (task: Task, direction: -1 | 1) => {
     const index = LANES.indexOf(task.lane);
     const lane = LANES[index + direction];
-    if (lane) void updateTask(task.id, { lane });
+    if (lane) void updateTask(task.id, { lane }).catch(() => undefined);
   };
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
@@ -479,7 +492,7 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
       'schedule-month': nextMonthFrom(today),
     };
     if (scheduleDates[String(over.id)]) {
-      void updateTask(task.id, { plannedDate: scheduleDates[String(over.id)] });
+      void updateTask(task.id, { plannedDate: scheduleDates[String(over.id)] }).catch(() => undefined);
       return;
     }
     const overTask = tasks.find((item) => item.id === over.id);
@@ -488,7 +501,7 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
     const targetLane = laneId as Lane;
     const laneTasks = tasks.filter((item) => item.lane === targetLane && item.id !== task.id);
     const position = overTask ? overTask.position - 0.5 : Math.max(0, ...laneTasks.map((item) => item.position)) + 1000;
-    void updateTask(task.id, { lane: targetLane, position });
+    void updateTask(task.id, { lane: targetLane, position }).catch(() => undefined);
   };
 
   const savePreferences = async (next: UserPreferences) => {
@@ -695,7 +708,7 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
               recurrence: draft.recurrence,
               priority: draft.priority,
               labels: draft.labels,
-            });
+            }, draft.version);
           }}
           onDelete={async (task) => {
             await client.remove(task.id);
