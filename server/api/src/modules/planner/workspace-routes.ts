@@ -1,9 +1,10 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { executePlannerCommand, type PlannerService } from '@draconis/planner-core';
 import type { Actor } from '../../core/auth.js';
-import { createTaskSchema, workspaceUpdateTaskSchema, updatePreferencesSchema, taskListQuerySchema, historyQuerySchema, type PlannerReply } from '@draconis/shared';
+import { createTaskSchema, workspaceUpdateTaskSchema, updatePreferencesSchema, historyQuerySchema, type PlannerReply } from '@draconis/shared';
 import { z } from 'zod';
 import { taskResponseSchema, paginatedTaskListSchema } from './schemas.js';
+import { listWorkspaceTasksByCursor, workspaceTaskListQuerySchema } from './task-cursor.js';
 
 const taskRef = { $ref: 'PlannerWorkspaceTask#' };
 const errorRef = { $ref: 'PlannerWorkspaceError#' };
@@ -22,6 +23,7 @@ const errorSchema = {
 };
 const success = (value: object) => ({ type: 'object', required: ['ok', 'value'], properties: { ok: { const: true }, value } });
 const taskList = { oneOf: [{ type: 'array', items: taskRef }, { $ref: 'PlannerWorkspacePage#' }] };
+const workspaceTaskList = { anyOf: [{ $ref: 'PlannerWorkspaceCursorPage#' }, ...taskList.oneOf] };
 
 export function createWorkspacePlannerRoutes(service: PlannerService, workspaceId: string, identifyActor: (request: FastifyRequest) => Actor) {
   return async (app: FastifyInstance) => {
@@ -31,13 +33,21 @@ export function createWorkspacePlannerRoutes(service: PlannerService, workspaceI
     app.addSchema({ $id: 'PlannerWorkspaceTask', ...taskResponseSchema });
     app.addSchema({ $id: 'PlannerWorkspacePage', ...paginatedTaskListSchema, properties: { ...paginatedTaskListSchema.properties, items: { type: 'array', items: taskRef } } });
     app.addSchema(errorSchema);
+    app.addSchema({
+      $id: 'PlannerWorkspaceCursorPage', type: 'object', required: ['items', 'pageSize', 'nextCursor'],
+      properties: {
+        items: { type: 'array', items: taskRef },
+        pageSize: { type: 'integer' },
+        nextCursor: { type: ['string', 'null'], description: 'Pass this value as cursor on the next request. Null marks the last page.' },
+      },
+    });
     // Keep validation/transport errors in the same envelope as dispatched commands.
     app.setErrorHandler((error, _request, reply) => {
       const invalid = typeof error === 'object' && error !== null && 'statusCode' in error && error.statusCode === 400;
       return reply.code(invalid ? 400 : 500).send({ ok: false, error: { code: invalid ? 'INVALID_INPUT' : 'INTERNAL_ERROR', status: invalid ? 400 : 500, message: invalid ? 'Ongeldige invoer' : 'Planner kan de opdracht niet uitvoeren.' } });
     });
     const routes = [
-      ['GET', '/tasks', 'tasks.list', taskList],
+      ['GET', '/tasks', 'tasks.list', workspaceTaskList],
       ['POST', '/tasks', 'tasks.create', taskRef],
       ['PATCH', '/tasks/:id', 'tasks.update', taskRef],
       ['DELETE', '/tasks/:id', 'tasks.remove', { type: 'null' }],
@@ -46,6 +56,7 @@ export function createWorkspacePlannerRoutes(service: PlannerService, workspaceI
       ['PATCH', '/preferences', 'preferences.update', { type: 'object', additionalProperties: true }],
     ] as const;
     for (const [method, url, type, result] of routes) {
+      const pathParameters = url.includes(':id') ? ['workspaceId', 'id'] : ['workspaceId'];
       app.route({ method, url, schema: {
         tags: ['planner'], summary: `Local workspace ${type}`,
         security: [{ bearerAuth: [] }, {}],
@@ -60,25 +71,33 @@ export function createWorkspacePlannerRoutes(service: PlannerService, workspaceI
         } : {}),
         ...(type === 'tasks.update' ? { body: z.toJSONSchema(workspaceUpdateTaskSchema, { target: 'draft-7' }) } : {}),
         ...(type === 'preferences.update' ? { body: z.toJSONSchema(updatePreferencesSchema, { target: 'draft-7' }) } : {}),
-        ...(type === 'tasks.list' ? { querystring: z.toJSONSchema(taskListQuerySchema, { target: 'draft-7' }) } : {}),
+        ...(type === 'tasks.list' ? { querystring: z.toJSONSchema(workspaceTaskListQuerySchema, { target: 'draft-7' }) } : {}),
         ...(type === 'history.list' ? { querystring: z.toJSONSchema(historyQuerySchema, { target: 'draft-7' }) } : {}),
-        params: { type: 'object', properties: { workspaceId: { type: 'string' }, id: { type: 'string' } }, required: url.includes(':id') ? ['workspaceId', 'id'] : ['workspaceId'] },
+        params: {
+          type: 'object',
+          properties: Object.fromEntries(pathParameters.map(name => [name, { type: 'string' }])),
+          required: pathParameters,
+        },
         response: { [method === 'POST' ? 201 : 200]: success(result), 400: errorRef, 401: errorRef, 404: errorRef, 409: errorRef, 500: errorRef, 503: errorRef },
       }, handler: (request, reply) => {
         const params = request.params as { workspaceId: string; id?: string };
         const query = { ...request.query as Record<string, unknown> };
-        for (const key of ['future', 'overdue']) {
-          if (query[key] === 'true') query[key] = true;
-          else if (query[key] === 'false') query[key] = false;
-        }
         let outcome: PlannerReply;
         try {
           const actor = identifyActor(request);
-          const key = idempotencyKeySchema.safeParse(type === 'tasks.create' ? request.headers['idempotency-key'] : undefined);
-          if (!key.success) return reply.code(400).send({ ok: false, error: { code: 'INVALID_INPUT', status: 400, message: 'Ongeldige Idempotency-Key' } });
-          outcome = executePlannerCommand(service, workspaceId, actor, {
-            workspaceId: params.workspaceId, type, id: params.id, query, input: request.body,
-          }, key.data === undefined ? undefined : { key: key.data, actorKind: actor.kind });
+          if (type === 'tasks.list' && ('pagination' in query || 'cursor' in query)) {
+            outcome = listWorkspaceTasksByCursor(service, workspaceId, params.workspaceId, query);
+          } else {
+            for (const key of ['future', 'overdue']) {
+              if (query[key] === 'true') query[key] = true;
+              else if (query[key] === 'false') query[key] = false;
+            }
+            const key = idempotencyKeySchema.safeParse(type === 'tasks.create' ? request.headers['idempotency-key'] : undefined);
+            if (!key.success) return reply.code(400).send({ ok: false, error: { code: 'INVALID_INPUT', status: 400, message: 'Ongeldige Idempotency-Key' } });
+            outcome = executePlannerCommand(service, workspaceId, actor, {
+              workspaceId: params.workspaceId, type, id: params.id, query, input: request.body,
+            }, key.data === undefined ? undefined : { key: key.data, actorKind: actor.kind });
+          }
         } catch (error) {
           const unauthorized = typeof error === 'object' && error !== null && 'statusCode' in error && error.statusCode === 401;
           outcome = { ok: false, error: unauthorized

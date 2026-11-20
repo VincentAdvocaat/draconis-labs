@@ -45,4 +45,25 @@ describe('OpenAPI contract', () => {
     expect(spec.paths).toHaveProperty('/api/v1/planner/tasks');
     expect(spec.paths).toHaveProperty('/api/v1/system/info');
   });
+
+  it('documents only path parameters present in each workspace URL', async () => {
+    const app = await buildApp();
+    try {
+      const spec = app.swagger() as { paths?: Record<string, Record<string, {
+        parameters?: Array<{ in: string; name: string; required: boolean }>;
+      }>> };
+      const workspacePaths = Object.entries(spec.paths ?? {}).filter(([path]) => path.startsWith('/api/v1/workspaces/'));
+      expect(workspacePaths.length).toBeGreaterThan(0);
+      for (const [path, operations] of workspacePaths) {
+        const expected = [...path.matchAll(/\{([^}]+)\}/g)].map(match => match[1]).sort();
+        for (const operation of Object.values(operations)) {
+          const declared = operation.parameters?.filter(parameter => parameter.in === 'path') ?? [];
+          expect(declared.map(parameter => parameter.name).sort(), path).toEqual(expected);
+          expect(declared.every(parameter => parameter.required), path).toBe(true);
+        }
+      }
+    } finally {
+      await app.close();
+    }
+  });
 });

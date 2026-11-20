@@ -52,7 +52,18 @@ current task.
 Use `page=1` to get the first page of a task or history list. `pageSize` defaults
 to 50 and accepts values between 1 and 200. A paginated response places
 `items`, `total`, `page` and `pageSize` inside `value`. Keep the same filters
-when requesting the next page. Without `page`, `value` is an array.
+when requesting the next page. The response `value` is an array when no
+pagination mode is selected.
+
+For cursor pagination on the workspace task list, start with
+`GET /api/v1/workspaces/local/tasks?pagination=cursor&pageSize=50`. The response
+`value` contains `items`, `pageSize` and `nextCursor`. Pass `nextCursor` unchanged
+as `cursor` on the next request and repeat the same filters. `null` marks the end
+of the list. The API returns `400 INVALID_INPUT` for a malformed cursor, a
+cursor used with different filters or a request that combines a cursor and
+`page`. Relative date filters such as `date=today` need a new cursor after
+local midnight. Tasks are ordered by lane, position and ID. Pages read current
+data, so moves and edits between requests can change which tasks appear.
 
 Send an optional `Idempotency-Key` when posting to `/api/v1/workspaces/local/tasks`.
 Use one key per logical creation. A UUID is valid. Keys allow 1–128 ASCII

@@ -1,7 +1,7 @@
 import type { CreateTaskInput, Task, TaskListQuery, UpdateTaskInput, UserPreferences } from '@draconis/shared';
 import { addRecurrence } from '@draconis/shared';
 import { newTask } from './new-task.js';
-import type { HistoryQuery, PlannerEnvironment, PlannerStorage, TaskCreationReceiptKey } from './storage.js';
+import type { HistoryQuery, PlannerEnvironment, PlannerStorage, TaskCreationReceiptKey, TaskCursorQuery } from './storage.js';
 
 export class TaskConflictError extends Error {
   readonly task: Task;
@@ -40,6 +40,7 @@ export function createPlannerService(storage: PlannerStorage, environment: Plann
   }
   return {
     list: (query: TaskListQuery) => storage.list(query),
+    listByCursor: (query: TaskCursorQuery) => storage.listByCursor(query),
     history: (query: HistoryQuery) => storage.history(query),
     create(input: CreateTaskInput, actor: { name: string }, receiptKey?: TaskCreationReceiptKey): Task {
       return storage.transaction(() => {
