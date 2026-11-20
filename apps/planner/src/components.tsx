@@ -20,18 +20,28 @@ export function FilterPanel({
   savedViews: SavedView[];
   i18n: Translator;
   onChange: (filter: TaskFilter) => void;
-  onSaveView: (name: string) => void;
+  onSaveView: (name: string) => Promise<boolean>;
   onApplyView: (view: SavedView) => void;
-  onRenameView: (id: string, name: string) => void;
-  onDeleteView: (id: string) => void;
+  onRenameView: (id: string, name: string) => Promise<boolean>;
+  onDeleteView: (id: string) => Promise<boolean>;
 }) {
   const { t, laneLabel, priorityLabel } = i18n;
   const [open, setOpen] = useState(false);
   const [viewName, setViewName] = useState('');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [savingView, setSavingView] = useState(false);
 
   const update = (patch: Partial<TaskFilter>) => onChange({ ...filter, ...patch });
+  const writeView = async (write: () => Promise<boolean>, onSuccess?: () => void) => {
+    if (savingView) return;
+    setSavingView(true);
+    try {
+      if (await write()) onSuccess?.();
+    } finally {
+      setSavingView(false);
+    }
+  };
 
   return (
     <section className="filter-panel">
@@ -87,14 +97,11 @@ export function FilterPanel({
             {t.overdueOnly}
           </label>
           <div className="filter-save">
-            <input value={viewName} onChange={(event) => setViewName(event.target.value)} placeholder={t.viewName} />
+            <input value={viewName} disabled={savingView} onChange={(event) => setViewName(event.target.value)} placeholder={t.viewName} />
             <Button
               variant="primary"
-              disabled={!viewName.trim()}
-              onClick={() => {
-                onSaveView(viewName.trim());
-                setViewName('');
-              }}
+              disabled={savingView || !viewName.trim()}
+              onClick={() => void writeView(() => onSaveView(viewName.trim()), () => setViewName(''))}
             >
               {t.saveView}
             </Button>
@@ -106,14 +113,15 @@ export function FilterPanel({
                 <div key={view.id} className="saved-view-row">
                   {renamingId === view.id ? (
                     <>
-                      <input value={renameValue} onChange={(event) => setRenameValue(event.target.value)} />
-                      <Button variant="secondary" onClick={() => { onRenameView(view.id, renameValue.trim()); setRenamingId(null); }}>{t.save}</Button>
+                      <input value={renameValue} disabled={savingView} onChange={(event) => setRenameValue(event.target.value)} />
+                      <Button variant="secondary" disabled={savingView || !renameValue.trim()}
+                        onClick={() => void writeView(() => onRenameView(view.id, renameValue.trim()), () => setRenamingId(null))}>{t.save}</Button>
                     </>
                   ) : (
                     <>
                       <button type="button" className="saved-view-button" onClick={() => onApplyView(view)}>{view.name}</button>
-                      <Button variant="secondary" onClick={() => { setRenamingId(view.id); setRenameValue(view.name); }}>{t.renameView}</Button>
-                      <Button variant="danger" onClick={() => onDeleteView(view.id)}>{t.deleteView}</Button>
+                      <Button variant="secondary" disabled={savingView} onClick={() => { setRenamingId(view.id); setRenameValue(view.name); }}>{t.renameView}</Button>
+                      <Button variant="danger" disabled={savingView} onClick={() => void writeView(() => onDeleteView(view.id))}>{t.deleteView}</Button>
                     </>
                   )}
                 </div>
