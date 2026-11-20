@@ -312,7 +312,7 @@ function TaskEditor({
             </select>
           </label>
         </div>
-        <label>{t.labels}<input disabled={mutating} value={draft.labels.join(', ')} onChange={(event) => setDraft({ ...draft, labels: event.target.value.split(',').map((label) => label.trim()).filter(Boolean) })} placeholder="werk, persoonlijk" /></label>
+        <label>{t.labels}<input disabled={mutating} value={draft.labels.join(', ')} onChange={(event) => setDraft({ ...draft, labels: event.target.value.split(',').map((label) => label.trim()).filter(Boolean) })} placeholder={t.labelsPlaceholder} /></label>
         {confirmingDelete ? (
           <div className="delete-confirm">
             <p>{t.confirmDelete(task.title)}</p>
@@ -506,21 +506,34 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
   };
 
   const savePreferences = async (next: UserPreferences) => {
-    const saved = await client.preferences.update(next);
+    const { locale, timezone, weekStart, defaultView } = next;
+    const saved = await client.preferences.update({ locale, timezone, weekStart, defaultView });
     if (activeClient.current !== client) return;
-    setPreferences(saved);
+    setPreferences((current) => ({ ...saved, savedViews: current.savedViews }));
     setSelectedView(saved.defaultView);
     setShowPreferences(false);
   };
 
-  const saveView = async (name: string) => {
+  const saveViewList = async (savedViews: SavedView[]) => {
+    try {
+      const saved = await client.preferences.update({ savedViews });
+      if (activeClient.current !== client) return false;
+      setPreferences((current) => ({ ...current, savedViews: saved.savedViews }));
+      setError(null);
+      return true;
+    } catch (cause) {
+      if (activeClient.current === client) setError(cause instanceof Error ? cause.message : t.saveFailed);
+      return false;
+    }
+  };
+
+  const saveView = (name: string) => {
     const viewEntry: SavedView = {
       id: crypto.randomUUID(),
       name,
       filter: { ...taskFilter, q: textFilter || taskFilter.q },
     };
-    const savedViews = [...preferences.savedViews, viewEntry];
-    await savePreferences({ ...preferences, savedViews });
+    return saveViewList([...preferences.savedViews, viewEntry]);
   };
 
   const groupedFuture = Object.entries(
@@ -584,16 +597,10 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
           savedViews={preferences.savedViews}
           i18n={i18n}
           onChange={(filter) => { setTaskFilter(filter); setPage(1); }}
-          onSaveView={(name) => void saveView(name)}
+          onSaveView={saveView}
           onApplyView={(saved) => { setTaskFilter(saved.filter); setPage(1); }}
-          onRenameView={(id, name) => {
-            const savedViews = preferences.savedViews.map((item) => item.id === id ? { ...item, name } : item);
-            void savePreferences({ ...preferences, savedViews });
-          }}
-          onDeleteView={(id) => {
-            const savedViews = preferences.savedViews.filter((item) => item.id !== id);
-            void savePreferences({ ...preferences, savedViews });
-          }}
+          onRenameView={(id, name) => saveViewList(preferences.savedViews.map((item) => item.id === id ? { ...item, name } : item))}
+          onDeleteView={(id) => saveViewList(preferences.savedViews.filter((item) => item.id !== id))}
         />
 
         {error && <div className="error-banner">{error}<button onClick={() => { setError(null); setConflictTask(null); }}>×</button></div>}

@@ -24,15 +24,17 @@ import {
   lte,
   max,
   or,
+  sql,
   type SQL,
 } from 'drizzle-orm';
 import { tasks, userPreferences } from './schema.js';
 import { toTask, toRow } from './mapper.js';
+import { readCommandReceipt, writeCommandReceipt } from './command-receipts.js';
+import { dataHash } from './json-hash.js';
 
-function buildTaskFilters(query: PlannerListQuery) {
+function buildTaskFilters(query: PlannerListQuery, now = new Date()) {
   const filters: SQL[] = [];
   const timezone = query.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const now = new Date();
   const today = todayInTimezone(timezone, now);
 
   if (query.lane) filters.push(eq(tasks.lane, query.lane));
@@ -117,6 +119,16 @@ export function createSqlitePlannerStorage(sqlite: Database.Database, busyTimeou
       return rows.map(toTask);
     },
 
+    listByCursor({ filters, after, limit, now }) {
+      const boundary = after && sql`(${tasks.lane}, ${tasks.position}, ${tasks.id}) > (${after.lane}, ${after.position}, ${after.id})`;
+      return db.select().from(tasks)
+        .where(and(buildTaskFilters(filters, now), boundary))
+        .orderBy(asc(tasks.lane), asc(tasks.position), asc(tasks.id))
+        .limit(limit)
+        .all()
+        .map(toTask);
+    },
+
     history(query: { from?: string; page?: number; pageSize?: number }): Task[] | PaginatedTasks {
       const historyFilters = [eq(tasks.lane, 'done'), isNotNull(tasks.completedAt)];
       if (query.from) {
@@ -170,6 +182,13 @@ export function createSqlitePlannerStorage(sqlite: Database.Database, busyTimeou
 
     insert(task: Task) {
       db.insert(tasks).values(toRow(task)).run();
+    },
+    findTaskCreation(key, input) {
+      const receipt = readCommandReceipt<Task>(sqlite, { ...key, operation: 'tasks.create' });
+      return receipt && { matches: receipt.hash === dataHash(input), task: receipt.result };
+    },
+    saveTaskCreation(key, input, task) {
+      writeCommandReceipt(sqlite, { ...key, operation: 'tasks.create' }, dataHash(input), task);
     },
 
     update(id: string, values: Partial<Task>) {

@@ -34,6 +34,9 @@ async function click(element: Element) {
 }
 async function editTitle(value: string) {
   const input = document.querySelector('[role="dialog"] input') as HTMLInputElement;
+  await editInput(input, value);
+}
+async function editInput(input: HTMLInputElement, value: string) {
   await act(async () => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value);
     input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -49,6 +52,84 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   document.body.replaceChildren();
+});
+
+describe('Planner planning and saved filters', () => {
+  it.each([
+    ['nl', 'werk, persoonlijk'],
+    ['en', 'work, personal'],
+  ] as const)('uses localized label examples in the %s task editor', async (locale, placeholder) => {
+    const { client } = fixture('Task A');
+    client.preferences.get = vi.fn(async () => ({ ...DEFAULT_PREFERENCES, locale }));
+    await act(async () => root.render(<App client={client} />));
+    await act(async () => document.querySelector('.task-card')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })));
+    expect(document.querySelector(`[role="dialog"] input[placeholder="${placeholder}"]`)).not.toBeNull();
+  });
+
+  it('preserves the active view and a failed draft while storing, applying, renaming and deleting filters', async () => {
+    const { client } = fixture('Task A');
+    window.history.replaceState(null, '', '/?view=scheduled&lane=doing');
+    let preferences = await client.preferences.get();
+    client.preferences.update = vi.fn<typeof client.preferences.update>()
+      .mockRejectedValueOnce(new Error('Opslag tijdelijk onbereikbaar'))
+      .mockImplementation(async (update) => {
+        preferences = { ...preferences, ...update };
+        return preferences;
+      });
+    await act(async () => root.render(<App client={client} />));
+    await click(button('Geavanceerde filters'));
+    const name = document.querySelector<HTMLInputElement>('input[placeholder="Naam van view"]')!;
+    await editInput(name, 'Onderweg');
+    await click(button('View opslaan'));
+    expect(document.querySelector('.error-banner')?.textContent).toContain('Opslag tijdelijk onbereikbaar');
+    expect(name.value).toBe('Onderweg');
+    await click(button('View opslaan'));
+    expect(document.querySelector('.timeline')).not.toBeNull();
+    expect(name.value).toBe('');
+    expect(client.preferences.update).toHaveBeenLastCalledWith({
+      savedViews: [expect.objectContaining({ name: 'Onderweg', filter: expect.objectContaining({ lane: 'doing' }) })],
+    });
+
+    const lane = document.querySelector<HTMLSelectElement>('.filter-grid select')!;
+    await act(async () => { lane.value = ''; lane.dispatchEvent(new Event('change', { bubbles: true })); });
+    await click(button('Onderweg'));
+    expect(lane.value).toBe('doing');
+    expect(client.list).toHaveBeenLastCalledWith(expect.objectContaining({ lane: 'doing', page: 1 }));
+    await click(button('Hernoemen'));
+    await editInput(document.querySelector<HTMLInputElement>('.saved-view-row input')!, 'In uitvoering');
+    await click(button('Opslaan'));
+    expect(button('In uitvoering')).toBeTruthy();
+    await click(button('Verwijderen'));
+    expect(document.querySelector('.saved-view-row')).toBeNull();
+    expect(client.preferences.update).toHaveBeenLastCalledWith({ savedViews: [] });
+    expect(new URLSearchParams(window.location.search).get('view')).toBe('scheduled');
+  });
+
+  it('indicates an overdue task and saves independent planned date, due date and time from the editor', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-20T10:00:00.000Z'));
+    try {
+      const { client, task } = fixture('Inspectie op afspraak');
+      const overdue = { ...task, dueDate: '2026-11-20', dueTime: '10:30', timezone: 'Europe/Amsterdam' };
+      client.list = vi.fn(async () => [overdue]);
+      client.update = vi.fn(async (_id, changes) => ({ ...overdue, ...changes, version: 2 }));
+      await act(async () => root.render(<App client={client} />));
+      expect(document.querySelector('.task-card .overdue-pill')?.textContent).toBe('Te laat');
+      await act(async () => document.querySelector('.task-card')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })));
+      const dates = document.querySelectorAll<HTMLInputElement>('[role="dialog"] input[type="date"]');
+      const time = document.querySelector<HTMLInputElement>('[role="dialog"] input[type="time"]')!;
+      expect(dates[1].value).toBe('2026-11-20');
+      expect(time.value).toBe('10:30');
+      await editInput(dates[0], '2026-11-19');
+      await editInput(dates[1], '2026-11-21');
+      await editInput(time, '14:45');
+      await click(button('Opslaan'));
+      expect(client.update).toHaveBeenCalledWith(task.id, expect.objectContaining({
+        plannedDate: '2026-11-19', dueDate: '2026-11-21', dueTime: '14:45', timezone: 'Europe/Amsterdam',
+      }));
+      expect(document.querySelector('.task-card .overdue-pill')).toBeNull();
+    } finally { vi.useRealTimers(); }
+  });
 });
 
 describe('Planner startup view', () => {

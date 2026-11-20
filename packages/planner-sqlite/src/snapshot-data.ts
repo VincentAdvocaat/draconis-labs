@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import type Database from 'better-sqlite3';
 import { plannerMigrations } from './migrations.js';
 import { createTaskSchema, updatePreferencesSchema, uuidParamSchema } from '@draconis/shared';
@@ -13,13 +12,6 @@ export class PlannerSnapshotError extends Error {
   readonly conflicts: ImportConflict[];
   constructor(code: string, message: string, conflicts: ImportConflict[] = []) { super(message); this.code = code; this.conflicts = conflicts; }
 }
-export function canonical(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonical);
-  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([key, child]) => [key, canonical(child)]));
-  return value;
-}
-export const dataHash = (value: unknown) => createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
-
 export function readPlannerData(db: Database.Database) {
   const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT GLOB 'sqlite_*' ORDER BY name").all() as { name: string }[]).map(row => row.name);
   if (!tables.includes('tasks')) throw new PlannerSnapshotError('INVALID_SOURCE', 'De snapshot bevat geen Planner-taken.');

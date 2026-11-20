@@ -62,14 +62,19 @@ try {
 
   const workspaceTasks = '/api/v1/workspaces/local/tasks';
   const agentHeaders = { Authorization: `Bearer ${agentKey}`, 'Content-Type': 'application/json' };
+  const createHeaders = { ...agentHeaders, 'Idempotency-Key': randomUUID() };
+  const createBody = JSON.stringify({ title: 'Fictieve agenttaak' });
   const created = await fetch(base + workspaceTasks, {
-    method: 'POST', headers: agentHeaders, body: JSON.stringify({ title: 'Fictieve agenttaak' }),
+    method: 'POST', headers: createHeaders, body: createBody,
   });
   assert.equal(created.status, 201);
   const { ok, value: agentTask } = await created.json();
   assert.equal(ok, true);
   assert.equal(agentTask.createdBy, agentName);
   assert.equal(agentTask.version, 1);
+  const replayed = await fetch(base + workspaceTasks, { method: 'POST', headers: createHeaders, body: createBody });
+  assert.equal(replayed.status, 201);
+  assert.deepEqual(await replayed.json(), { ok: true, value: agentTask });
   const page = await request(`${workspaceTasks}?createdBy=${agentName}&page=1&pageSize=1`, 'GET', undefined, agentHeaders);
   assert.deepEqual(page, { ok: true, value: { items: [agentTask], total: 1, page: 1, pageSize: 1 } });
   const agentTaskPath = `${workspaceTasks}/${agentTask.id}`;
@@ -104,7 +109,7 @@ try {
   assert.deepEqual(await request('/api/v1/workspaces/local/blocks/'+block.id,'DELETE',release),{ok:true,value:null});
   assert.deepEqual(await request('/api/v1/workspaces/local/blocks/'+block.id,'DELETE',release),{ok:true,value:null});
   assert((await request('/api/v1/workspaces/local/availability?date='+date)).value[0].available);
-  console.log(JSON.stringify({ startCommand: 'node --import tsx dist/index.js', health: true, createMoveRead: true, legacy: true, workspace: true, wrongWorkspaceRejected: true, agentDiscovery: true, agentTaskWorkflow: true, corsWriteMethods:true, blockReleaseRetry:true, node: process.version }));
+  console.log(JSON.stringify({ startCommand: 'node --import tsx dist/index.js', health: true, createMoveRead: true, legacy: true, workspace: true, wrongWorkspaceRejected: true, agentDiscovery: true, agentTaskWorkflow: true, taskCreationReplay: true, corsWriteMethods:true, blockReleaseRetry:true, node: process.version }));
 } finally {
   child.kill();
   await ended;

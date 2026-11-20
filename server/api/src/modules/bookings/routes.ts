@@ -22,10 +22,16 @@ export function createBookingRoutes(service: BookingService, identifyActor: (req
       const commandSchema = bookingCommandSchema.options.find(option => option.shape.type.value === type)!;
       const shape = commandSchema.shape as Record<string, z.ZodType>;
       const body = z.object(Object.fromEntries(Object.entries(shape).filter(([key]) => !['type','workspaceId','id'].includes(key))));
+      const hasId = url.includes(':id');
+      const idParameter = type === 'zones.capacity' ? { type: 'string', pattern: '^[a-z][a-z0-9-]{0,39}$' } : { type: 'string', format: 'uuid' };
       app.route({ method: method as 'GET' | 'POST' | 'PATCH' | 'DELETE', url, schema: {
         tags: ['bookings'], summary: `Local workspace ${type}`,
         ...(type === 'zones.resolve' ? {querystring:{type:'object',required:['postcode'],properties:{postcode:{type:'string',minLength:1,maxLength:20}}}} : {}),
-        params: { type: 'object', properties: { workspaceId: { type: 'string' }, id: type === 'zones.capacity' ? { type: 'string', pattern: '^[a-z][a-z0-9-]{0,39}$' } : { type: 'string', format: 'uuid' } }, required: url.includes(':id') ? ['workspaceId','id'] : ['workspaceId'] },
+        params: {
+          type: 'object',
+          properties: { workspaceId: { type: 'string' }, ...(hasId ? { id: idParameter } : {}) },
+          required: hasId ? ['workspaceId', 'id'] : ['workspaceId'],
+        },
         ...(method === 'GET' ? ('query' in commandSchema.shape ? { querystring: z.toJSONSchema(commandSchema.shape.query, { target: 'draft-7' }) } : 'date' in commandSchema.shape ? { querystring: { type: 'object', required: ['date'], properties: { date: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' }, zoneId: { type: 'string', pattern: '^[a-z][a-z0-9-]{0,39}$' } } } } : {}) : { body: z.toJSONSchema(body, { target: 'draft-7' }) }),
         response: { 200: { type: 'object', required: ['ok','value'], properties: { ok: { const: true }, value: z.toJSONSchema(bookingResultSchemas[type], { target: 'draft-7' }) } }, 400: failure, 401: failure, 404: failure, 409: failure, 500: failure, 503: failure },
       }, handler(request, reply) {

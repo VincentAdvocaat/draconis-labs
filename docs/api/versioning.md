@@ -52,10 +52,31 @@ current task.
 Use `page=1` to get the first page of a task or history list. `pageSize` defaults
 to 50 and accepts values between 1 and 200. A paginated response places
 `items`, `total`, `page` and `pageSize` inside `value`. Keep the same filters
-when requesting the next page. Without `page`, `value` is an array.
+when requesting the next page. The response `value` is an array when no
+pagination mode is selected.
 
-Task creation has no idempotency key. If the response is lost, check the task
-list for an existing result before repeating the create request.
+For cursor pagination on the workspace task list, start with
+`GET /api/v1/workspaces/local/tasks?pagination=cursor&pageSize=50`. The response
+`value` contains `items`, `pageSize` and `nextCursor`. Pass `nextCursor` unchanged
+as `cursor` on the next request and repeat the same filters. `null` marks the end
+of the list. The API returns `400 INVALID_INPUT` for a malformed cursor, a
+cursor used with different filters or a request that combines a cursor and
+`page`. Relative date filters such as `date=today` need a new cursor after
+local midnight. Tasks are ordered by lane, position and ID. Pages read current
+data, so moves and edits between requests can change which tasks appear.
+
+Send an optional `Idempotency-Key` when posting to `/api/v1/workspaces/local/tasks`.
+Use one key per logical creation. A UUID is valid. Keys allow 1–128 ASCII
+letters, digits, dots, underscores, tildes and hyphens. Retry with the same key
+and validated task input. The API returns the original `201` response,
+including the original task version, even if the task has since changed or
+the API has restarted against the same SQLite database. Using the key with
+different valid input returns `409 IDEMPOTENCY_CONFLICT`.
+
+Keys belong to the workspace and the identified actor. Each named agent has
+its own keys. The unauthenticated local UI shares the local user identity.
+Requests without the header and the compatibility routes under `/api/v1/planner`
+and `/api/planner` create a new task on each successful request.
 
 ## Contract checks
 
@@ -65,4 +86,5 @@ is missing or out of date. Breaking changes require a major version bump.
 
 The compiled API smoke (`corepack pnpm --filter @draconis/api smoke:start`)
 uses its own loopback process and synthetic storage to check discovery,
-Bearer identity, task creation, pagination and version conflicts over HTTP.
+Bearer identity, task creation and replay, pagination and version conflicts
+over HTTP.
