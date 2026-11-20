@@ -2,10 +2,18 @@ import type { Lane, PaginatedTasks, Task, TaskListQuery, UserPreferences } from 
 
 export interface HistoryQuery { from?: string; page?: number; pageSize?: number }
 
+export interface TaskCursorQuery {
+  filters: Omit<TaskListQuery, 'page' | 'pageSize'>;
+  after?: Pick<Task, 'lane' | 'position' | 'id'>;
+  limit: number;
+  now: Date;
+}
+
 export interface PlannerStorage {
   /** Synchronous write transaction; reads and writes use the same connection. */
   transaction<T>(operation: () => T): T;
   list(query: TaskListQuery): Task[] | PaginatedTasks;
+  listByCursor(query: TaskCursorQuery): Task[];
   history(query: HistoryQuery): Task[] | PaginatedTasks;
   find(id: string): Task | undefined;
   lane(lane: Lane): Task[];

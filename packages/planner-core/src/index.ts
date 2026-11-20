@@ -2,7 +2,7 @@ export { newTask } from './new-task.js';
 export { parseQuickTask, addDaysFrom, nextWeekFrom, nextMonthFrom } from './quick-task.js';
 
 export { createPlannerService, TaskConflictError, type PlannerService } from './service.js';
-export type { PlannerStorage, PlannerEnvironment, HistoryQuery } from './storage.js';
+export type { PlannerStorage, PlannerEnvironment, HistoryQuery, TaskCursorQuery } from './storage.js';
 
 export { executePlannerCommand } from './commands.js';
 export { createBookingService, type BookingService } from './bookings.js';

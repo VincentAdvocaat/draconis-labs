@@ -180,6 +180,33 @@
           }
         },
         "title": "PlannerWorkspaceError"
+      },
+      "def-3": {
+        "type": "object",
+        "required": [
+          "items",
+          "pageSize",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/def-0"
+            }
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass this value as cursor on the next request. Null marks the last page."
+          }
+        },
+        "title": "PlannerWorkspaceCursorPage"
       }
     }
   },
@@ -1313,6 +1340,30 @@
           },
           {
             "schema": {
+              "type": "string",
+              "enum": [
+                "cursor"
+              ]
+            },
+            "in": "query",
+            "name": "pagination",
+            "required": false,
+            "description": "Select cursor pagination on the first request. Omit page."
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "description": "The nextCursor from the previous page. Repeat the same filters and omit page."
+          },
+          {
+            "schema": {
               "type": "string"
             },
             "in": "path",
@@ -1352,7 +1403,10 @@
                       ]
                     },
                     "value": {
-                      "oneOf": [
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/def-3"
+                        },
                         {
                           "type": "array",
                           "items": {
