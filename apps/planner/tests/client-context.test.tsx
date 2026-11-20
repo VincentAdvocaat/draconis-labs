@@ -55,6 +55,17 @@ afterEach(async () => {
 });
 
 describe('Planner planning and saved filters', () => {
+  it.each([
+    ['nl', 'werk, persoonlijk'],
+    ['en', 'work, personal'],
+  ] as const)('uses localized label examples in the %s task editor', async (locale, placeholder) => {
+    const { client } = fixture('Task A');
+    client.preferences.get = vi.fn(async () => ({ ...DEFAULT_PREFERENCES, locale }));
+    await act(async () => root.render(<App client={client} />));
+    await act(async () => document.querySelector('.task-card')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })));
+    expect(document.querySelector(`[role="dialog"] input[placeholder="${placeholder}"]`)).not.toBeNull();
+  });
+
   it('preserves the active view and a failed draft while storing, applying, renaming and deleting filters', async () => {
     const { client } = fixture('Task A');
     window.history.replaceState(null, '', '/?view=scheduled&lane=doing');

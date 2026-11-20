@@ -312,7 +312,7 @@ function TaskEditor({
             </select>
           </label>
         </div>
-        <label>{t.labels}<input disabled={mutating} value={draft.labels.join(', ')} onChange={(event) => setDraft({ ...draft, labels: event.target.value.split(',').map((label) => label.trim()).filter(Boolean) })} placeholder="werk, persoonlijk" /></label>
+        <label>{t.labels}<input disabled={mutating} value={draft.labels.join(', ')} onChange={(event) => setDraft({ ...draft, labels: event.target.value.split(',').map((label) => label.trim()).filter(Boolean) })} placeholder={t.labelsPlaceholder} /></label>
         {confirmingDelete ? (
           <div className="delete-confirm">
             <p>{t.confirmDelete(task.title)}</p>
