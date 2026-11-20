@@ -11,22 +11,23 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-  - task: NodeTool@0
+  - task: UseNode@1
     inputs:
-      versionSpec: '22.x'
+      version: '22.x'
     displayName: Install Node.js
 
-  - script: corepack enable && corepack pnpm install
-    displayName: Install dependencies
+  - bash: |
+      set -euo pipefail
+      store_path="$(corepack pnpm store path)"
+      mkdir -p "$store_path"
+      printf '##vso[task.setvariable variable=pnpmStorePath]%s\n' "$store_path"
+    displayName: Locate pnpm store
 
-  - script: corepack pnpm typecheck
-    displayName: Typecheck
+  - task: Cache@2
+    displayName: Cache pnpm store
+    inputs:
+      key: 'pnpm | "$(Agent.OS)" | pnpm-lock.yaml'
+      path: $(pnpmStorePath)
 
-  - script: corepack pnpm lint
-    displayName: Lint
-
-  - script: corepack pnpm test
-    displayName: Test
-
-  - script: corepack pnpm build
-    displayName: Build
+  - pwsh: ./scripts/verify-local-integration.ps1
+    displayName: Verify frozen install, build, lint, typecheck, tests and startup
