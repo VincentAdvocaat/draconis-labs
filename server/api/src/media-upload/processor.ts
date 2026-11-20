@@ -5,7 +5,8 @@ export const MAX_PIXELS = 40_000_000;
 export const MAX_AXIS = 12_000;
 export type ImageMime = 'image/jpeg' | 'image/png' | 'image/webp';
 export class UploadError extends Error {
-  constructor(public readonly statusCode: number, message: string, public readonly assetId?: string) { super(message); }
+  constructor(public readonly statusCode: number, message: string, public readonly assetId?: string,
+    public readonly fileVersion?: number, public readonly jobId?: string) { super(message); }
 }
 
 export function validateEnvelope(bytes: Buffer, filename: string, mime: string): ImageMime {

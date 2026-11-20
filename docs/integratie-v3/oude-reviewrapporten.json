@@ -1,0 +1,206 @@
+{
+  "retrievedAt": "2026-11-20",
+  "note": "Oorspronkelijke eindberichten en herrevieweindberichten, letterlijk uit de bestaande gearchiveerde chats. Volledige SHAs zijn aan Git/PR gekoppeld; model/reasoning read-only bevestigd uit turn_context. Dit zijn geen nieuw uitgevoerde reviews. Uitgebreidere destijds verstuurde toolrapporten zijn niet als nieuw gereconstrueerd rapport opgevoerd.",
+  "reports": [
+    {
+      "pr": 7,
+      "reviewerId": "01a1f4a1-3308-7f92-8e40-f20dba4d0561",
+      "reviewerModel": "gpt-6-astra",
+      "reasoning": "medium",
+      "modelEvidence": "Read-only turn_context metadata uit het oorspronkelijke gearchiveerde sessiebestand.",
+      "readSource": "read_thread van bestaande gearchiveerde chat, niet heropend of opnieuw beoordeeld",
+      "reviewedFinalSha": "02ac4291ba12987f0a30921339897185d25a7f32",
+      "turns": [
+        {
+          "turnId": "01a1f4a2-a8e8-7312-926b-51efb24247b8",
+          "status": "completed",
+          "finalMessages": [
+            "Gerichte herbeoordeling afgerond op head `02ac4291`.\n\nP2 is opgelost en P3 is consistent verwerkt. Geen resterende bevindingen in deze delta. Diffcheck geslaagd; geen runtimetests uitgevoerd voor deze documentatiewijziging.\n\nBevestiging teruggestuurd naar de implementatiechat met GPT-6.1 Sol low."
+          ]
+        },
+        {
+          "turnId": "01a1f4a1-3459-7f70-9f08-ce2db1b8e88a",
+          "status": "completed",
+          "finalMessages": [
+            "Review van [PR #7](https://github.com/VincentAdvocaat/draconis-labs/pull/7) afgerond op head `19b751c`.\n\n- **P2, noodzakelijk:** publiceren vereist `expectedActiveVersion`, maar geen beschreven leesroute levert die waarde. Definieer ook de beginwaarde en test publiceren na herladen en bij concurrerende publishers.\n- **P3, optioneel:** verduidelijk de pogingstatussen en het gedrag bij retries.\n\nVolledig rapport teruggestuurd naar de implementatiechat met GPT-6.1 Sol low; orchestrator geïnformeerd. Geen bestanden gewijzigd. Diffcheck geslaagd; geen runtimetests uitgevoerd voor deze documentatie-PR."
+          ]
+        }
+      ]
+    },
+    {
+      "pr": 10,
+      "reviewerId": "01a1f4af-51c6-72f2-b217-8ae6f655d331",
+      "reviewerModel": "gpt-6-astra",
+      "reasoning": "medium",
+      "modelEvidence": "Read-only turn_context metadata uit het oorspronkelijke gearchiveerde sessiebestand.",
+      "readSource": "read_thread van bestaande gearchiveerde chat, niet heropend of opnieuw beoordeeld",
+      "reviewedFinalSha": "0179a4ffeb2b340c421c7d1b43bd2913d410e07d",
+      "turns": [
+        {
+          "turnId": "01a1f4b3-7e54-72f3-b4e1-809e79e1c756",
+          "status": "completed",
+          "finalMessages": [
+            "Herbeoordeling van [PR #10](https://github.com/VincentAdvocaat/draconis-labs/pull/10) op head `0179a4f` afgerond.\n\nDe P2 is opgelost. Geen nieuwe noodzakelijke bevindingen in de fixdelta. Alle **21 tests slagen**, inclusief beide clientregressietests.\n\nTeruggekoppeld aan implementatiechat en orchestrator. De implementatiechat werkt de verouderde testaantallen en reviewstatus in de PR-beschrijving nog bij."
+          ]
+        },
+        {
+          "turnId": "01a1f4af-52f5-7682-8f1f-5d0eb3b06c56",
+          "status": "completed",
+          "finalMessages": [
+            "Review van [PR #10](https://github.com/VincentAdvocaat/draconis-labs/pull/10), head `d6deb0f`, afgerond.\n\n- **P2:** na een publicatienetwerkfout en conceptconflict kan de editor revisie B tonen maar revisie A publiceren. Oorzaak: “Nieuwste versie overnemen” wist de oude publicatiekeuze niet op regel 153 van `apps/cms/src/main.tsx`.\n- API-tests: **19/19 geslaagd**. Geen andere noodzakelijke bevindingen binnen de afgesproken scope.\n\nVolledig rapport en hersteladvies verstuurd naar de implementatiechat met GPT-6.1 Sol low; orchestrator geïnformeerd. Geen bestanden gewijzigd."
+          ]
+        }
+      ]
+    },
+    {
+      "pr": 13,
+      "reviewerId": "01a1f4bc-901b-7b01-983b-1db77f878d64",
+      "reviewerModel": "gpt-6-astra",
+      "reasoning": "medium",
+      "modelEvidence": "Read-only turn_context metadata uit het oorspronkelijke gearchiveerde sessiebestand.",
+      "readSource": "read_thread van bestaande gearchiveerde chat, niet heropend of opnieuw beoordeeld",
+      "reviewedFinalSha": "06fc8e6af5aebaded00f17fd7274c6399e519c3c",
+      "turns": [
+        {
+          "turnId": "01a1f4c6-1c43-7b60-9ed1-f981e03d9154",
+          "status": "completed",
+          "finalMessages": [
+            "Herreview op `06fc8e6` afgerond. Beide P2-bevindingen zijn opgelost; geen nieuwe noodzakelijke bevindingen in de fixdelta.\n\nZelfstandig gecontroleerd: 55/55 tests geslaagd, diffcheck groen en werkboom schoon. Rapport teruggestuurd naar implementatiechat en orchestrator."
+          ]
+        },
+        {
+          "turnId": "01a1f4bc-9142-71e1-9fec-6183572dca4c",
+          "status": "completed",
+          "finalMessages": [
+            "Review van PR #13 op `3e2f6f3` afgerond. Twee bevestigde P2-bevindingen:\n\n- De afbeeldings-URL volgt de actieve release. Een publicatiewissel kan daardoor een eerder geladen pagina een ontbrekende of verkeerde afbeelding geven.\n- Een ontbrekende tijdelijke mediaroot blokkeert de serverstart, waardoor ook bestaande publicaties onbereikbaar worden.\n\nAlle 52 tests slagen; beide fouten zijn afzonderlijk gereproduceerd. Het volledige rapport is teruggestuurd naar de implementatiechat met GPT-6.1 Sol/low. De orchestrator is geïnformeerd. Geen code gewijzigd."
+          ]
+        }
+      ]
+    },
+    {
+      "pr": 17,
+      "reviewerId": "01a1f4db-83ff-79b0-a6dc-7d1f91c6e49b",
+      "reviewerModel": "gpt-6-astra",
+      "reasoning": "medium",
+      "modelEvidence": "Read-only turn_context metadata uit het oorspronkelijke gearchiveerde sessiebestand.",
+      "readSource": "read_thread van bestaande gearchiveerde chat, niet heropend of opnieuw beoordeeld",
+      "reviewedFinalSha": "6a6628f20af3f48879b3a055c1860149f1f20fe2",
+      "turns": [
+        {
+          "turnId": "01a1f4e2-6751-7ff3-a215-0c47c9e3c1f4",
+          "status": "completed",
+          "finalMessages": [
+            "Herreview op `6a6628f` afgerond. Beide bevindingen zijn opgelost; geen nieuwe noodzakelijke bevindingen binnen deze scope.\n\nDe 11 gerichte tests slagen. De rechtenfix geldt voor het gedocumenteerde model met één eigenaarproces.\n\nVolledig rapport teruggestuurd naar implementatiechat en orchestrator."
+          ]
+        },
+        {
+          "turnId": "01a1f4db-864b-71c2-ac53-42eeedefeeb9",
+          "status": "completed",
+          "finalMessages": [
+            "Review van PR #17 op `4eab77d` afgerond. Twee reproduceerbare bevindingen:\n\n- **P1:** een rechtenblokkade tijdens releasebouw verhindert de daaropvolgende publicatie niet.\n- **P2:** een laat uploadantwoord vervangt de afbeelding uit een expliciet overgenomen concept.\n\nDe bestaande 76 tests slagen; beide races missen regressietests. Volledig rapport met bewijs en oplossingen teruggestuurd naar implementatiechat en orchestrator. Geen bronbestanden gewijzigd."
+          ]
+        }
+      ]
+    },
+    {
+      "pr": 21,
+      "reviewerId": "01a1f4fe-d8ee-70e2-8787-a98dd9083e3d",
+      "reviewerModel": "gpt-6-astra",
+      "reasoning": "medium",
+      "modelEvidence": "Read-only turn_context metadata uit het oorspronkelijke gearchiveerde sessiebestand.",
+      "readSource": "read_thread van bestaande gearchiveerde chat, niet heropend of opnieuw beoordeeld",
+      "reviewedFinalSha": "0a9a9b76b0df289c404e97b2d05254dac7e62d74",
+      "turns": [
+        {
+          "turnId": "01a1f502-4873-7100-ae60-add481dc6115",
+          "status": "completed",
+          "finalMessages": [
+            "Herreview afgerond op remote head `0a9a9b7`. De P2-slugrace is opgelost; geen nieuwe bevindingen in de fixdiff.\n\nAlle 10 gerichte tests en diffcheck slagen. Het volledige oordeel is teruggestuurd naar de bronchat. Geen code gewijzigd."
+          ]
+        },
+        {
+          "turnId": "01a1f501-d315-7651-9aac-1a8394228bc4",
+          "status": "completed",
+          "finalMessages": [
+            "Ontvangen. Ik wacht op de gepushte commit en start daarna de gerichte herreview van de slugfix en regressietests."
+          ]
+        },
+        {
+          "turnId": "01a1f4fe-da7f-7042-b77b-979569b1c8ee",
+          "status": "completed",
+          "finalMessages": [
+            "Review van PR #21 afgerond op head `3374c94`.\n\nEén noodzakelijke P2 gevonden: een slugwijziging tijdens de eerste build kan bij de volgende publicatie de oorspronkelijke URL laten verdwijnen. Dynamisch gereproduceerd.\n\nAlle 89 tests en diffcheck slagen. Volledige bevinding, oplossing en regressietestadvies zijn teruggestuurd naar de bronchat met de gevraagde modelinstelling. Geen code gewijzigd."
+          ]
+        }
+      ]
+    },
+    {
+      "pr": 25,
+      "reviewerId": "01a1f518-c7ee-7371-9d9b-be771b50f3bf",
+      "reviewerModel": "gpt-6-astra",
+      "reasoning": "medium",
+      "modelEvidence": "Read-only turn_context metadata uit het oorspronkelijke gearchiveerde sessiebestand.",
+      "readSource": "read_thread van bestaande gearchiveerde chat, niet heropend of opnieuw beoordeeld",
+      "reviewedFinalSha": "741cacf595b2b228be6fbed8a938e1ab66160a32",
+      "turns": [
+        {
+          "turnId": "01a1f51b-9732-71d2-b597-c117c8613212",
+          "status": "completed",
+          "finalMessages": [
+            "Herreview op remote head `741cacf` afgerond. Beide P2-bevindingen zijn opgelost; alle 7 integratietests slagen.\n\nGeen nieuwe bevindingen binnen de gerichte herreview. Volledig resultaat teruggestuurd naar de bronchat."
+          ]
+        },
+        {
+          "turnId": "01a1f518-c994-72a3-b563-1c683c3c2637",
+          "status": "completed",
+          "finalMessages": [
+            "Review van PR #25 op `ed50492` afgerond. Twee gereproduceerde P2-bevindingen:\n\n- UUID-hoofdletters in een portfolio-blok veroorzaken een publieke afbeelding met HTTP 404.\n- Hetzelfde portfolio-blok op twee pagina’s veroorzaakt dubbele uitvoerpaden, waardoor sitepublicatie mislukt.\n\nAlle 113 tests slagen; deze scenario’s ontbreken nog. Volledige onderbouwing en fixvoorstellen zijn teruggestuurd naar de bronchat met GPT-6.1 Sol op licht. Geen code gewijzigd."
+          ]
+        }
+      ]
+    },
+    {
+      "pr": 26,
+      "reviewerId": "01a1f521-0ebd-7902-83da-e63aaa539f17",
+      "reviewerModel": "gpt-6-astra",
+      "reasoning": "medium",
+      "modelEvidence": "Read-only turn_context metadata uit het oorspronkelijke gearchiveerde sessiebestand.",
+      "readSource": "read_thread van bestaande gearchiveerde chat, niet heropend of opnieuw beoordeeld",
+      "reviewedFinalSha": "2fea3e3d8c259cb9b3cf1e9c0d1e9a551e0cb416",
+      "turns": [
+        {
+          "turnId": "01a1f521-10f4-7c63-af75-e0d4f1120ed3",
+          "status": "completed",
+          "finalMessages": [
+            "PR 26 gereviewd op bevestigde remote head `2fea3e3`. Geen noodzakelijke fixes gevonden.\n\n- Alle 132 tests geslaagd.\n- Workspace-typecheck, lint, build en diffcheck groen.\n- Optioneel: expliciete regressietest voor oude revisies zonder labels.\n\nVolledige rapportage teruggestuurd naar de implementatiechat met GPT-6.1 Sol op licht. Geen code gewijzigd."
+          ]
+        }
+      ]
+    },
+    {
+      "pr": 27,
+      "reviewerId": "01a1f52e-7ce1-7720-b25d-44bec23755e0",
+      "reviewerModel": "gpt-6-astra",
+      "reasoning": "medium",
+      "modelEvidence": "Read-only turn_context metadata uit het oorspronkelijke gearchiveerde sessiebestand.",
+      "readSource": "read_thread van bestaande gearchiveerde chat, niet heropend of opnieuw beoordeeld",
+      "reviewedFinalSha": "f95389882d7b69d246f66070dec1d37c81123c56",
+      "turns": [
+        {
+          "turnId": "01a1f531-e6ac-7701-89ee-192b46aa0864",
+          "status": "completed",
+          "finalMessages": [
+            "De P2 is opgelost op gecontroleerde remote head `f953898`. Bestaande `/en.html`-pagina’s blijven bewerkbaar; nieuwe of hernoemde pagina’s met slug `en` blijven geweigerd.\n\nAlle 16 gerichte tests en diffcheck slagen. Geen nieuwe bevindingen. De volledige herreview is teruggestuurd naar de implementatiechat."
+          ]
+        },
+        {
+          "turnId": "01a1f52e-80f3-7460-8a5e-8157d7e3b228",
+          "status": "completed",
+          "finalMessages": [
+            "Eén noodzakelijke bevinding bij PR #27:\n\n- **P2:** bestaande NL-pagina’s met slug `en` worden onbewerkbaar door de nieuwe reservering in [slugs.ts](C:/git/draconis-labs/.worktrees/feature/cms-page-locales/server/api/src/modules/cms/slugs.ts:3). Een gewone tekstwijziging geeft HTTP 400. Behoud bestaande, ongewijzigde slugs.\n\nGecontroleerde head: `12dd0ce`. Alle 123 API/componenttests slagen; diffcheck is schoon.\n\nDe volledige review en reproductie zijn teruggestuurd naar de implementatiechat met het gevraagde opvolgmodel. Geen code gewijzigd."
+          ]
+        }
+      ]
+    }
+  ]
+}

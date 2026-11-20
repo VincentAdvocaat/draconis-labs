@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 import { z } from 'zod';
 import { MediaContractError, type PublicVariant } from '../media-fixture/contracts.js';
+import { MAX_UPLOAD_ATTEMPTS } from '../media-upload/schema.js';
 
 const querySchema = z.object({
   q: z.string().max(100).default(''), rights: z.enum(['unknown', 'cleared', 'blocked']).optional(),
@@ -40,8 +41,12 @@ export class MediaLibrary {
         .all(website, id) as { fileVersion: number; state: string; variants: string }[];
       const usages = this.db.prepare('SELECT kind,owner,file_version AS fileVersion,slot FROM usages WHERE website=? AND asset=? ORDER BY kind,owner,slot')
         .all(website, id);
-      return { ...asset, versions: files.map(file => ({ fileVersion: file.fileVersion, state: file.state,
-        variants: (JSON.parse(file.variants) as PublicVariant[]).map(({ mime, width, height, bytes }) => ({ mime, width, height, bytes })) })), usages };
+      return { ...asset, versions: files.map(file => {
+        const job = this.db.prepare('SELECT id AS jobId,state,error,attempts FROM upload_jobs WHERE website=? AND COALESCE(asset,id)=? AND file_version=?')
+          .get(website, id, file.fileVersion) as { jobId: string; state: string; error: string | null; attempts: number } | undefined;
+        return { fileVersion: file.fileVersion, state: file.state, ...(job ? { job: { ...job, maxAttempts: MAX_UPLOAD_ATTEMPTS } } : {}),
+          variants: (JSON.parse(file.variants) as PublicVariant[]).map(({ mime, width, height, bytes }) => ({ mime, width, height, bytes })) };
+      }), usages };
     })();
   }
 }

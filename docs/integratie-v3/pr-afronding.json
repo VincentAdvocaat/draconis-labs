@@ -1,0 +1,484 @@
+{
+  "date": "2026-11-20",
+  "timezone": "Europe/Paris",
+  "integrationHeadAtInventory": "e52aeca7cdc08cbeae165b484c45ba0b2e2e6aef",
+  "note": "Historische test- en reviewclaims zijn toegeschreven aan hun SHA en bron. Ancestry is geen nieuwe individuele review. Ontbrekende IDs worden niet afgeleid uit namen van latere reviewers.",
+  "prs": [
+    {
+      "pr": 7,
+      "head": "02ac4291ba12987f0a30921339897185d25a7f32",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/7",
+      "draft": false,
+      "state": "OPEN",
+      "includedIn": [
+        37,
+        43,
+        46
+      ],
+      "runtime": null,
+      "reviewers": [
+        "01a1f4a1-3308-7f92-8e40-f20dba4d0561"
+      ],
+      "status": "closed-original-report-recovered",
+      "test": "Documentatie: historische gerichte herreview/diffcheck; actuele5docs/7relatievelinks/bestaande scriptpaden/protocolstappencontrole groen. Geen runtimetest geclaimd.",
+      "evidence": "docs/cms/backlog.md; PR7-body; docs/integratie-v3/oude-reviewrapporten.json",
+      "block": null,
+      "seriesReviewers": [
+        "/root/review_pr37",
+        "01a1f871-2224-7cd0-8ef9-7f9380635e68"
+      ],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "02ac4291ba12987f0a30921339897185d25a7f32"
+    },
+    {
+      "pr": 10,
+      "head": "0179a4ffeb2b340c421c7d1b43bd2913d410e07d",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/10",
+      "draft": false,
+      "state": "OPEN",
+      "includedIn": [
+        37,
+        43,
+        46
+      ],
+      "runtime": "0179a4ffeb2b340c421c7d1b43bd2913d410e07d",
+      "reviewers": [
+        "01a1f4af-51c6-72f2-b217-8ae6f655d331"
+      ],
+      "status": "closed-original-report-recovered",
+      "test": "21/21; reviewer herhaalde21. Echte loopback HTTP, draft/preview/publish/conflict, browser en procesherstart.",
+      "evidence": "docs/cms/lokale-proef.md; PR10-body; docs/integratie-v3/oude-reviewrapporten.json",
+      "block": null,
+      "seriesReviewers": [
+        "/root/review_pr37",
+        "01a1f871-2224-7cd0-8ef9-7f9380635e68"
+      ],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "0179a4ffeb2b340c421c7d1b43bd2913d410e07d"
+    },
+    {
+      "pr": 13,
+      "head": "06fc8e6af5aebaded00f17fd7274c6399e519c3c",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/13",
+      "draft": false,
+      "state": "OPEN",
+      "includedIn": [
+        37,
+        43,
+        46
+      ],
+      "runtime": "06fc8e6af5aebaded00f17fd7274c6399e519c3c",
+      "reviewers": [
+        "01a1f4bc-901b-7b01-983b-1db77f878d64"
+      ],
+      "status": "closed-original-report-recovered",
+      "test": "55/55 reviewer/parent; private preview, retained refs, hashes; echte image-URL200 bij offline bron en procesherstart.",
+      "evidence": "docs/cms/media-proef.md; PR13-body; docs/integratie-v3/oude-reviewrapporten.json",
+      "block": null,
+      "seriesReviewers": [
+        "/root/review_pr37",
+        "01a1f871-2224-7cd0-8ef9-7f9380635e68"
+      ],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "06fc8e6af5aebaded00f17fd7274c6399e519c3c"
+    },
+    {
+      "pr": 17,
+      "head": "6a6628f20af3f48879b3a055c1860149f1f20fe2",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/17",
+      "draft": false,
+      "state": "OPEN",
+      "includedIn": [
+        37,
+        43,
+        46
+      ],
+      "runtime": "6a6628f20af3f48879b3a055c1860149f1f20fe2",
+      "reviewers": [
+        "01a1f4db-83ff-79b0-a6dc-7d1f91c6e49b"
+      ],
+      "status": "closed-original-report-recovered",
+      "test": "78/78 parent,11 gericht reviewer; invalid upload→failed/retry→ready unknown→expliciete vrijgave→publish; echte herstart.",
+      "evidence": "docs/cms/upload-proef.md; PR17-body; docs/integratie-v3/oude-reviewrapporten.json",
+      "block": null,
+      "seriesReviewers": [
+        "/root/review_pr37",
+        "01a1f871-2224-7cd0-8ef9-7f9380635e68"
+      ],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "6a6628f20af3f48879b3a055c1860149f1f20fe2"
+    },
+    {
+      "pr": 21,
+      "head": "0a9a9b76b0df289c404e97b2d05254dac7e62d74",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/21",
+      "draft": false,
+      "state": "OPEN",
+      "includedIn": [
+        37,
+        43,
+        46
+      ],
+      "runtime": "0a9a9b76b0df289c404e97b2d05254dac7e62d74",
+      "reviewers": [
+        "01a1f4fe-d8ee-70e2-8787-a98dd9083e3d"
+      ],
+      "status": "closed-original-report-recovered",
+      "test": "91 parent;10 documenttests herreview. Nieuwe pagina/blokken/beeld/SEO/sitepublish en echte herstart; slugracefix.",
+      "evidence": "docs/cms/paginas-blokken-proef.md; PR21-body; docs/integratie-v3/oude-reviewrapporten.json",
+      "block": null,
+      "seriesReviewers": [
+        "/root/review_pr37",
+        "01a1f871-2224-7cd0-8ef9-7f9380635e68"
+      ],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "0a9a9b76b0df289c404e97b2d05254dac7e62d74"
+    },
+    {
+      "pr": 25,
+      "head": "741cacf595b2b228be6fbed8a938e1ab66160a32",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/25",
+      "draft": false,
+      "state": "OPEN",
+      "includedIn": [
+        37,
+        43,
+        46
+      ],
+      "runtime": "741cacf595b2b228be6fbed8a938e1ab66160a32",
+      "reviewers": [
+        "01a1f518-c7ee-7371-9d9b-be771b50f3bf"
+      ],
+      "status": "closed-original-report-recovered",
+      "test": "7 gerichte portfolio-integratietests bij fix/herreview; NL/ENpin/privatepreview/sitepublish/reconcile en browserherstart.",
+      "evidence": "docs/cms/portfolio-proef.md; docs/cms/acceptatiematrix.md; PR25-body; docs/integratie-v3/oude-reviewrapporten.json",
+      "block": null,
+      "seriesReviewers": [
+        "/root/review_pr37",
+        "01a1f871-2224-7cd0-8ef9-7f9380635e68"
+      ],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "741cacf595b2b228be6fbed8a938e1ab66160a32"
+    },
+    {
+      "pr": 26,
+      "head": "2fea3e3d8c259cb9b3cf1e9c0d1e9a551e0cb416",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/26",
+      "draft": false,
+      "state": "OPEN",
+      "includedIn": [
+        37,
+        43,
+        46
+      ],
+      "runtime": "2fea3e3d8c259cb9b3cf1e9c0d1e9a551e0cb416",
+      "reviewers": [
+        "01a1f521-0ebd-7902-83da-e63aaa539f17"
+      ],
+      "status": "closed-original-report-recovered",
+      "test": "Reviewer117 API/component+15shared en workspacechecks; ENheading/emptytext/preview/pin/browserherstart.",
+      "evidence": "docs/cms/portfolio-blokteksten.md; PR26-body; docs/integratie-v3/oude-reviewrapporten.json",
+      "block": null,
+      "seriesReviewers": [
+        "/root/review_pr37",
+        "01a1f871-2224-7cd0-8ef9-7f9380635e68"
+      ],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "2fea3e3d8c259cb9b3cf1e9c0d1e9a551e0cb416"
+    },
+    {
+      "pr": 27,
+      "head": "e074f7cf999445c08d517e99a7dccc03118c05d2",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/27",
+      "draft": false,
+      "state": "OPEN",
+      "includedIn": [
+        37,
+        43,
+        46
+      ],
+      "runtime": "f95389882d7b69d246f66070dec1d37c81123c56",
+      "reviewers": [
+        "01a1f52e-7ce1-7720-b25d-44bec23755e0"
+      ],
+      "status": "closed-original-report-recovered",
+      "test": "123API+15shared vóór legacyfix;16 relevante tests nafix/herreview; handmatige ENtekst/SEO/nav/explicietpublish/browserherstart.",
+      "evidence": "docs/cms/paginatalen-proef.md; PR27-body; docs/integratie-v3/oude-reviewrapporten.json",
+      "block": null,
+      "seriesReviewers": [
+        "/root/review_pr37",
+        "01a1f871-2224-7cd0-8ef9-7f9380635e68"
+      ],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "f95389882d7b69d246f66070dec1d37c81123c56"
+    },
+    {
+      "pr": 29,
+      "head": "ea1c8623833bbf029755cb1142efe22c6923939c",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/29",
+      "draft": false,
+      "state": "OPEN",
+      "includedIn": [
+        37,
+        43,
+        46
+      ],
+      "runtime": "69b43c5457094c1196599055d9024600a835d0c8",
+      "reviewers": [
+        "/root/review_pr29"
+      ],
+      "status": "closed-with-verified-small-copy-followup",
+      "test": "131API/15shared parent;16 reviewer. Kleine Sol-low copyfix7b77a7b8 met16 gerichte tests; state/payload ongewijzigd; daarna docs.",
+      "evidence": "docs/cms/ui-talen-proef.md; PR29 volledig rapport",
+      "block": null,
+      "followup": "7b77a7b8d249dcde043b0c500381a9a102f8dedc",
+      "seriesReviewers": [
+        "/root/review_pr37",
+        "01a1f871-2224-7cd0-8ef9-7f9380635e68"
+      ],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium"
+    },
+    {
+      "pr": 31,
+      "head": "0bb3c0d063cd9ad92a3c2e8b46f06596f93caea6",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/31",
+      "draft": false,
+      "state": "OPEN",
+      "includedIn": [
+        37,
+        43,
+        46
+      ],
+      "runtime": "71833ec4e07d6512cdf2f9bd7b73be6021fa8fc7",
+      "reviewers": [
+        "/root/review_pr31"
+      ],
+      "status": "closed",
+      "test": "P2 dollarpatronen rood/groen;24 gericht parent,6API herreview;138 eerdere suite + nieuwe139e regression; browserpublicatie/herstart.",
+      "evidence": "docs/cms/gedeelde-navigatieteksten-proef.md; PR31 volledig rapport",
+      "block": null,
+      "seriesReviewers": [
+        "/root/review_pr37",
+        "01a1f871-2224-7cd0-8ef9-7f9380635e68"
+      ],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium"
+    },
+    {
+      "pr": 32,
+      "head": "80957852af15cb6576beeaa6bdb9578896800a9d",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/32",
+      "draft": false,
+      "state": "OPEN",
+      "includedIn": [
+        37,
+        43,
+        46
+      ],
+      "runtime": "cbf5c544902bb04a42ce7a336fbffa25c95b8c98",
+      "reviewers": [
+        "/root/review_pr32"
+      ],
+      "status": "closed",
+      "test": "150API nafix;31 gerichte herreview; ENbeeld/alt/caption/sourceconflict en browserupload/preview/publish/herstart.",
+      "evidence": "docs/cms/engelse-afbeelding-proef.md; PR32 volledig rapport",
+      "block": null,
+      "seriesReviewers": [
+        "/root/review_pr37",
+        "01a1f871-2224-7cd0-8ef9-7f9380635e68"
+      ],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium"
+    },
+    {
+      "pr": 34,
+      "head": "9ec2c02940cffde0f318dd6e4e2d6b37e1790653",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/34",
+      "draft": false,
+      "state": "OPEN",
+      "includedIn": [
+        37,
+        43,
+        46
+      ],
+      "runtime": "7378fae161873b40cd66ad8c6c036a983c5c5cfa",
+      "reviewers": [
+        "/root/review_pr34"
+      ],
+      "status": "closed",
+      "test": "159API nafix;37 gerichte herreview; raw legacylabels/echte editor/ENsave/preview/reopen/NLbytebehoud.",
+      "evidence": "docs/cms/engels-portfolio-proef.md; PR34 volledig rapport",
+      "block": null,
+      "seriesReviewers": [
+        "/root/review_pr37",
+        "01a1f871-2224-7cd0-8ef9-7f9380635e68"
+      ],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium"
+    },
+    {
+      "pr": 36,
+      "head": "3e4f764ade527ed2c79905526d4dc313e0f1923b",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/36",
+      "draft": false,
+      "state": "OPEN",
+      "includedIn": [
+        37,
+        43,
+        46
+      ],
+      "runtime": "fbb583f09c94411b9a4dadaf977d5daec31cce55",
+      "reviewers": [
+        "/root/review_pr36"
+      ],
+      "status": "closed",
+      "test": "Reviewer28gericht+167API/18files; parent15shared/workspace/browser en echte herstart; HomeEN/NLbehoud.",
+      "evidence": "docs/cms/home-en-proef.md; PR36 volledig rapport",
+      "block": null,
+      "seriesReviewers": [
+        "/root/review_pr37",
+        "01a1f871-2224-7cd0-8ef9-7f9380635e68"
+      ],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium"
+    },
+    {
+      "pr": 37,
+      "head": "fc43090d0f90892df97d7e033bef66b772c81aa8",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/37",
+      "draft": true,
+      "state": "OPEN",
+      "includedIn": [
+        43,
+        46
+      ],
+      "runtime": "fb9c22d407a50fcc020d792a94261510019d65ad",
+      "reviewers": [
+        "/root/review_pr37"
+      ],
+      "status": "closed",
+      "test": "API306+overige51 parent; reviewerAPI306/34files,UI20/shared18,beide compiledstartupsmokes+8CLI; echte drie-modulebrowser/herstart.",
+      "evidence": "docs/integratie/review-pr37.json; docs/integratie/bewijs.json; PR37-body",
+      "block": null,
+      "seriesReviewers": [],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium"
+    },
+    {
+      "pr": 40,
+      "head": "d3b881b63b29350b4ed575544f5441fd6b9cb92e",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/40",
+      "draft": true,
+      "state": "OPEN",
+      "includedIn": [
+        43,
+        46
+      ],
+      "runtime": "3fe4da5a4ad4228e8ded4aa4e8b8718aefd7eb5d",
+      "reviewers": [
+        "/root/review_pr40"
+      ],
+      "status": "closed",
+      "test": "API317 na Viteproxyfix; reviewer31initieel+8herreview; echteNLENcontact/preview/menu/publish/browserherstart.",
+      "evidence": "docs/cms/review-pr40.md; docs/cms/contact-template-proef.md",
+      "block": null,
+      "seriesReviewers": [],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium"
+    },
+    {
+      "pr": 42,
+      "head": "df6ec600aff4cdd8fff69640844cc882836bc0d0",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/42",
+      "draft": true,
+      "state": "OPEN",
+      "includedIn": [
+        43,
+        46
+      ],
+      "runtime": "65643c9b448cd139a2f51c4d61ca6fd1fa76fbf4",
+      "reviewers": [
+        "01a1f85b-6a3d-76f2-a7c5-cfc9e7e7cfca"
+      ],
+      "status": "closed",
+      "test": "373workspace/API322 vóór extra regressies;9hersteltests reviewer/parent nafix; echte CLIbackuprestore/newsecrets/save/procesherstart.",
+      "evidence": "docs/cms/review-pr42.md; docs/cms/backup-restore-proef.md",
+      "block": null,
+      "seriesReviewers": [],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium"
+    },
+    {
+      "pr": 43,
+      "head": "22f5c66659ab4abadb6a1f65b34b92846dce959f",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/43",
+      "draft": true,
+      "state": "OPEN",
+      "includedIn": [
+        46
+      ],
+      "runtime": "ea12b79ce8095878edc4d10ce3f260e3b35b9bf2",
+      "reviewers": [
+        "01a1f871-2224-7cd0-8ef9-7f9380635e68"
+      ],
+      "status": "closed",
+      "test": "416eerste poort;369API/42files nafix +51eerder;19herreviewtests; echteCMS/catalogus52filebackuprestore/newsecrets/herstart.",
+      "evidence": "docs/integratie-v2/review-pr43.md; docs/integratie-v2/bewijs.md",
+      "block": null,
+      "seriesReviewers": [],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium"
+    },
+    {
+      "pr": 44,
+      "head": "b4ef056286fe8d028e418eb99eb10d9472bf0e58",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/44",
+      "draft": true,
+      "state": "OPEN",
+      "includedIn": [
+        46
+      ],
+      "runtime": "349db0b3bfc2e2c85bfe852a7788ea3a9b571c69",
+      "reviewers": [
+        "01a1f895-9093-7713-a9dd-e3c1e39391d1"
+      ],
+      "status": "closed",
+      "test": "387API/43files serieel originele timeouts;18exporttests reviewer/parent; echteCLI27files/10NLENroutes/CMSAPIuit/oldpin/restart/bytegelijk.",
+      "evidence": "docs/cms/review-pr44.md; docs/cms/statische-export-proef.md",
+      "block": null,
+      "seriesReviewers": [],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium"
+    },
+    {
+      "pr": 46,
+      "head": "52623691417d252fb6ba1fa2053b4aaeb5cabfb0",
+      "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/46",
+      "draft": true,
+      "state": "OPEN",
+      "includedIn": [],
+      "runtime": "65a3dd3ec1f5b579f57fb526cf84b8b86fd377bb",
+      "reviewers": [
+        "01a1f8be-ca70-7ec1-a39f-50e6589066bb"
+      ],
+      "status": "approved-no-required-findings",
+      "test": "458 volledige poort op65a3dd3/API407in46; actuelee52aeca1/1(19.83s), verse95fileCLI/allrows/newsecrets, failedv3samebindingattempt2/echteprocesherstart,10staticroutes/CSP/API404/browser/hostrestart/27herexportbytegelijk. Reviewer op5262369:1/1,3.85s test/5.58s totaal,geenfullsuiteherhaling.",
+      "evidence": "docs/integratie-v3/review-pr46.md; docs/integratie-v3/bewijs.md; docs/integratie-v3/review-pr46.json",
+      "block": null,
+      "seriesReviewers": [],
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "52623691417d252fb6ba1fa2053b4aaeb5cabfb0"
+    }
+  ],
+  "closedIntegrationReview": "52623691417d252fb6ba1fa2053b4aaeb5cabfb0"
+}
