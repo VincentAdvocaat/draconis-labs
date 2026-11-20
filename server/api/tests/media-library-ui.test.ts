@@ -7,6 +7,7 @@ function harness() {
   class Element {
     value = ''; textContent = ''; checked = false; hidden = false; disabled = false; src = '';
     children: Element[] = [];
+    files: Array<{ name: string; type: string }> = [];
     onclick?: () => Promise<void> | void; onchange?: () => Promise<void> | void; oninput?: () => void;
     constructor(text = '', value = '') { this.textContent = text; this.value = value; }
     append(child: Element) { this.children.push(child); }
@@ -19,10 +20,10 @@ function harness() {
   const el = (id: string) => { if (!elements.has(id)) elements.set(id, new Element()); return elements.get(id)!; };
   el('site').value = 'fixture-alpha'; el('token').value = 'test-token';
   el('categoryEnMissing').checked = true;
-  const pending: Array<{ path: string; resolve: (value: unknown) => void; fail: () => void }> = [];
+  const pending: Array<{ path: string; options: { headers?: Record<string, string>; body?: unknown }; resolve: (value: unknown, ok?: boolean) => void; fail: () => void }> = [];
   const context = vm.createContext({ URLSearchParams, URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} },
     document: { getElementById: el, createElement: () => new Element(), querySelectorAll: () => [...elements.values()] }, Option: Element,
-    fetch: (path: string) => new Promise(resolve => pending.push({ path, resolve: value => resolve({ ok: true, json: async () => value,
+    fetch: (path: string, options = {}) => new Promise(resolve => pending.push({ path, options, resolve: (value, ok = true) => resolve({ ok, json: async () => value,
       blob: async () => value }), fail: () => resolve({ ok: false, json: async () => ({ message: 'Testfout' }) }) })),
   });
   vm.runInContext(adminHtml.match(/<script>([\s\S]*?)<\/script>/)![1], context);
@@ -31,7 +32,9 @@ function harness() {
   const detail = { assetId: 'photo', metadataVersion: 2, rights: 'cleared', archived: 0,
     versions: [{ fileVersion: 2, state: 'ready', variants: [{ width: 1, height: 1, mime: 'image/png' }] },
       { fileVersion: 1, state: 'failed', variants: [] }], usages: [{ kind: 'release', owner: 'old-release', fileVersion: 1, slot: 'cover' }] };
-  return { el, pending, result, detail, get focused() { return focused; } };
+  return { el, pending, result, detail, get focused() { return focused; },
+    async respond(value: unknown, ok = true) { pending.shift()!.resolve(value, ok); for (let i = 0; i < 10; i++) await Promise.resolve(); },
+  };
 }
 
 describe('library UI response boundaries and editor preservation', () => {
@@ -85,5 +88,82 @@ describe('library UI response boundaries and editor preservation', () => {
     const h = harness(); const load = h.el('librarySearch').onclick!(); h.pending.shift()!.fail(); await load;
     expect(h.el('libraryMessage').textContent).toBe('Testfout');
     expect(h.el('libraryNext').disabled).toBe(true);
+  });
+});
+
+describe('existing asset version upload UI', () => {
+  async function open() {
+    const h = harness();
+    const loaded = h.el('load').onclick!();
+    await h.respond({ version: 1, items: [], categories: [] });
+    await h.respond([{ assetId: 'photo', fileVersion: 1, metadataVersion: 2, rights: 'cleared', state: 'ready' }]);
+    await h.respond([]); await loaded;
+    h.el('asset').value = '0'; h.el('title').value = 'Pending NL'; h.el('enTitle').value = 'Pending EN'; h.el('alt').value = 'Pending alt';
+    const list = h.el('librarySearch').onclick!(); await h.respond(h.result()); await list;
+    const detail = h.el('libraryResults').children[0].children[0].onclick!(); await h.respond(h.detail); await detail;
+    return h;
+  }
+  function detail(h: ReturnType<typeof harness>, state = 'ready', attempts = 1) {
+    return { ...h.detail, metadataVersion: state === 'ready' ? 4 : 3, rights: state === 'ready' ? 'unknown' : 'cleared',
+      versions: [{ fileVersion: 3, state, variants: state === 'ready' ? h.detail.versions[0].variants : [],
+        job: { jobId: 'job-three', state, error: state === 'ready' ? null : 'Transient failure', attempts, maxAttempts: 5 } }, ...h.detail.versions] };
+  }
+  async function complete(h: Awaited<ReturnType<typeof open>>, ready: boolean, attempts: number) {
+    await h.respond({ jobId: 'job-three', assetId: 'photo', fileVersion: 3, message: 'Transient failure' }, ready);
+    await h.respond(detail(h, ready ? 'ready' : 'failed', attempts));
+    await h.respond({ jobId: 'job-three', assetId: 'photo', fileVersion: 3, state: ready ? 'ready' : 'failed', attempts, maxAttempts: 5 });
+    await h.respond([{ assetId: 'photo', fileVersion: 1, metadataVersion: ready ? 4 : 3, rights: ready ? 'unknown' : 'cleared', state: 'ready' },
+      { assetId: 'photo', fileVersion: 3, metadataVersion: ready ? 4 : 3, rights: ready ? 'unknown' : 'cleared', state: ready ? 'ready' : 'failed' }]);
+  }
+  it('requires disclosure confirmation and sends the detail-bound asset CAS while preserving dirty item values', async () => {
+    const h = await open(); h.el('versionFile').files = [{ name: 'next.png', type: 'image/png' }];
+    await h.el('uploadVersion').onclick!(); expect(h.pending).toHaveLength(0); expect(h.el('versionMessage').textContent).toContain('bevestig');
+    h.el('versionConfirm').checked = true; const upload = h.el('uploadVersion').onclick!();
+    expect(h.pending[0]).toMatchObject({ path: '/websites/fixture-alpha/media/photo/versions', options: { headers: {
+      'x-media-metadata-version': '2', 'x-media-file-version': '2', 'x-media-confirm-invalidation': 'true', 'Content-Type': 'image/png' } } });
+    await complete(h, true, 1); await upload;
+    expect(h.el('versionMessage').textContent).toContain('Bevestig de rechten opnieuw');
+    expect(h.el('title').value).toBe('Pending NL'); expect(h.el('enTitle').value).toBe('Pending EN'); expect(h.el('alt').value).toBe('Pending alt'); expect(h.el('asset').value).toBe('0');
+    expect(h.el('versionConfirm').checked).toBe(false); expect(h.el('retryVersion').disabled).toBe(true);
+    const preview = h.el('libraryVersions').children[0].children[0].onclick!();
+    expect(h.pending[0].path).toBe('/catalogus/api/fixture-alpha/preview/photo/3'); await h.respond('clean derivative'); await preview;
+    expect(h.el('libraryPreview').hidden).toBe(false);
+  });
+
+  it('keeps the newest failed job after a new upload conflicts without allocating a job', async () => {
+    const h = await open();
+    const reload = h.el('libraryResults').children[0].children[0].onclick!();
+    await h.respond({ ...h.detail, versions: [{ ...h.detail.versions[0], job: { jobId: 'old-job-two', state: 'ready', attempts: 1, maxAttempts: 5 } }, h.detail.versions[1]] }); await reload;
+    h.el('versionFile').files = [{ name: 'next.png', type: 'image/png' }]; h.el('versionConfirm').checked = true;
+    const upload = h.el('uploadVersion').onclick!();
+    await h.respond({ message: 'Asset or latest file version conflict' }, false);
+    await h.respond(detail(h, 'failed', 1));
+    expect(h.pending[0].path).toContain('/catalogus/api/fixture-alpha/assets');
+    await h.respond([]); await upload;
+    expect(h.el('retryVersion').disabled).toBe(false);
+    const retry = h.el('retryVersion').onclick!();
+    expect(h.pending[0].path).toBe('/websites/fixture-alpha/media/job-three/retry');
+    await complete(h, true, 2); await retry;
+  });
+
+  it('refreshes a failed job and retries the same binding, then disables retry on ready', async () => {
+    const h = await open(); h.el('versionFile').files = [{ name: 'next.png', type: 'image/png' }]; h.el('versionConfirm').checked = true;
+    const upload = h.el('uploadVersion').onclick!(); await complete(h, false, 1); await upload;
+    expect(h.el('retryVersion').disabled).toBe(false); expect(h.el('versionMessage').textContent).toContain('Transient failure');
+    const retry = h.el('retryVersion').onclick!(); expect(h.pending[0].path).toBe('/websites/fixture-alpha/media/job-three/retry');
+    await complete(h, true, 2); await retry;
+    expect(h.el('retryVersion').disabled).toBe(true); expect(h.el('asset').value).toBe('0');
+    expect(h.focused).toBe(h.el('uploadVersion'));
+  });
+
+  it('clears the previous asset binding while another detail loads and blocks retry after the attempt limit', async () => {
+    const h = await open();
+    const next = h.el('librarySearch').onclick!(); await h.respond({ ...h.result(), items: [{ assetId: 'photo', fileVersion: 2, state: 'ready', rights: 'cleared' }, { assetId: 'other', fileVersion: 1, state: 'ready', rights: 'unknown' }] }); await next;
+    const first = h.el('libraryResults').children[0].children[0].onclick!(); await h.respond(h.detail); await first;
+    const second = h.el('libraryResults').children[1].children[0].onclick!();
+    expect(h.el('uploadVersion').disabled).toBe(true); await h.el('uploadVersion').onclick!(); expect(h.pending).toHaveLength(1);
+    expect(h.el('versionFile').disabled).toBe(true); expect(h.el('versionConfirm').disabled).toBe(true);
+    await h.respond({ ...detail(h, 'failed', 5), assetId: 'other' }); await second;
+    expect(h.el('retryVersion').disabled).toBe(true); expect(h.el('versionTarget').textContent).toContain('other');
   });
 });

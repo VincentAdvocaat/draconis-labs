@@ -204,7 +204,7 @@ describe('local HTTP upload and real image processor', () => {
       const dir = join(fixture.root, 'private', website, id);
       mkdirSync(dir, { recursive: true });
       writeFileSync(join(dir, 'source'), await image());
-      db.prepare("INSERT INTO upload_jobs VALUES(?,?,?,?,'processing',NULL)").run(id, website, 'photo.png', 'image/png');
+      db.prepare("INSERT INTO upload_jobs(id,website,filename,mime,state,error) VALUES(?,?,?,?,'processing',NULL)").run(id, website, 'photo.png', 'image/png');
     }
     const { rmSync } = await import('node:fs');
     const service = new LocalUploadService(fixture.root, path => {
@@ -239,9 +239,9 @@ describe('local HTTP upload and real image processor', () => {
     mkdirSync(orphanPublic, { recursive: true });
     writeFileSync(join(orphanPublic, 'partial.png'), Buffer.from('unfinished'));
     const db = new Database(join(fixture.root, 'media.sqlite'));
-    db.prepare("INSERT INTO upload_jobs VALUES(?,?,?,?,'processing',NULL)").run(id, website, 'recovered.png', 'image/png');
+    db.prepare("INSERT INTO upload_jobs(id,website,filename,mime,state,error) VALUES(?,?,?,?,'processing',NULL)").run(id, website, 'recovered.png', 'image/png');
     const failedId = randomUUID();
-    db.prepare("INSERT INTO upload_jobs VALUES(?,?,?,?,'processing',NULL)").run(failedId, website, 'missing.png', 'image/png');
+    db.prepare("INSERT INTO upload_jobs(id,website,filename,mime,state,error) VALUES(?,?,?,?,'processing',NULL)").run(failedId, website, 'missing.png', 'image/png');
     db.close();
     app = await buildUploadApp(fixture.root, token);
     expect(existsSync(join(orphanPublic, 'partial.png'))).toBe(false);
