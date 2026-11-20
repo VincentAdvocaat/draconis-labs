@@ -6,7 +6,7 @@ import { createMediaFixture } from '../src/media-fixture/fixture.js';
 import { MediaFixtureStore } from '../src/media-fixture/storage.js';
 import { CatalogService } from '../src/catalogus/service.js';
 import { buildCatalogApp } from '../src/catalogus/app.js';
-import type { ItemInput } from '../src/catalogus/contracts.js';
+import type { CatalogItem, CatalogSnapshot, ItemInput } from '../src/catalogus/contracts.js';
 import { LocalUploadService } from '../src/media-upload/service.js';
 
 const site = 'fixture-alpha';
@@ -21,6 +21,74 @@ describe('persisted catalog and portfolio module', () => {
   let service: CatalogService;
   beforeEach(() => { fixture = createMediaFixture(); service = new CatalogService(fixture.root); service.setRights(site, 'photo', decision); });
   afterEach(() => { service.close(); fixture.cleanup(); });
+
+  it('publishes only the explicitly entered, escaped credit from each immutable snapshot in NL and EN', async () => {
+    const token = 'public-credit-functional-test-bearer-key';
+    const app = await buildCatalogApp(fixture.root, token);
+    const base = '/catalogus/api/' + site;
+    const headers = { authorization: 'Bearer ' + token };
+    const save = (payload: ItemInput) => app.inject({ method: 'POST', url: base + '/items', headers, payload });
+    const publish = async (locale: 'nl' | 'en' = 'nl') => {
+      const result = await app.inject({ method: 'POST', url: base + '/publish', headers,
+        payload: { expectedVersion: service.list(site).version, locale } });
+      expect(result.statusCode, result.body).toBe(200);
+      return result.json() as CatalogSnapshot;
+    };
+    const url = (snapshot: CatalogSnapshot) => '/portfolio/' + site + '/' + snapshot.snapshotId;
+    const publicCredit = 'Fictief & <beeld>';
+    try {
+      expect((await save({ ...input, publicPhotoCredit: 'a'.repeat(201) })).statusCode).toBe(400);
+      const initial = await save(input);
+      expect(initial.statusCode).toBe(200);
+      const item = initial.json() as CatalogItem;
+      const original = await publish();
+      const originalHtml = await app.inject(url(original));
+      expect(originalHtml.statusCode).toBe(200);
+      expect(originalHtml.body).not.toContain('Foto door');
+      expect(originalHtml.body).not.toContain(decision.owner);
+      expect(original.items[0]).not.toHaveProperty('publicPhotoCredit');
+
+      const update = await save({ ...input, itemId: item.itemId, expectedVersion: item.version, publicPhotoCredit: ' ' + publicCredit + ' ' });
+      expect(update.statusCode, update.body).toBe(200);
+      expect(update.json().publicPhotoCredit).toBe(publicCredit);
+      expect((await app.inject(url(original))).body).toBe(originalHtml.body);
+      const dutch = await publish();
+      expect(dutch.items[0].publicPhotoCredit).toBe(publicCredit);
+      const localized = service.saveLocaleVariant(site, item.itemId, 'en', { expectedVersion: update.json().version,
+        title: 'Fixture image', slug: 'fixture-image', description: '', alt: 'A red picture' });
+      const english = await publish('en');
+      for (const [snapshot, label, slug] of [[dutch, 'Foto door', input.slug], [english, 'Photo by', 'fixture-image']] as const) {
+        for (const route of [url(snapshot), url(snapshot) + '/items/' + slug]) {
+          const result = await app.inject(route);
+          expect(result.statusCode).toBe(200);
+          expect(result.body).toContain(label + ' Fictief &amp; &lt;beeld&gt;');
+          for (const privateText of [publicCredit, decision.owner, decision.basis, decision.employee])
+            expect(result.body).not.toContain(privateText);
+        }
+      }
+
+      const cleared = await save({ ...input, itemId: item.itemId, expectedVersion: localized.version, publicPhotoCredit: '   ' });
+      expect(cleared.statusCode).toBe(200);
+      expect(cleared.json()).not.toHaveProperty('publicPhotoCredit');
+      const without = await publish();
+      expect((await app.inject(url(without))).body).not.toContain('Foto door');
+      expect((await app.inject(url(dutch))).body).toContain('Foto door Fictief');
+      expect(service.resolveSnapshot(original)).toEqual(original);
+      expect((await app.inject(url(original))).body).toBe(originalHtml.body);
+    } finally { await app.close(); }
+  });
+
+  it('preserves credits for legacy edits to the same use and requires an explicit credit for a changed use', () => {
+    const item = service.save(site, { ...input, publicPhotoCredit: 'Eerste credit' });
+    const renamed = service.save(site, { ...input, itemId: item.itemId, expectedVersion: item.version, title: 'Andere titel' });
+    expect(renamed.publicPhotoCredit).toBe('Eerste credit');
+    const newMedia = { ...input.media, fileVersion: 2 };
+    const replaced = service.save(site, { ...input, itemId: item.itemId, expectedVersion: renamed.version, media: newMedia });
+    expect(replaced).not.toHaveProperty('publicPhotoCredit');
+    const credited = service.save(site, { ...input, itemId: item.itemId, expectedVersion: replaced.version, media: newMedia, publicPhotoCredit: 'Nieuwe credit' });
+    const cleared = service.save(site, { ...input, itemId: item.itemId, expectedVersion: credited.version, media: newMedia, publicPhotoCredit: null });
+    expect(cleared).not.toHaveProperty('publicPhotoCredit');
+  });
 
   it('migrates once and preserves drafts, immutable snapshot and retained refs after edit/archive/reopen', () => {
     const item = service.save(site, input);

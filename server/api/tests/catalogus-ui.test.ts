@@ -33,6 +33,7 @@ function browserHarness(withOrder = false) {
   el('categoryEnMissing').checked = true;
   const categories = [{ categoryId: 'algemeen', version: 1, archived: false, labels: { nl: 'Algemeen', en: 'General' as string | null } }];
   let stored = { itemId: 'item-1', version: 1, title: 'Oude titel', slug: 'oud', description: 'Oud',
+    publicPhotoCredit: null as string | null,
     metadata: { year: 2025 }, media: { assetId: 'photo', fileVersion: 1, altText: { nl: 'Oud alt' }, decorative: false } };
   let orderCollectionVersion = 3, storedOrder = ['item-1', 'item-2', 'item-3'];
   const assets = [{ assetId: 'photo', fileVersion: 1, metadataVersion: 1, rights: 'cleared', state: 'ready' },
@@ -118,6 +119,22 @@ function browserHarness(withOrder = false) {
 }
 
 describe('actual admin script optimistic form binding', () => {
+  it('saves an explicit public credit, preserves it during rights refresh and clears it when choosing another file', async () => {
+    const browser = browserHarness();
+    await browser.selectVersionOne();
+    expect(browser.el('publicPhotoCredit').value).toBe('');
+    browser.el('publicPhotoCredit').value = 'Publieke proefcredit';
+    await browser.el('save').onclick!();
+    expect(browser.sent[0]).toMatchObject({ publicPhotoCredit: 'Publieke proefcredit', media: { fileVersion: 1 } });
+    await browser.el('clearRights').onclick!();
+    expect(browser.el('publicPhotoCredit').value).toBe('Publieke proefcredit');
+    browser.el('asset').value = '1';
+    browser.el('asset').onchange!();
+    expect(browser.el('publicPhotoCredit').value).toBe('');
+    await browser.el('save').onclick!();
+    expect(browser.sent[1]).toMatchObject({ publicPhotoCredit: null, media: { fileVersion: 2 } });
+  });
+
   it('refreshes fields, asset selection and expected version together on explicit reload', async () => {
     const browser = browserHarness();
     await browser.selectVersionOne();

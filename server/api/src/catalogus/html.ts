@@ -10,9 +10,9 @@ const page = (title: string, body: string, locale = 'nl', styles = style) => `<!
 const portfolioStyle = `${style}.portfolio-filters{display:flex;flex-wrap:wrap;gap:12px 20px;list-style:none;padding:0}.portfolio-filters a[aria-current="page"]{font-weight:bold}`;
 
 const portfolioCopy = {
-  nl: { all: 'Alle items', categories: 'Filter op categorie', year: 'Jaar',
+  nl: { all: 'Alle items', categories: 'Filter op categorie', year: 'Jaar', photoCredit: 'Foto door',
     empty: 'Deze snapshot bevat geen items.', missing: 'Deze categorie staat niet in deze publicatie.' },
-  en: { all: 'All items', categories: 'Filter by category', year: 'Year',
+  en: { all: 'All items', categories: 'Filter by category', year: 'Year', photoCredit: 'Photo by',
     empty: 'This snapshot contains no items.', missing: 'This category is not part of this publication.' },
 };
 
@@ -35,7 +35,8 @@ export function portfolioHtml(snapshot: CatalogSnapshot, { slug, categoryId, cat
   return page('Portfolio', `<header><h1>Portfolio</h1><nav${navLabel}><ul class="portfolio-filters"><li><a href="${base}"${allCurrent}>${copy.all}</a></li>${categoryLinks}</ul></nav></header><main class="grid">${items.map(item => {
     const media = item.resolvedMedia;
     const variant = media.variants[0];
-    return `<article><img src="${base}/media/${item.itemId}/0" width="${variant.width}" height="${variant.height}" alt="${escape(media.decorative ? '' : media.altText[locale])}" loading="lazy"><h2><a href="${base}/items/${item.slug}">${escape(item.title)}</a></h2><p lang="${escape(item.fieldSources?.description.sourceLocale ?? locale)}" data-fallback="${Boolean(item.fieldSources?.description.isFallback)}">${escape(item.description)}</p>${item.metadata.year ? `<small>${copy.year}: ${item.metadata.year}</small>` : ''}</article>`;
+    const photoCredit = item.publicPhotoCredit ? `<small>${copy.photoCredit} ${escape(item.publicPhotoCredit)}</small>` : '';
+    return `<article><img src="${base}/media/${item.itemId}/0" width="${variant.width}" height="${variant.height}" alt="${escape(media.decorative ? '' : media.altText[locale])}" loading="lazy">${photoCredit}<h2><a href="${base}/items/${item.slug}">${escape(item.title)}</a></h2><p lang="${escape(item.fieldSources?.description.sourceLocale ?? locale)}" data-fallback="${Boolean(item.fieldSources?.description.isFallback)}">${escape(item.description)}</p>${item.metadata.year ? `<small>${copy.year}: ${item.metadata.year}</small>` : ''}</article>`;
   }).join('') || `<p>${categoryMissing ? copy.missing : copy.empty}</p>`}</main>`, locale, portfolioStyle);
 }
 
@@ -44,34 +45,71 @@ export const adminHtml = page('Catalogus beheren', `<h1>Catalogus en portfolio</
 <fieldset><legend>1. Afbeelding uploaden</legend><input id="upload" type="file" accept="image/png,image/jpeg,image/webp"><button id="sendUpload">Upload</button></fieldset>
 <fieldset><legend>2. Afbeelding en rechten</legend><label>Afbeelding<select id="asset"></select></label><button id="previewButton">Privévoorbeeld</button><img id="preview" alt="Privévoorbeeld van geselecteerde afbeelding" hidden>
 <label>Rechthebbende<input id="owner"></label><label>Lokale bron of herkomst<input id="source"></label><label>Onderbouwing rechtenbeslissing<textarea id="basis"></textarea></label><label>Naam medewerker<input id="employee"></label><label><input type="checkbox" id="confirmed"> Ik heb de onderbouwing gecontroleerd en bevestig deze rechtenbeslissing.</label><button id="clearRights">Rechten vrijgeven</button><button id="blockRights">Rechten blokkeren</button><p id="rightsStatus"></p><p>Blokkeren voorkomt nieuwe publicaties. Bestaande snapshots blijven staan. Trek die hieronder afzonderlijk in.</p></fieldset>
-<fieldset><legend>3. Catalogusitem</legend><label>Bewaard item<select id="items"><option value="">Nieuw item</option></select></label><label>Titel<input id="title"></label><label>Slug<input id="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*"></label><label>Beschrijving<textarea id="description"></textarea></label><label>Categorie<select id="category"><option value="algemeen">Algemeen</option></select></label><label>Jaar<input id="year" type="number" min="1900" max="2200"></label><label>Alttekst Nederlands<input id="alt"></label><label><input id="decorative" type="checkbox"> Decoratieve afbeelding, alttekst is leeg</label><button id="save">Concept opslaan</button><button id="archive">Item archiveren</button></fieldset>
+<fieldset><legend>3. Catalogusitem</legend><label>Bewaard item<select id="items"><option value="">Nieuw item</option></select></label><label>Titel<input id="title"></label><label>Slug<input id="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*"></label><label>Beschrijving<textarea id="description"></textarea></label><label>Categorie<select id="category"><option value="algemeen">Algemeen</option></select></label><label>Jaar<input id="year" type="number" min="1900" max="2200"></label><label>Alttekst Nederlands<input id="alt"></label><label><input id="decorative" type="checkbox"> Decoratieve afbeelding, alttekst is leeg</label>
+<label>Publieke fotocredit (optioneel)<input id="publicPhotoCredit" maxlength="200" aria-describedby="photoCreditHelp"></label><p id="photoCreditHelp">Deze tekst verschijnt bij de foto. Vul de credit opnieuw in als je een ander bestand kiest.</p>
+<button id="save">Concept opslaan</button><button id="archive">Item archiveren</button></fieldset>
 <fieldset><legend>3b. Handmatige EN-variant van hetzelfde item</legend><p>De bestaande defaulttaal blijft NL. Laad eerst een bewaard item en daarna zijn EN-variant. Gemarkeerde fallback is uitsluitend diagnostiek.</p><label><input id="localePreviewFallback" type="checkbox"> Toon ontbrekende EN-velden als gemarkeerd NL-privévoorbeeld</label><button id="loadLocale">EN-variant laden</button><p id="localeDiagnostics"></p><label>Titel EN<input id="enTitle"></label><label>Slug EN<input id="enSlug"></label><label>Beschrijving EN<textarea id="enDescription"></textarea></label><label><input id="enDescriptionMissing" type="checkbox" checked> Beschrijving EN ontbreekt. Uitgevinkt en leeg betekent bewust lege inhoud.</label><label>Alttekst EN<input id="enAlt"></label><p>Bij decoratief gebruik is EN-alt expliciet leeg. Titel, slug en betekenisvolle alt zijn direct verplicht bij EN-publicatie.</p><button id="saveLocale">EN-variant opslaan</button></fieldset>
 <fieldset><legend>4. Lokale publicatie</legend><label>Publicatietaal<select id="publishLocale"><option value="nl">NL</option><option value="en">EN</option></select></label><label><input id="publishFallback" type="checkbox"> Gebruik expliciet NL voor ontbrekende optionele beschrijving bij EN-publicatie</label><button id="publish">Nieuwe portfoliosnapshot publiceren</button><p id="published"></p></fieldset>
 <fieldset><legend>5. Gepubliceerde snapshots beheren</legend><label>Snapshot<select id="snapshots"></select></label><p id="snapshotStatus"></p><label>Medewerker die intrekt<input id="withdrawEmployee"></label><label>Reden voor intrekken<textarea id="withdrawReason"></textarea></label><label><input id="withdrawConfirmed" type="checkbox"> Ik trek deze snapshot en haar beeld-URL's in op deze lokale server.</label><button id="withdraw">Geselecteerde snapshot intrekken</button><p>Na intrekken geven overzicht, detail en beeld-URL's 404. De audit en verwijzingen blijven bewaard. Opnieuw publiceren maakt een nieuwe snapshot volgens de actuele rechten. Reeds gedownloade kopieën vallen buiten bereik van deze actie.</p></fieldset>
 ${libraryMarkup}${categoryMarkup}${orderMarkup}
 <script>
-const el=id=>document.getElementById(id);let assets=[],items=[],snapshots=[],collectionVersion=0,current,editingLocale;let previewUrl,busy=false;
+const el=id=>document.getElementById(id);let assets=[],items=[],snapshots=[],collectionVersion=0,current,editingLocale;let previewUrl,busy=false,creditFile;
 const site=()=>el('site').value;
 const api=async(path,options={})=>{const response=await fetch(path,{...options,headers:{Authorization:'Bearer '+el('token').value,...options.headers}});const result=await response.json();if(!response.ok)throw Error(result.message||'Verzoek geweigerd');return result};
 const json=(method,body)=>({method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
 const report=(action,success='Gereed.')=>async()=>{if(busy)return;busy=true;const controls=[...document.querySelectorAll('button,input,select,textarea')];controls.forEach(control=>control.disabled=true);el('message').textContent='Bezig...';try{await action();el('message').textContent=success}catch(error){el('message').textContent=error.message+' Controleer de gegevens en laad zo nodig opnieuw.'}finally{busy=false;controls.forEach(control=>control.disabled=false);syncLibraryControls();syncOrderControls();syncVersionControls()}};
-const selected=()=>assets[Number(el('asset').value)];
-const showRights=()=>{el('preview').hidden=true;const a=selected();el('rightsStatus').textContent=a?'Rechten: '+a.rights+'; metadataversie '+a.metadataVersion:'';el('confirmed').checked=false};
-async function refreshAssets(preferred=selected()){assets=await api('/catalogus/api/'+site()+'/assets');el('asset').replaceChildren();assets.forEach((a,index)=>{const option=document.createElement('option');option.value=index;option.textContent=a.assetId+' v'+a.fileVersion+' / '+a.state+' / '+a.rights;el('asset').append(option)});const index=assets.findIndex(a=>a.assetId===preferred?.assetId&&a.fileVersion===preferred?.fileVersion);if(index>=0)el('asset').value=String(index);showRights()}
+const selected=()=>el('asset').value===''?undefined:assets[Number(el('asset').value)];
+const sameFile=(left,right)=>left?.assetId===right?.assetId&&left?.fileVersion===right?.fileVersion;
+function updateAssetSelection(){
+  const asset=selected();
+  if(!sameFile(creditFile,asset))el('publicPhotoCredit').value='';
+  creditFile=asset;
+  el('preview').hidden=true;
+  el('rightsStatus').textContent=asset?'Rechten: '+asset.rights+'; metadataversie '+asset.metadataVersion:'';
+  el('confirmed').checked=false;
+}
+async function refreshAssets(preferred=selected()){assets=await api('/catalogus/api/'+site()+'/assets');el('asset').replaceChildren();assets.forEach((a,index)=>{const option=document.createElement('option');option.value=index;option.textContent=a.assetId+' v'+a.fileVersion+' / '+a.state+' / '+a.rights;el('asset').append(option)});const index=assets.findIndex(asset=>sameFile(asset,preferred));if(index>=0)el('asset').value=String(index);updateAssetSelection()}
 function clearLocaleEditor(){editingLocale=undefined;for(const id of ['enTitle','enSlug','enDescription','enAlt'])el(id).value='';el('enDescriptionMissing').checked=true;el('localeDiagnostics').textContent='Laad de EN-variant om te bewerken.'}
-function fillItem(){clearLocaleEditor();renderCategories(current?.categoryId||'algemeen');for(const field of ['title','slug','description'])el(field).value=current?.[field]||'';el('year').value=current?.metadata.year||'';el('alt').value=current?.media.altText.nl||'';el('decorative').checked=current?.media.decorative||false;if(current){const index=assets.findIndex(a=>a.assetId===current.media.assetId&&a.fileVersion===current.media.fileVersion);el('asset').value=String(index);showRights()}}
+function fillItem(){
+  clearLocaleEditor();renderCategories(current?.categoryId||'algemeen');
+  for(const field of ['title','slug','description'])el(field).value=current?.[field]||'';
+  el('year').value=current?.metadata.year||'';
+  el('alt').value=current?.media.altText.nl||'';
+  el('decorative').checked=current?.media.decorative||false;
+  if(current){
+    const index=assets.findIndex(asset=>sameFile(asset,current.media));
+    el('asset').value=index>=0?String(index):'';
+    updateAssetSelection();
+  }
+  el('publicPhotoCredit').value=sameFile(selected(),current?.media)?current?.publicPhotoCredit||'':'';
+}
 const showSnapshot=()=>{const snapshot=snapshots.find(s=>s.snapshotId===el('snapshots').value);el('withdrawConfirmed').checked=false;el('snapshotStatus').textContent=snapshot?'Status: '+snapshot.status+'; versie '+snapshot.version+'; checksum '+snapshot.checksum:''};
 async function refreshSnapshots(preferred=el('snapshots').value){snapshots=await api('/catalogus/api/'+site()+'/snapshots');el('snapshots').replaceChildren();snapshots.forEach(s=>el('snapshots').add(new Option(s.snapshotId+' / '+(s.locale||'nl')+' / '+s.status+' / '+s.itemCount+' items',s.snapshotId)));if(snapshots.some(s=>s.snapshotId===preferred))el('snapshots').value=preferred;showSnapshot()}
 async function load(preferences={}){const previousItem=preferences.itemId||current?.itemId;const data=await api('/catalogus/api/'+site());collectionVersion=data.version;items=data.items;categories=data.categories||[];await refreshAssets();await refreshSnapshots();el('items').replaceChildren(new Option('Nieuw item',''));items.forEach(item=>el('items').add(new Option(item.title,item.itemId)));current=items.find(i=>i.itemId===previousItem);el('items').value=current?.itemId||'';fillItem();loadOrderFromItems()}
-el('load').onclick=report(async()=>{await load();editingCategory=categories.find(category=>category.categoryId===editingCategory?.categoryId);el('categories').value=editingCategory?.categoryId??'';fillCategoryEditor();loadOrderFromItems(true)},'Gegevens geladen.');el('asset').onchange=showRights;el('snapshots').onchange=showSnapshot;el('site').onchange=()=>{current=undefined;items=[];assets=[];snapshots=[];el('items').replaceChildren(new Option('Nieuw item',''));el('asset').replaceChildren();el('snapshots').replaceChildren();el('preview').hidden=true;el('published').textContent='';el('snapshotStatus').textContent='';fillItem();el('message').textContent='Laad de geselecteerde website.'};
+el('load').onclick=report(async()=>{await load();editingCategory=categories.find(category=>category.categoryId===editingCategory?.categoryId);el('categories').value=editingCategory?.categoryId??'';fillCategoryEditor();loadOrderFromItems(true)},'Gegevens geladen.');el('asset').onchange=updateAssetSelection;el('snapshots').onchange=showSnapshot;el('site').onchange=()=>{current=undefined;items=[];assets=[];snapshots=[];el('items').replaceChildren(new Option('Nieuw item',''));el('asset').replaceChildren();el('snapshots').replaceChildren();el('preview').hidden=true;el('published').textContent='';el('snapshotStatus').textContent='';fillItem();el('message').textContent='Laad de geselecteerde website.'};
 el('sendUpload').onclick=report(async()=>{const file=el('upload').files[0];if(!file)throw Error('Kies een afbeelding');const uploaded=await api('/websites/'+site()+'/media',{method:'POST',headers:{'Content-Type':file.type,'x-media-filename':file.name},body:file});await refreshAssets(uploaded)});
 el('previewButton').onclick=report(async()=>{const a=selected();if(!a)throw Error('Kies een afbeelding');const r=await fetch('/catalogus/api/'+site()+'/preview/'+a.assetId+'/'+a.fileVersion,{headers:{Authorization:'Bearer '+el('token').value}});if(!r.ok)throw Error('Voorbeeld niet beschikbaar');if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=URL.createObjectURL(await r.blob());el('preview').src=previewUrl;el('preview').hidden=false});
 el('clearRights').onclick=report(async()=>{const a=selected();if(!a)throw Error('Kies een afbeelding');await api('/catalogus/api/'+site()+'/rights/'+a.assetId,json('PUT',{expectedVersion:a.metadataVersion,status:'cleared',owner:el('owner').value,source:el('source').value,basis:el('basis').value,employee:el('employee').value,confirmed:el('confirmed').checked}));await refreshAssets(a)});
 el('blockRights').onclick=report(async()=>{const a=selected();if(!a)throw Error('Kies een afbeelding');await api('/catalogus/api/'+site()+'/rights/'+a.assetId,json('PUT',{expectedVersion:a.metadataVersion,status:'blocked',owner:el('owner').value,source:el('source').value,basis:el('basis').value,employee:el('employee').value,confirmed:el('confirmed').checked}));await refreshAssets(a)},'Rechten geblokkeerd. Bestaande snapshots blijven staan totdat je ze intrekt.');
 el('items').onchange=()=>{current=items.find(i=>i.itemId===el('items').value);fillItem()};
-el('save').onclick=report(async()=>{const a=selected();if(!a)throw Error('Kies een afbeelding');const saved=await api('/catalogus/api/'+site()+'/items',json('POST',{...(current?{itemId:current.itemId}:{}),expectedVersion:current?.version||0,title:el('title').value,slug:el('slug').value,description:el('description').value,categoryId:el('category').value||'algemeen',metadata:el('year').value?{year:Number(el('year').value)}:{},media:{assetId:a.assetId,fileVersion:a.fileVersion,usage:'cover',altText:{nl:el('decorative').checked?'':el('alt').value},decorative:el('decorative').checked}}));await load({itemId:saved.itemId})});
+el('save').onclick=report(async()=>{
+  const a=selected();if(!a)throw Error('Kies een afbeelding');
+  const saved=await api('/catalogus/api/'+site()+'/items',json('POST',{
+    ...(current?{itemId:current.itemId}:{}),expectedVersion:current?.version||0,
+    title:el('title').value,slug:el('slug').value,description:el('description').value,categoryId:el('category').value||'algemeen',
+    metadata:el('year').value?{year:Number(el('year').value)}:{},publicPhotoCredit:el('publicPhotoCredit').value||null,
+    media:{assetId:a.assetId,fileVersion:a.fileVersion,usage:'cover',altText:{nl:el('decorative').checked?'':el('alt').value},decorative:el('decorative').checked}
+  }));
+  await load({itemId:saved.itemId});
+});
 el('archive').onclick=report(async()=>{if(!current)throw Error('Kies een bewaard item');await api('/catalogus/api/'+site()+'/items/'+current.itemId,json('DELETE',{expectedVersion:current.version}));await load()});
-function defaultFormChanged(){if(!current)return false;const a=selected();return ['title','slug','description'].some(field=>el(field).value!==current[field])||el('year').value!==String(current.metadata.year??'')||el('alt').value!==(current.media.altText.nl??'')||el('decorative').checked!==current.media.decorative||a?.assetId!==current.media.assetId||a?.fileVersion!==current.media.fileVersion||(el('category').value||'algemeen')!==(current.categoryId||'algemeen')}
+function defaultFormChanged(){
+  if(!current)return false;
+  return ['title','slug','description'].some(field=>el(field).value!==current[field])||
+    el('year').value!==String(current.metadata.year??'')||el('alt').value!==(current.media.altText.nl??'')||
+    el('publicPhotoCredit').value.trim()!==(current.publicPhotoCredit??'')||el('decorative').checked!==current.media.decorative||
+    !sameFile(selected(),current.media)||(el('category').value||'algemeen')!==(current.categoryId||'algemeen');
+}
 async function loadLocale(){if(!current)throw Error('Kies een bewaard item');if(defaultFormChanged())throw Error('Sla wijzigingen in het standaarditem eerst op of kies Laden');const result=await api('/catalogus/api/'+site()+'/items/'+current.itemId+'/locales/en'+(el('localePreviewFallback').checked?'?fallbackLocale=nl':''));if(result.itemId!==current.itemId||result.version!==current.version){editingLocale=undefined;throw Error('Het standaarditem is intussen gewijzigd. Kies Laden en laad daarna de EN-variant opnieuw.')}editingLocale={itemId:result.itemId,version:result.version};el('enTitle').value=result.values.title??'';el('enSlug').value=result.values.slug??'';el('enDescription').value=result.values.description??'';el('enDescriptionMissing').checked=result.values.description===null;el('enAlt').value=result.values.alt??'';el('localeDiagnostics').textContent=Object.entries(result.diagnostics).map(([field,value])=>field+': '+(value.isFallback?'Fallback uit '+value.sourceLocale+': '+value.value:value.missing?'Ontbreekt in EN':value.explicitEmpty?'Bewust leeg in EN':'Directe EN-waarde')).join(' ; ')}
 el('loadLocale').onclick=report(loadLocale,'EN-variant en bronlocale geladen.');
 el('saveLocale').onclick=report(async()=>{if(!current||!editingLocale||editingLocale.itemId!==current.itemId)throw Error('Laad eerst de EN-variant');if(defaultFormChanged())throw Error('Sla wijzigingen in het standaarditem eerst op of kies Laden');const itemId=current.itemId;await api('/catalogus/api/'+site()+'/items/'+itemId+'/locales/en',json('PUT',{expectedVersion:editingLocale.version,title:el('enTitle').value,slug:el('enSlug').value,description:el('enDescriptionMissing').checked?null:el('enDescription').value,alt:el('enAlt').value}));await load({itemId});await loadLocale()},'EN-concept opgeslagen.');
