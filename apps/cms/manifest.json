@@ -5,6 +5,7 @@
   "version": "0.1.0",
   "owner": "draconis-labs",
   "launchUrl": "http://127.0.0.1:3016",
+  "healthUrl": "http://127.0.0.1:3016/",
   "permissions": ["cms.draft.read", "cms.draft.write", "cms.release.publish"],
   "environments": [{ "name": "local", "baseUrl": "http://127.0.0.1:3016" }]
 }

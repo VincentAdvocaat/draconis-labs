@@ -38,6 +38,7 @@ export type {
 } from './schemas/index.js';
 export {
   applicationManifestSchema,
+  applicationManifestsSchema,
   createTaskSchema,
   historyQuerySchema,
   taskListQuerySchema,

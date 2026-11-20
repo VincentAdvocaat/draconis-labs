@@ -2,9 +2,11 @@
 
 1. Copy `templates/app` to `apps/<your-app-id>/`.
 2. Replace `{{appId}}` and `{{AppName}}` placeholders in `package.json`, `index.html`, and `src/App.tsx`.
-3. Update `manifest.json` with your app metadata (validated by `applicationManifestSchema`).
-4. Register the app in the Draconis catalog when the homescreen epic (E8) lands.
-5. Add the app to the pnpm workspace (`apps/*` already covers new folders).
-6. Scaffold an API module via `server/api/templates/module/` if the app needs backend routes.
+3. Update `manifest.json` with the app ID, owner, launch and health URLs, environment URLs, permissions and custom icon URL when available. Use absolute HTTP or HTTPS URLs without credentials. A local app can use its root URL for a reachability check.
+4. Run `corepack pnpm --filter @draconis/shared test`. The shared tests validate the template and all `apps/*/manifest.json` files and reject duplicate app IDs and environment names. The repository test command runs the same checks.
+5. Request review from the owner named in the manifest when opening a pull request for a registration change.
+6. Scaffold an API module via `server/api/templates/module/` if the app needs backend routes. The pnpm workspace includes `apps/*`.
+
+The manifests provide registration metadata for the Homescreen catalog when it lands.
 
 The template intentionally has **no** Planner dependencies.

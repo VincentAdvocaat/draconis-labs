@@ -1,0 +1,12 @@
+{
+  "id": "planner",
+  "name": "Planner",
+  "description": "Plan taken, relaties en afspraken in de lokale Planner.",
+  "version": "0.0.0",
+  "owner": "draconis-labs",
+  "launchUrl": "http://localhost:5173/",
+  "iconUrl": "http://localhost:5173/favicon.svg",
+  "healthUrl": "http://localhost:3001/health",
+  "permissions": [],
+  "environments": [{ "name": "local", "baseUrl": "http://localhost:5173/" }]
+}
