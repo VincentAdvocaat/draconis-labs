@@ -170,6 +170,7 @@ describe('persisted catalog and portfolio module', () => {
     const db = new Database(join(fixture.root, 'media.sqlite'));
     try {
       db.exec(`DROP TABLE catalog_snapshot_audit;
+        ALTER TABLE catalog_items DROP COLUMN position;
         ALTER TABLE catalog_snapshots DROP COLUMN status;
         ALTER TABLE catalog_snapshots DROP COLUMN version;
         DROP TABLE catalog_locale_values;

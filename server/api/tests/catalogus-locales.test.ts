@@ -128,6 +128,7 @@ describe('catalog locale persistence and publication', () => {
     try {
       db.prepare('UPDATE catalog_snapshots SET json=? WHERE id=?').run(JSON.stringify(legacy), legacy.snapshotId);
       db.exec(`DROP TABLE catalog_locale_values; DROP TABLE catalog_locale_slugs;
+        ALTER TABLE catalog_items DROP COLUMN position;
         ALTER TABLE catalog_collections DROP COLUMN default_locale; UPDATE catalog_schema SET version=2;`);
     } finally { db.close(); }
     service = new CatalogService(fixture.root);
@@ -145,7 +146,7 @@ describe('catalog locale persistence and publication', () => {
     db.exec('UPDATE catalog_schema SET version=99'); db.close();
     await expect(buildCatalogApp(fixture.root, 'local-migration-test-token-123456789012345')).rejects.toThrow('Unsupported catalog schema');
     const restore = new Database(join(fixture.root, 'media.sqlite'));
-    restore.exec('UPDATE catalog_schema SET version=3'); restore.close();
+    restore.exec('UPDATE catalog_schema SET version=5'); restore.close();
     service = new CatalogService(fixture.root);
   });
 });
