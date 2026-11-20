@@ -1,6 +1,6 @@
 # Gezamenlijke CMS-acceptatiematrix
 
-Stand op 19 november 2026 na onafhankelijke review van PR36 op codecommit `fbb583f09c94411b9a4dadaf977d5daec31cce55`. Dit beschrijft lokale proeven met fictieve gegevens. Er is niets samengevoegd of uitgerold.
+Stand op 20 november 2026 na de gezamenlijke PR43-review op runtimehead `ea12b79ce8095878edc4d10ce3f260e3b35b9bf2`. Dit beschrijft lokale proeven met fictieve gegevens op eigen integratiebranches. Er is niet naar main gemerged of uitgerold.
 
 | Criterium | Bewijs en status |
 | --- | --- |
@@ -22,7 +22,7 @@ Stand op 19 november 2026 na onafhankelijke review van PR36 op codecommit `fbb58
 | Volledige CMS22 contenttalen | Nog open: meer talen, uitgebreidere fallbackdiagnostiek en localeconfiguratie. Eerste tekstvertical heeft expliciet geen fallback en bewaart leeg/ontbrekend. |
 | CMS-bediening NL/EN | PR29 onafhankelijk gereviewd op `69b43c54`, geen noodzakelijke fixes. Getypeerde namespace, eigen tabbladkeuze, bestaande schermen/status/foutcodes en statebehoud. Nederlandse bevestiging verduidelijkt op `7b77a7b8`; 16 relevante tests groen. |
 | Bestaande klanten importeren | Open: reproduceerbare bron, fictieve migratievergelijking, dry-run/idempotency, herstelproef en expliciete aansluiting. |
-| Productie-identiteit, back-up/restore en deployment | Open en apart te autoriseren. Lokale testtokens zijn geen productie-identiteit. |
+| Productie-identiteit, back-up/restore en deployment | Offline synthetische back-up/restore is lokaal bewezen in PR42/43. Productie-identiteit, productieherstelbeleid en deployment blijven open; lokale tokens zijn geen productie-identiteit. |
 
 De centrale tekstcriteria uit [centrale tekstredactie](centrale-tekstredactie.md) blijven leidend. Een taalstap is pas compleet wanneer de redacteur bestaande zichtbare tekst zonder codewijziging kan bewerken, de gekozen locale in preview en release overeenkomt en een nieuwer concept de actieve publicatie niet verandert.
 
@@ -54,4 +54,7 @@ CMS-09 heeft een afzonderlijke lokale CLI-proef voor twee databases en bestanden
 
 ## Tweede consolidatie
 
-De nieuwe branch verenigt de volledige gereviewde CMS42- en catalogus41-keten vanaf de vaste PR37. Alleen de expliciete CMS09-compatibiliteit voor media3/4/5 is functioneel aangepast. Alle416 tests en de gezamenlijke browser/offline-restore/herstartproef slagen. Zie [integratie-v2](../integratie-v2/README.md). Onafhankelijke integratiereview volgt. Geen mainmerge, klantimport of deployment.
+De nieuwe branch verenigt de volledige gereviewde CMS42- en catalogus41-keten vanaf de vaste PR37. Alleen de expliciete CMS09-compatibiliteit voor media3/4/5 is functioneel aangepast. Alle416 tests en de gezamenlijke browser/offline-restore/herstartproef slagen. Zie [integratie-v2](../integratie-v2/README.md). Onafhankelijke Astra-medium integratiereview akkoord op `ea12b79ce8095878edc4d10ce3f260e3b35b9bf2`, inclusief gesloten systeemcategorie-P2. Zie [rapport](../integratie-v2/review-pr43.md). Geen mainmerge, klantimport of deployment.
+
+
+De volledige modulecriteria zijn vergeleken in [open-criteria](../integratie-v2/open-criteria.md). Lokale demo en gewoon mainmergeplan staan in dezelfde overdracht. Een werkende fixture sluit de oorspronkelijke identity/import/adapter/operationele criteria niet automatisch.

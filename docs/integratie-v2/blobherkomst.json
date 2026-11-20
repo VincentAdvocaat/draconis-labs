@@ -1,10 +1,10 @@
 {
-  "scannedRuntimeHead": "91493acafaa53c802dfa5cd9f45dfb359f0f0802",
+  "scannedRuntimeHead": "ea12b79ce8095878edc4d10ce3f260e3b35b9bf2",
   "refs": {
     "base": "fc43090d0f90892df97d7e033bef66b772c81aa8",
     "cms42": "df6ec600aff4cdd8fff69640844cc882836bc0d0",
     "catalog41": "3bc54baa1cafdb9e0a82118a4b419820af66de65",
-    "integration": "91493acafaa53c802dfa5cd9f45dfb359f0f0802"
+    "integration": "ea12b79ce8095878edc4d10ce3f260e3b35b9bf2"
   },
   "ancestors": {
     "base": true,
@@ -18,6 +18,7 @@
     "docs/cms/acceptatiematrix.md",
     "docs/integratie-v2/README.md",
     "docs/integratie-v2/bewijs.md",
+    "docs/integratie-v2/blobherkomst.json",
     "server/api/src/modules/cms/recovery-catalog.ts",
     "server/api/src/modules/cms/recovery.ts",
     "server/api/tests/cms-recovery-catalog.test.ts"
@@ -106,6 +107,11 @@
     {
       "path": "docs/integratie-v2/bewijs.md",
       "entry": "100644 blob 46ca2caa65256033c7645f361de3c365586bfdb8",
+      "origins": []
+    },
+    {
+      "path": "docs/integratie-v2/blobherkomst.json",
+      "entry": "100644 blob 0865b44f9a1a9426cbf5eca433556a368deacff8",
       "origins": []
     },
     {
@@ -285,7 +291,7 @@
     },
     {
       "path": "server/api/src/modules/cms/recovery-catalog.ts",
-      "entry": "100644 blob 1be2415bd355b3db1b453dcf3cc89048cc631f42",
+      "entry": "100644 blob 0898e088b44362087bea551f5e4032edccae31bb",
       "origins": []
     },
     {
@@ -372,7 +378,7 @@
     },
     {
       "path": "server/api/tests/cms-recovery-catalog.test.ts",
-      "entry": "100644 blob f949d8f7aa52930568a002e1d5a13b3e414a4115",
+      "entry": "100644 blob 44a241bd04af0eebe70d66bd9498d80b142b9254",
       "origins": []
     },
     {
@@ -397,5 +403,5 @@
       ]
     }
   ],
-  "note": "This immutable runtime-head inventory precedes this provenance-only document commit; the inventory itself is not self-hashed."
+  "note": "Immutable reviewed runtime-head inventory. Later report/demo/status documentation and this inventory update are outside the runtime snapshot; verify entries against scannedRuntimeHead, not the later documentation HEAD."
 }
