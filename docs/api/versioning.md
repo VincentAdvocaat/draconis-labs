@@ -54,8 +54,18 @@ to 50 and accepts values between 1 and 200. A paginated response places
 `items`, `total`, `page` and `pageSize` inside `value`. Keep the same filters
 when requesting the next page. Without `page`, `value` is an array.
 
-Task creation has no idempotency key. If the response is lost, check the task
-list for an existing result before repeating the create request.
+Send an optional `Idempotency-Key` when posting to `/api/v1/workspaces/local/tasks`.
+Use one key per logical creation. A UUID is valid. Keys allow 1–128 ASCII
+letters, digits, dots, underscores, tildes and hyphens. Retry with the same key
+and validated task input. The API returns the original `201` response,
+including the original task version, even if the task has since changed or
+the API has restarted against the same SQLite database. Using the key with
+different valid input returns `409 IDEMPOTENCY_CONFLICT`.
+
+Keys belong to the workspace and the identified actor. Each named agent has
+its own keys. The unauthenticated local UI shares the local user identity.
+Requests without the header and the compatibility routes under `/api/v1/planner`
+and `/api/planner` create a new task on each successful request.
 
 ## Contract checks
 
@@ -65,4 +75,5 @@ is missing or out of date. Breaking changes require a major version bump.
 
 The compiled API smoke (`corepack pnpm --filter @draconis/api smoke:start`)
 uses its own loopback process and synthetic storage to check discovery,
-Bearer identity, task creation, pagination and version conflicts over HTTP.
+Bearer identity, task creation and replay, pagination and version conflicts
+over HTTP.

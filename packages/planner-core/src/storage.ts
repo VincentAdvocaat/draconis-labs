@@ -1,6 +1,12 @@
-import type { Lane, PaginatedTasks, Task, TaskListQuery, UserPreferences } from '@draconis/shared';
+import type { CreateTaskInput, Lane, PaginatedTasks, Task, TaskListQuery, UserPreferences } from '@draconis/shared';
 
 export interface HistoryQuery { from?: string; page?: number; pageSize?: number }
+
+export interface TaskCreationReceiptKey {
+  workspaceId: string;
+  actor: string;
+  key: string;
+}
 
 export interface PlannerStorage {
   /** Synchronous write transaction; reads and writes use the same connection. */
@@ -11,6 +17,8 @@ export interface PlannerStorage {
   lane(lane: Lane): Task[];
   maxTodoPosition(): number;
   insert(task: Task): void;
+  findTaskCreation(key: TaskCreationReceiptKey, input: CreateTaskInput): { matches: boolean; task: Task } | undefined;
+  saveTaskCreation(key: TaskCreationReceiptKey, input: CreateTaskInput, task: Task): void;
   update(id: string, changes: Partial<Task>): void;
   remove(id: string): boolean;
   loadPreferences(): UserPreferences;

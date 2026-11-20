@@ -1,7 +1,7 @@
 import type { CreateTaskInput, Task, TaskListQuery, UpdateTaskInput, UserPreferences } from '@draconis/shared';
 import { addRecurrence } from '@draconis/shared';
 import { newTask } from './new-task.js';
-import type { HistoryQuery, PlannerEnvironment, PlannerStorage } from './storage.js';
+import type { HistoryQuery, PlannerEnvironment, PlannerStorage, TaskCreationReceiptKey } from './storage.js';
 
 export class TaskConflictError extends Error {
   readonly task: Task;
@@ -10,6 +10,12 @@ export class TaskConflictError extends Error {
     super('Deze taak is elders gewijzigd. Vernieuw en probeer opnieuw.');
     this.task = task;
     Object.assign(this, { statusCode: 409 });
+  }
+}
+
+export class TaskCreationConflictError extends Error {
+  constructor() {
+    super('Deze opdrachtsleutel is al voor andere invoer gebruikt.');
   }
 }
 
@@ -35,13 +41,21 @@ export function createPlannerService(storage: PlannerStorage, environment: Plann
   return {
     list: (query: TaskListQuery) => storage.list(query),
     history: (query: HistoryQuery) => storage.history(query),
-    create(input: CreateTaskInput, actor: { name: string }): Task {
+    create(input: CreateTaskInput, actor: { name: string }, receiptKey?: TaskCreationReceiptKey): Task {
       return storage.transaction(() => {
+        if (receiptKey) {
+          const receipt = storage.findTaskCreation(receiptKey, input);
+          if (receipt) {
+            if (!receipt.matches) throw new TaskCreationConflictError();
+            return receipt.task;
+          }
+        }
         const task = newTask(input, {
           id: environment.id(), now: environment.now(), actorName: actor.name,
           maxTodoPosition: storage.maxTodoPosition(),
         });
         storage.insert(task);
+        if (receiptKey) storage.saveTaskCreation(receiptKey, input, task);
         return task;
       });
     },

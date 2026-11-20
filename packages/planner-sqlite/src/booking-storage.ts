@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 import type { BookingStorage } from '@draconis/planner-core';
 import type { Appointment, AppointmentEvent, Block, Contact, Slot, Zone } from '@draconis/shared';
+import { readCommandReceipt, writeCommandReceipt } from './command-receipts.js';
 
 type Row = Record<string, unknown>;
 const fields = {
@@ -62,9 +63,10 @@ export function createSqliteBookingStorage(db: Database.Database, workspaceId: s
       return db.prepare('SELECT * FROM planner_appointment_events WHERE workspace_id=? ORDER BY created_at,rowid').all(workspaceId).map(row => decode<AppointmentEvent>(row as Row)!).filter(event => requested.has(event.appointmentId));
     },
     receipt(actor, operation, key) {
-      const row = db.prepare('SELECT hash,result FROM planner_command_receipts WHERE workspace_id=? AND actor=? AND operation=? AND key=?').get(workspaceId, actor, operation, key) as { hash: string; result: string } | undefined;
-      return row ? { hash: row.hash, result: JSON.parse(row.result) } : undefined;
+      return readCommandReceipt(db, { workspaceId, actor, operation, key });
     },
-    saveReceipt(actor, operation, key, hash, result) { db.prepare('INSERT INTO planner_command_receipts VALUES (?,?,?,?,?,?)').run(workspaceId, actor, operation, key, hash, JSON.stringify(result)); },
+    saveReceipt(actor, operation, key, hash, result) {
+      writeCommandReceipt(db, { workspaceId, actor, operation, key }, hash, result);
+    },
   };
 }
