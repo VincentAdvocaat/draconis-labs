@@ -43,7 +43,7 @@ const editableDocumentContentSchema = documentContentSchema.safeExtend({
 });
 export const saveDocumentSchema = z.object({ expectedVersion: z.number().int().positive(), content: editableDocumentContentSchema }).strict();
 export type DocumentContent = z.infer<typeof documentContentSchema>;
-export interface DocumentDto { pageId: string; revisionId: string; version: number; content: DocumentContent; published: boolean }
+export interface DocumentDto { pageId: string; revisionId: string; version: number; content: DocumentContent; published: boolean; publishedFile: string | null }
 export interface SnapshotPage { pageId: string; revisionId: string; version: number; file: string;
   content: Omit<DocumentContent, 'locale'> & { locale: 'nl' | 'en' }; mediaRevisionId: string | null }
 export interface SiteSnapshot { schemaVersion: 1; websiteId: string; pages: SnapshotPage[]; shared?: SharedNavigationDto;contact?:ContactPin }
@@ -90,11 +90,12 @@ export class CmsDocuments {
   }
   get(websiteId: string, pageId: string): DocumentDto {
     this.repository.page(websiteId);
-    if(pageId==='home'){const home=this.repository.page(websiteId);return {pageId,revisionId:home.revisionId,version:home.pageVersion,content:this.homeContent(websiteId,home.revisionId),published:!!home.activeReleaseId};}
+    if(pageId==='home'){const home=this.repository.page(websiteId);return {pageId,revisionId:home.revisionId,version:home.pageVersion,content:this.homeContent(websiteId,home.revisionId),published:!!home.activeReleaseId,publishedFile:home.activeReleaseId?'index.html':null};}
     const row = this.rows(websiteId).find((item) => item.id === pageId);
     if (!row) throw new CmsError(404, 'Pagina niet gevonden');
+    const published = this.activeSnapshot(websiteId)?.pages.find((page) => page.pageId === pageId && page.content.locale === 'nl');
     return { pageId, revisionId: row.revision_id, version: row.version, content: JSON.parse(row.content) as DocumentContent,
-      published: this.wasPublished(websiteId, pageId) };
+      published: Boolean(published) || this.wasPublished(websiteId, pageId), publishedFile: published?.file ?? null };
   }
   private homeContent(websiteId:string,revisionId:string):DocumentContent{
     const values=this.repository.revision(websiteId,revisionId);
@@ -128,6 +129,16 @@ export class CmsDocuments {
     const occupied = this.repository.db.prepare('SELECT id FROM cms_documents WHERE website_id=? AND slug=? AND id<>?')
       .get(websiteId, slug, excludeId);
     if (occupied) throw new CmsError(409, 'Deze slug bestaat al binnen de website');
+    const snapshots = this.repository.db.prepare(`SELECT s.snapshot,a.status FROM cms_site_snapshots s JOIN cms_attempts a ON a.id=s.release_id
+      WHERE a.website_id=? AND a.status IN ('building','published')`).all(websiteId) as Array<{ snapshot: string; status: 'building' | 'published' }>;
+    const file = `${slug}.html`;
+    for (const row of snapshots) {
+      const pages = (JSON.parse(row.snapshot) as SiteSnapshot).pages;
+      if (pages.some((page) => page.file === file && page.pageId !== excludeId))
+        throw new CmsError(409, 'Deze slug hoort al bij een andere pagina in een publicatie');
+      if (row.status === 'building' && pages.some((page) => page.pageId === excludeId && page.content.locale === 'nl' && page.file !== file))
+        throw new CmsError(409, 'Wacht tot de lopende publicatie klaar is om de slug te wijzigen');
+    }
   }
   private references(content: SnapshotPage['content']): MediaReference[] {
     return content.blocks.flatMap((block) => block.type === 'image' ? [block.reference] : []);
@@ -158,9 +169,10 @@ export class CmsDocuments {
     return this.repository.db.transaction(() => {
       const prior = this.get(websiteId, pageId);
       if (prior.version !== input.expectedVersion) throw new CmsError(409, 'Paginaconcept gewijzigd. Haal de nieuwste versie op.');
-      if (prior.content.slug !== input.content.slug) documentSlugSchema.parse(input.content.slug);
-      this.assertSlug(websiteId, input.content.slug, pageId);
-      this.assertPinnedSlug(websiteId, pageId, input.content.slug);
+      if (prior.content.slug !== input.content.slug) {
+        documentSlugSchema.parse(input.content.slug);
+        this.assertSlug(websiteId, input.content.slug, pageId);
+      }
       const previousMedia = this.revision(websiteId, pageId, prior.revisionId).mediaRevisionId;
       const revision = this.insert(websiteId, pageId, prior.revisionId, input.content, previousMedia, this.references(prior.content), actor);
       const result = this.repository.db.prepare(`UPDATE cms_documents SET slug=?,revision_id=?,version=version+1
@@ -173,17 +185,6 @@ export class CmsDocuments {
     const snapshots = this.repository.db.prepare(`SELECT s.snapshot FROM cms_site_snapshots s JOIN cms_attempts a ON a.id=s.release_id
       WHERE a.website_id=? AND a.status='published'`).all(websiteId) as Array<{ snapshot: string }>;
     return snapshots.some((row) => (JSON.parse(row.snapshot) as SiteSnapshot).pages.some((page) => page.pageId === pageId));
-  }
-  private assertPinnedSlug(websiteId: string, pageId: string, slug: string): void {
-    // begin captures snapshots and save checks their route identity under the same
-    // CMS IMMEDIATE writer lock. Text drafts remain editable during a pending build.
-    const snapshots = this.repository.db.prepare(`SELECT s.snapshot FROM cms_site_snapshots s JOIN cms_attempts a ON a.id=s.release_id
-      WHERE a.website_id=? AND a.status IN ('building','published')`).all(websiteId) as Array<{ snapshot: string }>;
-    for (const row of snapshots) {
-      const pinned = (JSON.parse(row.snapshot) as SiteSnapshot).pages.find((page) => page.pageId === pageId && page.content.locale === 'nl');
-      if (pinned && pinned.content.slug !== slug)
-        throw new CmsError(409, 'De slug staat vast tijdens en na publicatie. Wijzigen vereist een redirect en valt buiten deze stap');
-    }
   }
   private revision(websiteId: string, pageId: string, revisionId: string) {
     if(pageId==='home')return {content:this.homeContent(websiteId,revisionId),mediaRevisionId:this.repository.mediaRevision(websiteId,revisionId)};
@@ -224,10 +225,13 @@ export class CmsDocuments {
     return JSON.stringify({schemaVersion:1,websiteId,pages,...(shared?{shared}:{}),...(contact?{contact}:{})} satisfies SiteSnapshot);
   }
   private retainedLocales(websiteId: string): SnapshotPage[] {
+    return this.activeSnapshot(websiteId)?.pages.filter((page) => page.content.locale === 'en') ?? [];
+  }
+  private activeSnapshot(websiteId: string): SiteSnapshot | undefined {
     const active = this.repository.active(websiteId).activeReleaseId;
-    if (!active) return [];
+    if (!active) return;
     const row = this.repository.db.prepare('SELECT snapshot FROM cms_site_snapshots WHERE release_id=?').get(active) as {snapshot: string} | undefined;
-    return row ? (JSON.parse(row.snapshot) as SiteSnapshot).pages.filter((page) => page.content.locale === 'en') : [];
+    return row ? JSON.parse(row.snapshot) as SiteSnapshot : undefined;
   }
   previewEnglish(websiteId: string, pageId: string, revisionId: string): string {
     const content=this.locales.previewRevision(websiteId,pageId,revisionId);

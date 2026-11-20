@@ -5,12 +5,13 @@ export interface ImageBlock { blockId: string; type: 'image'; reference: Documen
 export interface PortfolioSelection { ref: {websiteId: string; collectionId: 'portfolio'; snapshotId: string}; checksum: string; localeContext: {defaultLocale: 'nl' | 'en'; locale: 'nl' | 'en'; fallbackLocale?: 'nl' | 'en'}; itemCount?: number }
 export interface PortfolioBlock extends PortfolioSelection { blockId: string; type: 'portfolio'; labels?: {heading: Partial<Record<'nl' | 'en', string | null>>; empty: Partial<Record<'nl' | 'en', string | null>>} }
 export interface DocumentContent { schemaVersion: 1; locale: 'nl'; title: string; slug: string; seoTitle: string; seoDescription: string; blocks: Array<TextBlock | ImageBlock | PortfolioBlock> }
-export interface DocumentDto { pageId: string; revisionId: string; version: number; content: DocumentContent; published: boolean }
+export interface DocumentDto { pageId: string; revisionId: string; version: number; content: DocumentContent; published: boolean; publishedFile: string | null }
 export interface SitePlan {contactTemplate?:import('./contact-template').ContactRecord; shared?: import('./shared-navigation').SharedNavigationDto; localeVariants?: import('./page-locales').LocaleChoice[]; retainedLocales?: Array<{pageId: string; title: string; file: string}>; activeReleaseId: string | null; activeVersion: number; pages: Array<{ pageId: string; revisionId: string; version: number; title: string; file: string }> }
 
-export function DocumentEditor({ draft, onChange, busy, dirty, onSave, onPreview, availableImage, portfolioSelections = [], onLoadPortfolio, uiLocale = 'nl' }: {
+export function DocumentEditor({ draft, onChange, busy, dirty, onSave, onPreview, availableImage, portfolioSelections = [], onLoadPortfolio, uiLocale = 'nl', publishedFile }: {
   uiLocale?: UiLocale; draft: DocumentContent; onChange: (value: DocumentContent) => void; busy: boolean; dirty: boolean;
   onSave: () => void; onPreview: () => void; availableImage: DocumentImageReference | null; portfolioSelections?: PortfolioSelection[]; onLoadPortfolio?: () => void;
+  publishedFile: string | null;
 }) {
   const {copy: t, text} = createCmsTranslator(uiLocale);
   const move = (position: number, offset: number) => {
@@ -20,7 +21,8 @@ export function DocumentEditor({ draft, onChange, busy, dirty, onSave, onPreview
   };
   return <fieldset disabled={busy}><legend>{draft.title}</legend>
     <label>{t.title}<input value={draft.title} maxLength={200} onChange={(event) => onChange({ ...draft, title: event.target.value })} /></label>
-    <label>{t.slug}<input value={draft.slug} maxLength={80} onChange={(event) => onChange({ ...draft, slug: event.target.value })} /></label>
+    <label>{t.slug}<input value={draft.slug} maxLength={80} aria-describedby={publishedFile ? 'document-slug-help' : undefined} onChange={(event) => onChange({ ...draft, slug: event.target.value })} /></label>
+    {publishedFile && <p className="hint" id="document-slug-help">{t.slugRenameHelp}</p>}
     <label>{t.seoTitle}<input value={draft.seoTitle} maxLength={200} onChange={(event) => onChange({ ...draft, seoTitle: event.target.value })} /></label>
     <label>{t.seoDescription}<textarea rows={2} value={draft.seoDescription} maxLength={1000} onChange={(event) => onChange({ ...draft, seoDescription: event.target.value })} /></label>
     {draft.blocks.map((block, index) => <fieldset key={block.blockId}><legend>{block.type === 'text' ? t.text : block.type === 'image' ? t.image : t.portfolio} {index + 1}</legend>

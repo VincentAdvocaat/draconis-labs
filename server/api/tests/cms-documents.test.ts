@@ -107,6 +107,47 @@ describe('CMS pages, blocks and complete site snapshots', () => {
     expect((await running.app.inject('/sites/demo-cms/renamed.html')).statusCode).toBe(404);
   });
 
+  it('publishes a renamed route while preserving the earlier release and its reserved slug', async () => {
+    const running = await start();
+    const original = await create(running, 'original');
+    const page = await save(running, original, text(original, 'Original published text'));
+    const other = await create(running, 'already-taken');
+    await save(running, other, text(other));
+    const first = await publish(running, await plan(running), 'before-route-rename');
+    expect(first.statusCode).toBe(200);
+    const oldRelease = join(running.root, 'releases', 'demo-cms', first.json().releaseId);
+    const oldHtml = readFileSync(join(oldRelease, 'original.html'));
+    const oldManifest = readFileSync(join(oldRelease, 'release.json'));
+    const tryRename = (slug: string) => running.app.inject({
+      method: 'PUT', url: `${base}/documents/${page.pageId}/draft`, headers: editor,
+      payload: { expectedVersion: page.version, content: { ...page.content, slug } },
+    });
+    expect((await tryRename('already-taken')).statusCode).toBe(409);
+    expect((await tryRename('en')).statusCode).toBe(400);
+
+    const draft = await save(running, page, { ...text(page, 'Renamed published text'), slug: 'new-route' });
+    expect(draft).toMatchObject({ pageId: page.pageId, version: page.version + 1, publishedFile: 'original.html' });
+    expect(draft.revisionId).not.toBe(page.revisionId);
+    expect((await running.app.inject('/sites/demo-cms/original.html')).rawPayload).toEqual(oldHtml);
+    expect((await running.app.inject('/sites/demo-cms/new-route.html')).statusCode).toBe(404);
+
+    const next = await publish(running, await plan(running), 'after-route-rename');
+    expect(next.statusCode).toBe(200);
+    expect((await running.app.inject('/sites/demo-cms/new-route.html')).body).toContain('Renamed published text');
+    expect((await running.app.inject('/sites/demo-cms/index.html')).body).toContain('href="/sites/demo-cms/new-route.html"');
+    expect((await running.app.inject('/sites/demo-cms/original.html')).statusCode).toBe(404);
+    const result = await running.app.inject({ url: `${base}/documents/${page.pageId}`, headers: editor });
+    expect(result.json()).toMatchObject({ pageId: page.pageId, revisionId: draft.revisionId, publishedFile: 'new-route.html' });
+    expect(readFileSync(join(oldRelease, 'original.html'))).toEqual(oldHtml);
+    expect(readFileSync(join(oldRelease, 'release.json'))).toEqual(oldManifest);
+
+    const reused = await running.app.inject({ method: 'POST', url: base + '/documents', headers: editor,
+      payload: { title: 'Other document', slug: 'original' } });
+    expect(reused.statusCode).toBe(409);
+    const restoredDraft = await save(running, draft, { ...draft.content, slug: 'original' });
+    expect(restoredDraft.publishedFile).toBe('new-route.html');
+  });
+
   it('activates exactly one of two site publishers against the same active version', async () => {
     let entered = 0; let both!: () => void; let release!: () => void;
     const ready = new Promise<void>((r) => { both = r; }); const held = new Promise<void>((r) => { release = r; });
@@ -230,7 +271,7 @@ describe('CMS pages, blocks and complete site snapshots', () => {
     const changed = await publish(running, await plan(running), 'pinned-whole-site'); expect(changed.statusCode).toBe(409);
   });
 
-  it('preserves previous release on incomplete content or build-time rights revocation and freezes already published slugs', async () => {
+  it('preserves the active route on incomplete content or rights revocation during a rename publication', async () => {
     let revoke = false;
     const running = await start({ hooks: { beforeActivate: async () => {
       if (revoke) expect((await running.app.inject({ method: 'PUT', url: base + '/media/photo/rights', headers,
@@ -244,13 +285,14 @@ describe('CMS pages, blocks and complete site snapshots', () => {
     await approve(running);
     doc = await save(running, doc, { ...text(doc), blocks: [...text(doc).blocks, imageBlock()] });
     const prior = await publish(running, await plan(running), 'valid-complete-site'); expect(prior.statusCode).toBe(200);
-    const rename = await running.app.inject({ method: 'PUT', url: `${base}/documents/${doc.pageId}/draft`, headers: editor,
-      payload: { expectedVersion: doc.version, content: { ...doc.content, slug: 'anders' } } });
-    expect(rename.statusCode).toBe(409);
+    const rename = await save(running, doc, { ...doc.content, slug: 'anders' });
+    expect(rename.publishedFile).toBe('over-proeftuin.html');
     revoke = true;
     const blocked = await publish(running, await plan(running), 'rights-blocked-whole-site');
     expect(blocked.statusCode).toBe(422); expect(blocked.json().errorCode).toBe('media_not_publishable');
     expect(running.repository.active('demo-cms').activeReleaseId).toBe(prior.json().releaseId);
+    expect((await running.app.inject('/sites/demo-cms/over-proeftuin.html')).statusCode).toBe(200);
+    expect((await running.app.inject('/sites/demo-cms/anders.html')).statusCode).toBe(404);
     expect((await running.app.inject(`/sites/demo-cms/media/${prior.json().releaseId}/${doc.pageId}.png`)).statusCode).toBe(200);
     expect((await running.app.inject(`/sites/demo-cms/media/${blocked.json().releaseId}/${doc.pageId}.png`)).statusCode).toBe(404);
   });

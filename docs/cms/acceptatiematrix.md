@@ -5,7 +5,7 @@ Stand op 20 november 2026 na de gezamenlijke PR43-review op runtimehead `ea12b79
 | Criterium | Bewijs en status |
 | --- | --- |
 | Bestaande home behouden | CMS21, PR21 `0a9a9b76`: additieve migratie, oude revisies en releases behouden; API- en herstartproef groen. |
-| Nieuwe pagina, slug, SEO en typed tekst/beeld | CMS21 gebouwd en gereviewd. Slug uniek en vast tijdens/na publicatie; redirect en verwijderflow open. |
+| Nieuwe pagina, slug, SEO en typed tekst/beeld | CMS21 gebouwd en gereviewd. De CMS02-vervolgstap laat de redacteur de slug van een gewone NL-pagina in het concept wijzigen. Bij activering vervangt het nieuwe adres het vorige. Een eerdere release en haar export behouden het oude adres en de originele bestanden. Slugs uit eerdere publicaties blijven bij dezelfde pagina. |
 | Volledige expliciete siterelease | Gebouwd: alle gekozen paginarevisies gepind vóór async build, CAS/idempotency, nieuwere concepten apart. |
 | Foto uploaden en rechten vrijgeven | PR17 gereviewd; schone derivatives, expliciete rechtenaudit, finale hercontrole, retained versies. |
 | Portfolio kiezen en publiceren | PR25 gereviewd: snapshot/checksum/locale, preview, eigen immutable beeldkopieën, alle pins in één gate. |
