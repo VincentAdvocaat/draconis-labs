@@ -151,22 +151,26 @@ describe('client identity owns all open Planner UI', () => {
     const { client, task } = fixture('Task A');
     const save = deferred<Task>();
     client.update = vi.fn(() => save.promise);
-    await act(async () => root.render(<App client={client} />));
-    await openTask();
-    await editTitle('Draft A');
-    await click(button('Opslaan'));
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    try {
+      await act(async () => root.render(<App client={client} />));
+      await openTask();
+      await editTitle('Draft A');
+      await click(button('Opslaan'));
 
-    expect(button('Opslaan…').disabled).toBe(true);
-    expect(button('Verwijderen').disabled).toBe(true);
-    expect(button('Annuleren').disabled).toBe(true);
-    expect(document.querySelector<HTMLInputElement>('[role="dialog"] input')?.disabled).toBe(true);
-    await act(async () => {
-      document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    });
-    expect(document.querySelector('[role="dialog"]')).not.toBeNull();
-    expect(client.update).toHaveBeenCalledOnce();
-    await act(async () => save.resolve({ ...task, title: 'Draft A', version: 2 }));
-    expect(document.querySelector('[role="dialog"]')).toBeNull();
+      expect(button('Opslaan…').disabled).toBe(true);
+      expect(button('Verwijderen').disabled).toBe(true);
+      expect(button('Annuleren').disabled).toBe(true);
+      expect(document.querySelector<HTMLInputElement>('[role="dialog"] input')?.disabled).toBe(true);
+      await act(async () => {
+        document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      });
+      expect(confirm).not.toHaveBeenCalled();
+      expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+      expect(client.update).toHaveBeenCalledOnce();
+      await act(async () => save.resolve({ ...task, title: 'Draft A', version: 2 }));
+      expect(document.querySelector('[role="dialog"]')).toBeNull();
+    } finally { confirm.mockRestore(); }
   });
 
   it('names the selected card and deletes only after explicit confirmation', async () => {
