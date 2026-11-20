@@ -4,6 +4,7 @@ const nl = {
   pages: 'Pagina’s', refresh: 'Paginaoverzicht ophalen', openHome: 'Home bewerken', openPage: 'Pagina openen',
   newTitle: 'Titel nieuwe pagina', newSlug: 'Slug nieuwe pagina', create: 'Nieuwe pagina aanmaken',
   title: 'Paginatitel', slug: 'Slug', seoTitle: 'SEO-titel', seoDescription: 'SEO-beschrijving',
+  slugRenameHelp: 'Bij de volgende publicatie vervangt de nieuwe slug het huidige adres. Het oude adres vervalt.',
   text: 'Tekstblok', image: 'Afbeeldingsblok', heading: 'Blokkop', body: 'Bloktekst', caption: 'Bijschrift',
   alt: 'Alt-tekst bij dit blok', decorative: 'Dit beeldblok is decoratief',
   addText: 'Tekstblok toevoegen', addImage: 'Afbeelding uit laatste upload toevoegen',
@@ -18,6 +19,7 @@ type Copy = { [K in keyof typeof nl]: string };
 const en: Copy = {
   pages: 'Pages', refresh: 'Load page overview', openHome: 'Edit home', openPage: 'Open page',
   newTitle: 'New page title', newSlug: 'New page slug', create: 'Create page', title: 'Page title', slug: 'Slug',
+  slugRenameHelp: 'The next publication replaces the current address with the new slug. The old address then stops working.',
   seoTitle: 'SEO title', seoDescription: 'SEO description', text: 'Text block', image: 'Image block', heading: 'Block heading',
   body: 'Block text', caption: 'Caption', alt: 'Alt text for this block', decorative: 'This image block is decorative',
   addText: 'Add text block', addImage: 'Add image from latest upload', up: 'up', down: 'down', block: 'Block',

@@ -120,6 +120,11 @@ function editorHarness() {
   };
   render();
   return { results, requests, action, button, title, text: () => text(tree),
+    link: (label: string) => find((node) => node.type === 'a' && text(node.props.children) === label),
+    pageButton: (file: string) => {
+      const row = find((node) => node.type === 'li' && text(node.props.children).includes(file));
+      return nodes(row).find((node) => node.type === 'button')!;
+    },
     settle: async () => { await new Promise<void>((resolve) => setImmediate(resolve)); render(); },
     field: (label: string, index = 0) => {
       const owner = nodes(tree).filter((node) => node.type === 'label' && Array.isArray(node.props.children) &&
@@ -152,6 +157,40 @@ async function openImageEnglish(needsUpdate=true, unsaved=false) {
 }
 
 describe('CMS editor recovery and selected revision', () => {
+  it('keeps the active URL after saving a renamed draft and updates it after site publication', async () => {
+    const ui = editorHarness();
+    const content = { schemaVersion: 1, locale: 'nl', title: 'Pagina', slug: 'oud', seoTitle: 'Pagina', seoDescription: '',
+      blocks: [{ blockId: 'block-one', type: 'text', heading: '', body: 'Tekst' }] };
+    const doc = { pageId: 'page-one', revisionId: 'page-revision-one', version: 1, content, published: true, publishedFile: 'oud.html' };
+    const home = { pageId: 'home', revisionId: pageA.revisionId, version: 1, title: 'Home', file: 'index.html' };
+    const pageInfo = { pageId: doc.pageId, revisionId: doc.revisionId, version: doc.version, title: 'Pagina', file: 'oud.html' };
+    const plan = { activeVersion: 1, activeReleaseId: 'first-release', pages: [home, pageInfo] };
+    ui.results.push({ status: 200, body: { ...pageA, pagesEnabled: true, activeVersion: 1, activeReleaseId: 'first-release' } });
+    await ui.open();
+    ui.results.push({ status: 200, body: plan });
+    await ui.action(ui.button('Paginaoverzicht ophalen'));
+    ui.results.push({ status: 200, body: doc });
+    await ui.action(ui.pageButton('oud.html'));
+    const publishedLink = () => ui.link('Gepubliceerde lokale pagina openen').props.href;
+    expect(publishedLink()).toBe('/sites/demo-cms/oud.html');
+    await ui.action(ui.field('Slug'), 'onChange', { target: { value: 'nieuw' } });
+    const renamed = { ...doc, revisionId: 'page-revision-two', version: 2, content: { ...doc.content, slug: 'nieuw' } };
+    ui.results.push({ status: 200, body: renamed });
+    await ui.action(ui.button('Paginaconcept opslaan'));
+    expect(JSON.parse(ui.requests.at(-1)!.init.body!)).toMatchObject({ expectedVersion: 1, content: { slug: 'nieuw' } });
+    expect(publishedLink()).toBe('/sites/demo-cms/oud.html');
+
+    ui.results.push({ status: 200, body: { ...plan, pages: [home, { ...pageInfo, revisionId: renamed.revisionId, version: renamed.version, file: 'nieuw.html' }] } });
+    await ui.action(ui.button('Publicatieselectie ophalen'));
+    ui.results.push({ status: 200, body: { releaseId: 'second-release', status: 'published' } },
+      { status: 200, body: { ...renamed, publishedFile: 'nieuw.html' } });
+    await ui.action(ui.button('Website lokaal publiceren'));
+    expect(publishedLink()).toBe('/sites/demo-cms/nieuw.html');
+    expect(JSON.parse(ui.requests.at(-2)!.init.body!).expectedPages[1]).toEqual({
+      pageId: doc.pageId, revisionId: renamed.revisionId, version: renamed.version,
+    });
+  });
+
   it('requires an explicit shared pin, preserves it across retry/language changes and sends only its revision/version',async()=>{
     const ui=editorHarness();ui.results.push({status:200,body:{...pageA,pagesEnabled:true,sharedEnabled:true}});await ui.open();
     const shared={revisionId:'shared-one',version:1,content:{schemaVersion:1,fields:{
