@@ -58,3 +58,8 @@ De nieuwe branch verenigt de volledige gereviewde CMS42- en catalogus41-keten va
 
 
 De volledige modulecriteria zijn vergeleken in [open-criteria](../integratie-v2/open-criteria.md). Lokale demo en gewoon mainmergeplan staan in dezelfde overdracht. Een werkende fixture sluit de oorspronkelijke identity/import/adapter/operationele criteria niet automatisch.
+
+
+## Zelfstandige M5-export
+
+Een apart release-only CLI-commando en statische proef staan in [statische-export-proef.md](statische-export-proef.md). De bestaande gepubliceerde bytes worden op hun gedocumenteerde /sites/<website>/-basis zonder CMS/API geladen. Geen file://-rewrite of nieuwe renderer. De onafhankelijke review van deze stap volgt.
