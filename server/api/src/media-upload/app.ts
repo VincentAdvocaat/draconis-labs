@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
-import Fastify from 'fastify';
+import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify';
 import { ZodError } from 'zod';
 import { LocalUploadService } from './service.js';
 import { MAX_BYTES, UploadError } from './processor.js';
@@ -10,7 +10,7 @@ export async function buildUploadApp(root: string, token: string, options: {
 } = {}) {
   if (token.length < 32) throw new Error('Explicit fixture bearer token of at least 32 characters required');
   const service = new LocalUploadService(root);
-  await service.recover();
+  try { await service.recover(); } catch (error) { service.close(); throw error; }
   const app = Fastify({ bodyLimit: MAX_BYTES, requestTimeout: 30_000, connectionTimeout: 10_000, logger: false });
   let activeUpload = false;
   const admitted = new Set<string>();
@@ -33,24 +33,36 @@ export async function buildUploadApp(root: string, token: string, options: {
   app.setErrorHandler((error, _request, reply) => {
     const status = error instanceof ZodError ? 400 : error instanceof UploadError ? error.statusCode : (error as { statusCode?: number }).statusCode ?? 500;
     reply.code(status >= 400 && status <= 599 ? status : 500).send({ message: status >= 500 ? 'Local upload failed' : (error as Error).message,
-      ...(error instanceof UploadError && error.assetId ? { assetId: error.assetId, fileVersion: 1 } : {}) });
+      ...(error instanceof UploadError && error.assetId ? { assetId: error.assetId, fileVersion: error.fileVersion ?? 1, jobId: error.jobId ?? error.assetId } : {}) });
   });
-  app.post<{ Params: { website: string } }>('/websites/:website/media', {
+  const uploadAdmission = {
     bodyLimit: MAX_BYTES,
-    onRequest: async (_request, reply) => {
+    onRequest: async (_request: FastifyRequest, reply: FastifyReply) => {
       if (activeUpload) return reply.code(429).send({ message: 'One local upload at a time; retry after completion' });
       activeUpload = true;
       admitted.add(_request.id);
     },
-    onResponse: async (request) => { if (admitted.delete(request.id)) activeUpload = false; },
-    onError: async (request) => { if (admitted.delete(request.id)) activeUpload = false; },
-  }, async (request, reply) => {
+    onResponse: async (request: FastifyRequest) => { if (admitted.delete(request.id)) activeUpload = false; },
+    onError: async (request: FastifyRequest) => { if (admitted.delete(request.id)) activeUpload = false; },
+  };
+  app.post<{ Params: { website: string } }>('/websites/:website/media', uploadAdmission, async (request, reply) => {
     if (!Buffer.isBuffer(request.body)) throw new UploadError(415, 'Send a raw JPEG, PNG or WebP body');
     const filename = request.headers['x-media-filename'];
     if (typeof filename !== 'string') throw new UploadError(400, 'x-media-filename is required');
     const result = await service.upload(request.params.website, request.body, filename, request.headers['content-type'] ?? '');
     return reply.code(201).send(result);
   });
+  app.post<{ Params: { website: string; asset: string } }>('/websites/:website/media/:asset/versions', uploadAdmission, async (request, reply) => {
+    if (request.headers['x-media-confirm-invalidation'] !== 'true') throw new UploadError(400, 'Confirm asset-wide rights reapproval for the new file version');
+    if (!Buffer.isBuffer(request.body)) throw new UploadError(415, 'Send a raw JPEG, PNG or WebP body');
+    const filename = request.headers['x-media-filename'];
+    if (typeof filename !== 'string') throw new UploadError(400, 'x-media-filename is required');
+    const result = await service.uploadVersion(request.params.website, request.params.asset,
+      Number(request.headers['x-media-metadata-version']), Number(request.headers['x-media-file-version']),
+      request.body, filename, request.headers['content-type'] ?? '');
+    return reply.code(201).send(result);
+  });
+  app.get<{ Params: { website: string; id: string } }>('/websites/:website/media/jobs/:id', async request => service.status(request.params.website, request.params.id));
   app.get<{ Params: { website: string; id: string } }>('/websites/:website/media/:id', async request =>
     service.status(request.params.website, request.params.id));
   app.post<{ Params: { website: string; id: string } }>('/websites/:website/media/:id/retry', {

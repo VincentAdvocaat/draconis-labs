@@ -8,12 +8,14 @@ import { createCatalogConsumerFixture } from '../../catalogus/consumer-fixture.j
 import { assertFixtureRoot } from '../../media-fixture/safety.js';
 import { buildCmsApp } from './app.js';
 import { checkRecoveryCatalog, checkCmsRecoveryPins, recoveryCatalogSchema } from './recovery-catalog.js';
+import { checkRecoveryUpload, recoveryUploadSchema } from './recovery-upload.js';
 
 const digest = (bytes: string | Buffer) => createHash('sha256').update(bytes).digest('hex');
 const markerSchema = z.object({ version: z.literal(1), synthetic: z.literal(true), id: z.uuid(), mediaRoot: z.string() }).strict();
 const entrySchema = z.object({ path: z.string(), bytes: z.number().int().nonnegative(), sha256: z.string().regex(/^[a-f0-9]{64}$/) }).strict();
 const manifestSchema = z.object({ format: z.literal('cms-synthetic-backup'), version: z.literal(1), complete: z.literal(true),
   sourceId: z.uuid(), consistency: z.literal('offline-single-owner'), cmsSchema: z.literal(8), catalogSchema: recoveryCatalogSchema,
+  uploadSchema: recoveryUploadSchema.default(0),
   files: z.array(entrySchema).min(2).max(20000) }).strict();
 type Manifest = z.infer<typeof manifestSchema>;
 export interface RecoveryHooks { afterFile?: (path: string) => void }
@@ -176,6 +178,7 @@ function validatePayload(root: string) {
   const media = new Database(join(root, 'media/media.sqlite'), { readonly: true });
   try {
     const catalogSchema = checkRecoveryCatalog(media);
+    const uploadSchema = checkRecoveryUpload(media, join(root, 'media'));
     checkCmsRecoveryPins(cms, media);
     if (cms.prepare("SELECT 1 FROM cms_active a JOIN cms_attempts r ON r.id=a.release_id WHERE r.status<>'published' OR r.website_id<>a.website_id").get()) throw new Error('Invalid active release pointer');
     for (const template of cms.prepare('SELECT hash,bundle FROM cms_contact_templates').all() as Array<{ hash: string; bundle: string }>) {
@@ -196,7 +199,7 @@ function validatePayload(root: string) {
         if (bytes.length !== variant.bytes || digest(bytes) !== variant.checksum) throw new Error('Retained media hash mismatch');
       }
     }
-    return catalogSchema;
+    return { catalogSchema, uploadSchema };
   } finally { cms.close(); media.close(); }
 }
 export async function backupRecoveryFixture(sourceRoot: string, target: string, hooks: RecoveryHooks = {}) {
@@ -234,10 +237,10 @@ export async function backupRecoveryFixture(sourceRoot: string, target: string, 
       if (JSON.stringify(list(directory!)) !== JSON.stringify(expected)) throw new Error('Source file inventory changed');
     }
     for (const file of before) if (digest(regular(file.input)) !== file.sha256) throw new Error('Source files changed during backup');
-    const catalogSchema = validatePayload(output);
+    const { catalogSchema, uploadSchema } = validatePayload(output);
     const files = list(output).map(path => { safePath(path); const bytes = regular(join(output, path)); return { path, bytes: bytes.length, sha256: digest(bytes) }; });
     const manifest: Manifest = { format: 'cms-synthetic-backup', version: 1, complete: true, sourceId: marker.id,
-      consistency: 'offline-single-owner', cmsSchema: 8, catalogSchema, files };
+      consistency: 'offline-single-owner', cmsSchema: 8, catalogSchema, uploadSchema, files };
     // Written last. A crash or failed copy without this marker is never restorable.
     write(join(output, 'backup.json'), JSON.stringify(manifest, null, 2));
     return { root: output, files: files.length };
@@ -256,7 +259,9 @@ export async function restoreRecoveryFixture(packageRoot: string, target: string
   if (new Set(paths.map(path => path.toLowerCase())).size !== paths.length || !paths.includes('cms/cms.db') || !paths.includes('media/media.sqlite')) throw new Error('Duplicate or missing required backup files');
   if (JSON.stringify(list(backup)) !== JSON.stringify([...paths, 'backup.json'].sort())) throw new Error('Backup inventory mismatch');
   for (const file of manifest.files) { const bytes = regular(join(backup, file.path)); if (bytes.length !== file.bytes || digest(bytes) !== file.sha256) throw new Error('Backup hash mismatch'); }
-  if (validatePayload(backup) !== manifest.catalogSchema) throw new Error('Manifest/catalog database schema mismatch');
+  const payloadSchema = validatePayload(backup);
+  if (payloadSchema.catalogSchema !== manifest.catalogSchema) throw new Error('Manifest/catalog database schema mismatch');
+  if (payloadSchema.uploadSchema !== manifest.uploadSchema) throw new Error('Manifest/upload database schema mismatch');
   let mediaRoot: string | undefined, created = false;
   try {
     mkdirSync(root); created = true;
