@@ -10,6 +10,9 @@ import { MediaContractError } from '../media-fixture/contracts.js';
 import { itemInputSchema, localeVariantInputSchema, withdrawalSchema, type CatalogItem, type CatalogRef, type CatalogSnapshot } from './contracts.js';
 import { MediaRightsService } from '../media-upload/rights.js';
 import { CatalogLocales } from './locales.js';
+import { MediaLibrary } from './library.js';
+import { CatalogCategories } from './categories.js';
+import { CatalogOrder } from './order.js';
 
 export class CatalogService {
   private readonly db: Database.Database;
@@ -17,6 +20,8 @@ export class CatalogService {
   private readonly rights: MediaRightsService;
   private readonly root: string;
   private readonly locales: CatalogLocales;
+  private readonly categories: CatalogCategories;
+  private readonly order: CatalogOrder;
   constructor(root: string) {
     this.root = assertFixtureRoot(root);
     this.db = new Database(join(this.root, 'media.sqlite'));
@@ -26,7 +31,7 @@ export class CatalogService {
     this.db.transaction(() => {
       this.db.exec('CREATE TABLE IF NOT EXISTS catalog_schema(version INTEGER NOT NULL)');
       const version = this.db.prepare('SELECT version FROM catalog_schema').get() as { version: number } | undefined;
-      if (version && ![1, 2, 3].includes(version.version)) throw new Error('Unsupported catalog schema version');
+      if (version && ![1, 2, 3, 4, 5].includes(version.version)) throw new Error('Unsupported catalog schema version');
       if (!version) {
         this.db.exec(`
           CREATE TABLE catalog_collections(website TEXT PRIMARY KEY, version INTEGER NOT NULL DEFAULT 0);
@@ -54,6 +59,8 @@ export class CatalogService {
       }
     })();
     this.locales = new CatalogLocales(this.db);
+    this.categories = new CatalogCategories(this.db);
+    this.order = new CatalogOrder(this.db);
     } catch (error) { this.db.close(); throw error; }
   }
   close() { this.rights.close(); this.media.close(); this.db.close(); }
@@ -66,6 +73,19 @@ export class CatalogService {
       f.version AS fileVersion,f.state FROM assets a JOIN files f ON f.website=a.website AND f.asset=a.id
       WHERE a.website=? AND a.archived=0 ORDER BY a.id,f.version`).all(website);
   }
+  library(website: string, input: unknown) {
+    this.authorize(website);
+    return new MediaLibrary(this.db).list(website, input);
+  }
+  listCategories(website: string) { this.authorize(website); return this.categories.list(website); }
+  saveOrder(website: string, input: unknown) { this.authorize(website); return this.order.save(website, input); }
+  saveCategory(website: string, id: string | undefined, input: unknown) { this.authorize(website); return this.categories.save(website, id, input); }
+  archiveCategory(website: string, id: string, input: unknown) { this.authorize(website); return this.categories.archive(website, id, input); }
+  removeCategory(website: string, id: string, input: unknown) { this.authorize(website); return this.categories.remove(website, id, input); }
+  libraryDetail(website: string, assetId: string) {
+    this.authorize(website);
+    return new MediaLibrary(this.db).detail(website, assetId);
+  }
   setRights(website: string, assetId: string, input: unknown) {
     this.authorize(website);
     return this.rights.setRights(website, assetId, input);
@@ -74,11 +94,11 @@ export class CatalogService {
     this.authorize(website);
     const row = this.db.prepare('SELECT version FROM catalog_collections WHERE website=?').get(website) as { version: number };
     const items = this.db.prepare(`SELECT r.json FROM catalog_items i JOIN catalog_revisions r
-      ON i.website=r.website AND i.revision=r.id WHERE i.website=? AND i.archived=0 ORDER BY i.slug`)
+      ON i.website=r.website AND i.revision=r.id WHERE i.website=? AND i.archived=0 ORDER BY i.position,i.id`)
       .all(website) as { json: string }[];
     return { websiteId: website, collectionId: 'portfolio' as const, version: row.version,
       defaultLocale: this.locales.defaultLocale(website), locales: CONTENT_LOCALES,
-      category: { id: 'algemeen', name: 'Algemeen' }, items: items.map(r => JSON.parse(r.json) as CatalogItem) };
+      category: { id: 'algemeen', name: this.categories.get(website, 'algemeen').labels.nl }, categories: this.categories.list(website), items: items.map(r => JSON.parse(r.json) as CatalogItem) };
   }
   save(website: string, input: unknown) {
     this.authorize(website);
@@ -89,6 +109,7 @@ export class CatalogService {
         .get(website, data.itemId) as { version: number; json: string } | undefined : undefined;
       if (data.itemId && !old) throw new MediaContractError(404, 'Item not found');
       if ((old?.version ?? 0) !== data.expectedVersion) throw new MediaContractError(409, 'Item version conflict');
+      this.categories.requireSelection(website, data.categoryId, old ? (JSON.parse(old.json) as CatalogItem).categoryId : undefined);
       const id = data.itemId ?? randomUUID();
       const duplicate = this.db.prepare('SELECT id FROM catalog_items WHERE website=? AND slug=? AND id<>?').get(website, data.slug, id);
       if (duplicate) throw new MediaContractError(409, 'Slug already exists for website');
@@ -105,9 +126,10 @@ export class CatalogService {
     this.media.saveReferences(website, { module: 'catalogus', ownerId: item.itemId,
       revisionId: `catalog-${item.revisionId}`, expectedVersion: 0, references: [item.media] });
     this.db.prepare('INSERT INTO catalog_revisions VALUES(?,?,?,?)').run(website, item.revisionId, item.itemId, JSON.stringify(item));
-    this.db.prepare(`INSERT INTO catalog_items VALUES(?,?,?,?,?,0) ON CONFLICT(website,id)
-      DO UPDATE SET slug=excluded.slug,version=excluded.version,revision=excluded.revision,archived=0`)
-      .run(website, item.itemId, item.slug, item.version, item.revisionId);
+    const position = this.order.positionForItem(website, item.itemId);
+    this.db.prepare(`INSERT INTO catalog_items(website,id,slug,version,revision,archived,position) VALUES(?,?,?,?,?,0,?) ON CONFLICT(website,id)
+      DO UPDATE SET slug=excluded.slug,version=excluded.version,revision=excluded.revision,archived=0,position=excluded.position`)
+      .run(website, item.itemId, item.slug, item.version, item.revisionId, position);
     this.db.prepare('UPDATE catalog_collections SET version=version+1 WHERE website=?').run(website);
   }
   private currentItem(website: string, id: string) {
@@ -162,7 +184,8 @@ export class CatalogService {
           revisionId: `catalog-${item.revisionId}`, locales: [localeContext.locale] });
         return { ...localized, resolvedMedia: media.references[0] };
       });
-      const payload = { schemaVersion: 2 as const, websiteId: website, collectionId: 'portfolio' as const, snapshotId, localeContext, items };
+      const categories = this.categories.publication(website, items.map(item => item.categoryId), localeContext);
+      const payload = { schemaVersion: 3 as const, websiteId: website, collectionId: 'portfolio' as const, snapshotId, localeContext, categories, items };
       const snapshot: CatalogSnapshot = { ...payload, checksum: checksum(Buffer.from(JSON.stringify(payload))) };
       this.db.prepare('INSERT INTO catalog_snapshots(website,id,json) VALUES(?,?,?)').run(website, snapshotId, JSON.stringify(snapshot));
       this.db.prepare('INSERT INTO catalog_snapshot_audit VALUES(?,?,1,?,?,?)')

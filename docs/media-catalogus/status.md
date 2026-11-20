@@ -1,22 +1,22 @@
 # Gebouwd, geïntegreerd en nog open
 
-Stand op 19 november 2026, na onafhankelijke herreview van [PR 22](https://github.com/VincentAdvocaat/draconis-labs/pull/22) op `264ce99cfd76493d0e4851de13d8c56ec524f23d`. De PR's zijn gestapeld; merge en deployment zijn niet uitgevoerd. Deze matrix vergelijkt de gerealiseerde proef met de oorspronkelijke [backlog](backlog.md). Een werkende kleine flow betekent niet dat alle bredere fasecriteria al zijn ingevuld.
+Stand op 19 november 2026, boven gezamenlijke [PR 37](https://github.com/VincentAdvocaat/draconis-labs/pull/37), vaste basis `fc43090d0f90892df97d7e033bef66b772c81aa8`. Merge en deployment zijn niet uitgevoerd. Deze matrix vergelijkt de gerealiseerde proef met de oorspronkelijke [backlog](backlog.md). Een werkende kleine flow betekent niet dat alle bredere fasecriteria al zijn ingevuld.
 
-Gebouwd betekent dat code en lokale controles bestaan. Geïntegreerd betekent dat de genoemde entrypoints dezelfde services werkelijk aanroepen. De consumer is gereed en overgedragen; een gezamenlijke CMS-portfoliorelease is hier nog niet bewezen. CMS-PR 21 is volgens de CMS-overdracht gereviewd op `0a9a9b76b0df289c404e97b2d05254dac7e62d74`; dat bewijst op zichzelf geen gebruik van consumer-PR 22.
+Gebouwd betekent dat code en lokale controles bestaan. Geïntegreerd betekent dat de genoemde entrypoints dezelfde services werkelijk aanroepen. De CMS-portfoliorelease en zelfstandige catalogus zijn inmiddels samengebracht. Het vastgelegde [integratierapport](../integratie/review-pr37.json) reviewt SHA `fb9c22d407a50fcc020d792a94261510019d65ad` zonder bevindingen, inclusief 306 API-tests, 18 shared-tests, 20 Planner-UI-tests, startupsmokes en acht catalogus-CLI-checks. Browser- en herstartbewijs zijn aangeleverd door de integratie-eigenaar, zie [bewijs](../integratie/bewijs.json) en [gebruikersdemo](../integratie/gebruikersdemo.md). Dit is bronattributie, geen nieuwe uitvoering van die checks door deze documentupdate.
 
 | Onderdeel | Gebouwd en lokaal verbonden | Nog open uit de oorspronkelijke scope |
 | --- | --- | --- |
 | Ontwerp en inventarisatie | Drie repositories gelezen; grenzen media/catalogus/CMS en phased backlog vastgelegd in PR 6 | Productkeuze echte collectie en doelwebsite, rechten van bestaande foto's |
-| M0 media-contract | Twee fictieve websites, assetId/fileVersion, referentieretentie, CAS-conflicten en manifestresolver, PR 8; catalogus en consumer gebruiken dezelfde M0-service | Productie-identiteit en fysieke assetpurge buiten volledige fixturecleanup; gezamenlijk CMS-hergebruik nog bewijzen |
+| M0 media-contract | Twee fictieve websites, assetId/fileVersion, referentieretentie, CAS-conflicten en manifestresolver, PR 8; catalogus en geïntegreerde CMS-consumer gebruiken dezelfde M0-service | Productie-identiteit en fysieke assetpurge buiten volledige fixturecleanup |
 | M1 upload/processor | Echte loopback-HTTP-upload, JPEG/PNG/WebP-validatie, kleine bronnen, schone varianten, jobherstel/retry, PR 11 | Batch-UI, client-idempotency, algemene opslagdienst en productie-operatie |
-| M2 bibliotheek/rechten | Uploadstatus, selectie, private derivativepreview, contextgebonden alt/decorative en expliciete versiegecontroleerde rechtenaudit; gebruikt door catalogus en consumer. Meerdere retained gebruiken delen één binary | Zoek/filter/paginering en detail/gebruikslijst via volledige UI; bestandsversiebeheer via UI; gerichte toetsenbordacceptatie; tags, expiry/credits en echte medewerkeridentiteit |
-| M3 catalogus | Items opslaan/bewerken/archiveren, vaste collectie portfolio/categorie algemeen, getypeerd jaar, slugconstraint/CAS, immutable revisies en snapshots, PR 14 | Collectie-/categorie-editor, categorie-in-gebruikweigering, configureerbaar metadata-schema en redactionele volgorde met herstartacceptatie |
+| M2 bibliotheek/rechten | Uploadstatus, expliciete versieselectie, schone private preview en rechtenaudit. Nu ook asset-ID zoeken, rechten/nieuwste-statusfilters, serverpaginering en detail met alle versies/historisch retained gebruik, zie [bibliotheekproef](media-library.md) | Nieuwe bestandsversies beheren via UI; bredere toetsenbordacceptatie buiten deze lijst/detailflow; tags, expiry/credits en echte medewerkeridentiteit |
+| M3 catalogus | Items, getypeerd jaar, slug/CAS en immutable snapshots; vlakke websitecategorieën met gepinde NL/EN-namen, zie [categorieën](categories.md); expliciete [itemvolgorde](item-order.md) met collectie-CAS, legacy-initialisatie en herstartbehoud | Meer collecties en configureerbaar metadata-schema; brede klantacceptatie blijft open |
 | M4 portfolio | Raster, itemdetail en lege staat boven dezelfde gepinde media, alt/decorative, behoud na wijziging/archief; mobiele browserproef | Geordende selectie/reorder, coverkeuze, filter, meerdere beelden, zichtbare credits en gerichte toetsenbord-/focusherstelacceptatie; responsieve bronkeuze/lightbox wanneer nodig |
-| Publicatiebeheer | Normale CLI-start, snapshotlijst, expliciete CAS-intrekking, audit en 404 voor bekende pagina/detail/beeld, PR 16 | CMS-publicaties die CatalogRef consumeren en eigen gekopieerde releases kunnen intrekken |
-| Talen | Eén gereviewd gedeeld puur contract, PR 18; handmatige NL/EN-itemvelden, expliciete fallback, directe verplichte publicatievelden en gepinde taalcontext, PR 19 | Centrale redactie van categorie-naam en alle publieke portfolio/detail/jaar/navigatie/lege-staatlabels; gezamenlijke meertalige CMS-bundel. De zelfstandige portfoliorenderer bevat nog NL-labels |
-| M5 consumer-interface | Gereviewde PR 22: duurzame owner/revision/slot/attempt-pins, schone bytes, volledige attempt-batchgate, één synchrone callback en twee-databaseherstel, zie [consumer-pins](consumer-pins.md) | CMS moet de interface nog aantoonbaar aansluiten op zijn bestaande blok/releaseflow. Twee databases zijn niet crash-atomair; unknown pins blijven behouden |
-| M5 gezamenlijke CMS-export | Gereviewde consumer en herbruikbare NL/EN-fixture overgedragen; CMS bouwt één portfolioblok in eigen branch | Offline werken zonder server; uitsluitend gebruikte derivatives; pinned hashes bij herbouw; bronwijziging laat vorige release intact; ontbrekend bestand/rechtenblokkade/intrekking blokkeert activatie zonder vorige release te beschadigen; CMS-retained refs blokkeren purge; gezamenlijk heropenen en integratiereview |
-| M6 migratie | Fixturemigraties en heropenen, behoud IDs/defaultslugs/revisies/snapshots/refs | Read-only klantinventaris, kopie met mapping/uitzonderingen, idempotente import, backup/restore, rollback en twee-tenantsacceptatie van die import; echte klantomschakeling vereist aparte opdracht |
+| Publicatiebeheer | Normale CLI-start, snapshotlijst, expliciete CAS-intrekking, audit en 404 voor bekende pagina/detail/beeld, PR 16; CMS consumeert nu CatalogRef | Eigen expliciete intrekking van gekopieerde CMS-releases; bronintrekking wist geen kopieën |
+| Talen | Gedeeld contract, handmatige NL/EN-itemvelden en gepinde taalcontext; CMS heeft inmiddels ook NL/EN-blokkop/lege staat, paginavarianten, navigatie, EN-afbeelding/portfolio en Home-EN in PR 37 | Categorie-namen zijn inmiddels gepind in NL/EN; overige koppen, jaarlabels en lege-staattekst van de zelfstandige renderer zijn nog niet volledig gelokaliseerd |
+| M5 consumer-interface | Gereviewde consumer verbonden met CMS: volledige attemptpinset, één synchrone activatiegate en herstel uit duurzame CMS-status. Gerichte aansluitingscontrole en CMS-integratietests gesloten | Twee databases blijven niet crash-atomair; unknown pins blijven behouden |
+| M5 gezamenlijke CMS-export | Gepinde CMS-portfoliorelease met schone derivatives, bloktaal/expliciete fallback, behouden vorige release bij geblokkeerde build en heropenen; geïntegreerd en onafhankelijk beoordeeld in PR 37 | Algemene productie-operatie, expliciete CMS-kopie-intrekking en echte klantacceptatie; lokale fixtures zijn geen klantrelease |
+| M6 migratie | Fixturemigraties en heropenen, behoud IDs/defaultslugs/revisies/snapshots/refs | Read-only klantinventaris, kopie met mapping/uitzonderingen, idempotente import, rollback en twee-tenantsacceptatie van die import; synthetische gezamenlijke backup/restore is in PR42/43 inmiddels bewezen; echte klantomschakeling vereist aparte opdracht |
 
 ## Integratie die al aantoonbaar werkt
 
@@ -24,7 +24,7 @@ De catalogus-app gebruikt dezelfde media- en uploadservices, gecontroleerde fixt
 
 De NL/EN-flow gebruikt exact de gereviewde shared-helper. Locale-opslag, slugconstraint en publicatievalidatie zijn aangesloten op dezelfde items en mediareferenties. Oude NL-snapshots en ingetrokken routes blijven behouden.
 
-CMS heeft de exacte gereviewde service- en helpercommits ontvangen en werkt aan hergebruik in zijn eigen werkstroom. De consumercommits zijn `17371b84def3833149a47804d6341b52c58b2f04` en `264ce99cfd76493d0e4851de13d8c56ec524f23d`, boven de benodigde gereviewde catalogus/locale-API op `8eca7997e55aabf7788b013c96b118d72991b568`. Reeds aanwezige shared-helpercommits worden niet dubbel overgenomen. Deze documentupdate wijzigt die dependency-head niet. Deze pagina claimt geen gezamenlijke CMS/catalogus-build of integratiereview die in deze branch niet is uitgevoerd.
+PR 37 bevat de catalogustip `8d3eaeb30d5a8501c064ad1e7a0e4af22779e2c3` als ancestor. De services/helper/consumer zijn één keer opgenomen. De ontbrekende zelfstandige app/HTML/start/CLI en de gereviewde uploadcompositie zijn toegevoegd zonder een tweede media- of rechtenopslag. Deze bibliotheekstap bouwt daarboven, zonder CMS-UI of gedeelde dependencies te wijzigen.
 
 ## Entry points en controleerbaar bewijs
 
@@ -61,9 +61,9 @@ corepack pnpm lint
 corepack pnpm build
 ```
 
-## Eerstvolgende noodzakelijke stap: CMS-publicatieadapter
+## Ingevulde integratieacceptatie en grenzen
 
-Prioriteit is integratie van het bestaande contract, zonder losse nieuwe catalogusfuncties. Een klein acceptatiescenario kan één CMS-pagina met één portfolioblok en één item gebruiken:
+De volgende criteria vormden de kleine CMS-adapteropdracht en zijn nu verbonden met het PR 37-bewijs. Ze blijven gelden bij vervolgstappen:
 
 1. De CMS-medewerker kiest een gepubliceerde CatalogRef met websiteId/collectionId/snapshotId, checksum en dezelfde gekozen locale/fallback. Concept en private preview blijven gescheiden van activeren. De verwijzing wordt gepind, niet als veranderlijke nieuwste-lijstquery opgeslagen.
 2. De builder controleert websitegrens, gepinde context, snapshotstatus, gebruikte bestandsversies/hashes en actuele mediarechten. Een onbekende, ingetrokken, cross-site of niet vrijgegeven bron blokkeert de nieuwe release met een concrete melding.
@@ -74,14 +74,17 @@ Prioriteit is integratie van het bestaande contract, zonder losse nieuwe catalog
 
 Pas daarna zijn bredere bibliotheek- of portfoliobedieningen zinvol. Echte klantmigratie, merge en deployment blijven afzonderlijke opdrachten. De huidige fixtures en screenshots bevatten alleen synthetisch testmateriaal.
 
-## Kleine vervolgstap na de gezamenlijke integratiereview
+## Huidige kleine vervolgstappen
 
-Eerst wordt de CMS-aansluiting gericht gecontroleerd op volledige attemptpinset, synchrone callback na de laatste await en herstel uit de duurzame CMS-status. De cataloguschat controleert die aanroepen zonder gelijktijdig CMS-code te wijzigen. Noodzakelijke integratiefixes gaan voor nieuwe stories.
-
-Na die review en de NL/EN offline-/heropenproef volgt als kleine story het resterende publieke taalwerk van ditzelfde portfolioblok: portfolio-/detailkop, teruglink, jaarlabel en lege staat centraal als handmatige NL/EN CMS-velden beheren en per release bevriezen. Bevestig eerst welke teksten de integratie al levert en werk alleen het overgebleven gat af. Dit is geen opdracht voor een algemene categorie-editor, extra collecties, bredere bibliotheek of klantmigratie.
+De gezamenlijke integratiereview is afgerond. De [bibliotheekproef](media-library.md) is onafhankelijk gereviewd in PR 38 op `c0c7c65fd080f4b9e7cd06142ab1cbb381b6c7df`, met 315 API-tests groen. De [categorie-editor](categories.md) is daarna gereviewd in PR 39 op `df69460b60fb4d34b8082693d12b21493f1d8fd7`, met 329 API-tests en gesloten herreview van twee editorbevindingen. Deze branch voegt uitsluitend de al geautoriseerde [redactionele itemvolgorde](item-order.md) toe. Consolidatie van deze vervolg-PR's gebeurt later expliciet; PR 37 blijft ongemoeid. Geen batch, lightbox, multi-image, extra CMS-bibliotheek, klantmigratie of productie-uitrol. Andere open fasecriteria blijven afzonderlijk te plannen.
 
 ## Verificatielimieten
 
 De modules zijn lokaal op Windows/Node getest. De identiteit is een tijdelijk token voor fictieve websites, geen productieaccountstelsel. Eén eigenaarproces en een SQLite-gate geven geen algemene multiproces- of bestandssysteemgarantie. De echte child-exit bewijst herstelvolgorde, geen fysieke stroomuitvalbestendigheid.
 
 De automatische goedkeuringscontrole blokkeerde eerder de negatieve CLI-cleanup gericht op de projectmap met `blocked by policy`. Die actie is niet uitgevoerd, herhaald of omzeild. De acht pure argumentchecks en positieve cleanup van een eigen gestopte tijdelijke fixture zijn wel uitgevoerd. Er zijn geen klantmutaties, productieresources, betaalde vertalingen of externe opslag gebruikt.
+
+
+## Tweede gezamenlijke consolidatie
+
+PR43 neemt de volledige gereviewde PR38/39/41-keten en CMS40/42 op vanaf de vaste PR37. Gerichte integratiereview akkoord op `ea12b79ce8095878edc4d10ce3f260e3b35b9bf2`. CMS09 ondersteunt hier expliciet media3/4/5 en controleert categorieën, volgorde, volledige snapshots en retained consumerpins vóór restore. Alle369 API-tests na fix groen; ééncheckout-browserproef en echte52-bestanden offline-restore/herstart bewezen. Geen mainmerge, echte import of deployment. Zie [bewijs](../integratie-v2/bewijs.md), [review](../integratie-v2/review-pr43.md) en [resterende oorspronkelijke criteria](../integratie-v2/open-criteria.md).

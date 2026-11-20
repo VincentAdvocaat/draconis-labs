@@ -1,6 +1,6 @@
 # Gezamenlijke CMS-acceptatiematrix
 
-Stand op 19 november 2026 na onafhankelijke review van PR36 op codecommit `fbb583f09c94411b9a4dadaf977d5daec31cce55`. Dit beschrijft lokale proeven met fictieve gegevens. Er is niets samengevoegd of uitgerold.
+Stand op 20 november 2026 na de gezamenlijke PR43-review op runtimehead `ea12b79ce8095878edc4d10ce3f260e3b35b9bf2`. Dit beschrijft lokale proeven met fictieve gegevens op eigen integratiebranches. Er is niet naar main gemerged of uitgerold.
 
 | Criterium | Bewijs en status |
 | --- | --- |
@@ -14,7 +14,7 @@ Stand op 19 november 2026 na onafhankelijke review van PR36 op codecommit `fbb58
 | NL-pagina met NL/EN-portfolio | Gebouwd. Snapshot bepaalt bloklocale en expliciete fallback. Pagina blijft NL. |
 | Portfolio-kop en lege-staattekst redigeren | PR26 onafhankelijk gereviewd op `2fea3e3d`: CMS-owned localevelden, immutable paginarevisie/release en gedeeld localecontract. |
 | Eerste vaste publieke navigatiebindings | PR31 onafhankelijk gereviewd en P2-herreview gesloten op `71833ec4`: bestaande taalkeuze-aria-label en endoniemen via CMS-velden, migratie 5, revisie/CAS, exacte preview en expliciete shared releasepin. |
-| Alle publieke tekst centraal redigeerbaar | De huidige lokale navigatiebindings zijn aangesloten. Andere echte templates, footer en formulier-/linklabels waar aanwezig vragen nog inventaris/aansluiting. Geen claim van algemene template- of productievolledigheid. |
+| Alle publieke tekst centraal redigeerbaar | De huidige lokale navigatiebindings zijn aangesloten. De 27 bindings van één gesaneerde contactfixture, inclusief footer en linklabels, zijn in PR40 aangesloten. Andere echte templates vragen nog inventaris/aansluiting. Geen claim van algemene template- of productievolledigheid. |
 | Minimale CMS22-tekstpagina | PR27 onafhankelijk gereviewd op `f9538988`: dezelfde pagina-/blok-ID's, handmatige EN-titel/slug/SEO/tekst, EN-route/taalnav, expliciete publicatie en structuur-CAS. Legacy `/en.html` blijft bewerkbaar. |
 | EN-afbeelding per gebruik | PR32 onafhankelijk gereviewd op `cbf5c544`; drie noodzakelijke editorbevindingen opgelost en herreview gesloten. NL-bronbinding, EN-alt/bijschrift, expliciete bronbevestiging en immutable revisies. Zie [proef](engelse-afbeelding-proef.md). |
 | Portfolio op EN-pagina | PR34 onafhankelijk gereviewd, legacy-P2 opgelost en herreview akkoord op `7378fae1`. Zie [proef](engels-portfolio-proef.md). |
@@ -22,7 +22,7 @@ Stand op 19 november 2026 na onafhankelijke review van PR36 op codecommit `fbb58
 | Volledige CMS22 contenttalen | Nog open: meer talen, uitgebreidere fallbackdiagnostiek en localeconfiguratie. Eerste tekstvertical heeft expliciet geen fallback en bewaart leeg/ontbrekend. |
 | CMS-bediening NL/EN | PR29 onafhankelijk gereviewd op `69b43c54`, geen noodzakelijke fixes. Getypeerde namespace, eigen tabbladkeuze, bestaande schermen/status/foutcodes en statebehoud. Nederlandse bevestiging verduidelijkt op `7b77a7b8`; 16 relevante tests groen. |
 | Bestaande klanten importeren | Open: reproduceerbare bron, fictieve migratievergelijking, dry-run/idempotency, herstelproef en expliciete aansluiting. |
-| Productie-identiteit, back-up/restore en deployment | Open en apart te autoriseren. Lokale testtokens zijn geen productie-identiteit. |
+| Productie-identiteit, back-up/restore en deployment | Offline synthetische back-up/restore is lokaal bewezen in PR42/43. Productie-identiteit, productieherstelbeleid en deployment blijven open; lokale tokens zijn geen productie-identiteit. |
 
 De centrale tekstcriteria uit [centrale tekstredactie](centrale-tekstredactie.md) blijven leidend. Een taalstap is pas compleet wanneer de redacteur bestaande zichtbare tekst zonder codewijziging kan bewerken, de gekozen locale in preview en release overeenkomt en een nieuwer concept de actieve publicatie niet verandert.
 
@@ -40,3 +40,21 @@ Deze acceptatie geldt voor afzonderlijke lokale worktrees en fictieve gegevens. 
 Media-, upload-, locale- en catalogusconsumercontracten zijn als eerder gereviewde subsets in deze CMS-keten opgenomen. De zelfstandige media/catalogus-PR's staan eveneens open. Tijdelijke integratie in PR37 heeft de overlap verenigd en de volledige gezamenlijke lokale poort en browser/herstartproef doorlopen; onafhankelijke review akkoord op fb9c22d. Gezamenlijke landing op main, productieconfiguratie en deployment zijn nog niet uitgevoerd. Zie [integratiebewijs](../integratie/README.md). Mergevolgorde en consolidatie vragen een afzonderlijke opdracht. Bestaande lokale proefbewijzen blijven geldig binnen hun opgegeven codehead; ze bewijzen geen echte klantimport of livewebsitewerking.
 
 EN-home is inmiddels lokaal gebouwd en gereviewd in PR36. De volgende prioriteit is gezamenlijke integratie/consolidatie in één checkout. Geen nieuwe contentuitbreiding tot de integratiegaten concrete eigenaren hebben. Echte klanttemplates en alle daarin aanwezige vaste tekstbindings blijven een aparte open aansluiting. De lokale renderer heeft geen footer of formulier; die worden niet als ontbrekende gebouwde functies verzonnen.
+
+
+## Gesaneerde contacttemplate
+
+De afzonderlijke proef en controles staan in [contact-template-proef.md](contact-template-proef.md). Alle 27 bindings zijn afgedekt met fictieve NL/EN-inhoud, vaste templatehash en expliciete pagina/shared/templatepins. PR 37 blijft de vaste basis; mediacatalogus M2/M3 zijn nog niet geconsolideerd. PR40 is onafhankelijk akkoord op `3fe4da5a4ad4228e8ded4aa4e8b8718aefd7eb5d` door `/root/review_pr40`, GPT-6 Astra medium, na een geverifieerde en herbeoordeelde Viteproxyfix. Volledig rapport: [review-pr40.md](review-pr40.md). Dit bewijst één gesaneerde fixture, geen echte site-import of algemene templateaansluiting. Extra templates zijn niet automatisch onderdeel van de scope. Volgende oorspronkelijke CMS-prioriteit is CMS-09, uitsluitend fictieve back-up en offline restore op nieuwe opslag.
+
+
+## Fictieve back-up en restore
+
+CMS-09 heeft een afzonderlijke lokale CLI-proef voor twee databases en bestanden op nieuwe synthetische opslag. Zie [protocol en bewijs](backup-restore-proef.md). Productie-identiteit, echte klantimport, opslagbeleid en live omschakeling blijven open. PR42 akkoord op runtimehead `65643c9b448cd139a2f51c4d61ca6fd1fa76fbf4`, Astra medium, P2 stale-recoverylock opgelost en herbeoordeeld. Volledige herreview en coördinatie staan in [review-pr42.md](review-pr42.md). Ondersteuning blijft bewust CMS-schema8/catalogusschema3; schema4/5 vereist de afzonderlijke gezamenlijke consolidatie.
+
+
+## Tweede consolidatie
+
+De nieuwe branch verenigt de volledige gereviewde CMS42- en catalogus41-keten vanaf de vaste PR37. Alleen de expliciete CMS09-compatibiliteit voor media3/4/5 is functioneel aangepast. Alle416 tests en de gezamenlijke browser/offline-restore/herstartproef slagen. Zie [integratie-v2](../integratie-v2/README.md). Onafhankelijke Astra-medium integratiereview akkoord op `ea12b79ce8095878edc4d10ce3f260e3b35b9bf2`, inclusief gesloten systeemcategorie-P2. Zie [rapport](../integratie-v2/review-pr43.md). Geen mainmerge, klantimport of deployment.
+
+
+De volledige modulecriteria zijn vergeleken in [open-criteria](../integratie-v2/open-criteria.md). Lokale demo en gewoon mainmergeplan staan in dezelfde overdracht. Een werkende fixture sluit de oorspronkelijke identity/import/adapter/operationele criteria niet automatisch.

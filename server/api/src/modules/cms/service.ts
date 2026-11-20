@@ -112,6 +112,11 @@ export class CmsService {
     return this.releaseBytes(websiteId, releaseId, `media/${releaseId}/${filename}`);
   }
 
+  async publicTemplateAsset(websiteId:string,releaseId:string,filename:string){
+    this.publicSite(websiteId);
+    if(!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(releaseId)||!['contact.css','contact.js'].includes(filename))throw new CmsError(404,'Templatebestand niet gevonden');
+    return this.releaseBytes(websiteId,releaseId,`template-assets/${releaseId}/${filename}`);
+  }
   private async releaseBytes(websiteId: string, releaseId: string, file: string): Promise<Buffer> {
     // Only successful retained releases are public. Never expose a complete but failed build.
     const attempt = this.repository.attempt(websiteId, releaseId);

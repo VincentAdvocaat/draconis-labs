@@ -31,6 +31,27 @@ const documentMessages: Record<UiLocale, Copy> = { nl, en };
 
 
 const uiNl = {
+  saveContactShared:"Gedeelde templatevelden opslaan",
+  contactTemplate: "Contacttemplateproef",
+  openContact: "Contacttemplate openen",
+  contactPageTexts: "Paginavelden",
+  contactSharedTexts: "Gedeelde templatevelden",
+  contactLocale: "Inhoudstaal contacttemplate",
+  saveContact: "Contactconcept opslaan",
+  contactSaved: "Contactconcept opgeslagen. De publieke template blijft behouden.",
+  contactPreview: "Exacte contactpreview openen",
+  contactPreviewReady: "Privépreview van de gekozen pagina-, shared- en templateversie.",
+  contactPick: "Deze contactrevisie met NL en EN expliciet publiceren",
+  contactPin: "Contact- en templatekeuze",
+  contactSource: "Gesaneerd template · oorspronkelijke brontaal",
+  contactConflict: "De contactrevisie is gewijzigd. Je invoer blijft staan totdat je bewust de actuele revisie overneemt.",
+  adoptContact: "Actuele contactrevisie overnemen",
+  contactUnseen: "De contactpagina of template is gewijzigd. Open de opgeslagen contactkeuze opnieuw.",
+  contactPreviewFrame: "Exacte gesaneerde contactpreview",
+  contactTemplateHash: "Templatehash",
+  contactPageRevision: "Contactrevisie",
+  contactEditHelp: "Fictieve inhoud. Paginavelden en gedeelde velden hebben elk hun eigen versie. Alleen veilige example.invalid-contactdoelen zijn toegestaan.",
+
   englishImageBlock:'EN-afbeeldingsblok',englishSourceImage:'NL-bronbeeld:',englishImageAlt:'EN-alt-tekst',englishImageCaption:'EN-bijschrift',
   englishDecorativeImage:'De NL-bron is decoratief. Bevestig expliciet lege EN-alt door ontbrekend uit te zetten; de bron blijft eigenaar van decoratief gebruik.',
   englishMeaningfulImage:'Vul eigen betekenisvolle EN-alt in. De bronafbeelding en bestandsversie blijven gedeeld met NL.',
@@ -205,6 +226,27 @@ const uiNl = {
   "items": "items"
 } as const;
 const uiEn: {[K in keyof typeof uiNl]: string} = {
+  saveContactShared:"Save shared template fields",
+  contactTemplate: "Contact template fixture",
+  openContact: "Open contact template",
+  contactPageTexts: "Page fields",
+  contactSharedTexts: "Shared template fields",
+  contactLocale: "Contact content language",
+  saveContact: "Save contact draft",
+  contactSaved: "Contact draft saved. The public template is preserved.",
+  contactPreview: "Open exact contact preview",
+  contactPreviewReady: "Private preview of the selected page, shared and template versions.",
+  contactPick: "Explicitly publish this contact revision in Dutch and English",
+  contactPin: "Contact and template selection",
+  contactSource: "Sanitized template \u00b7 original source language",
+  contactConflict: "The contact revision changed. Your input stays until you explicitly adopt the current revision.",
+  adoptContact: "Adopt current contact revision",
+  contactUnseen: "The contact page or template changed. Open the saved contact selection again.",
+  contactPreviewFrame: "Exact sanitized contact preview",
+  contactTemplateHash: "Template hash",
+  contactPageRevision: "Contact revision",
+  contactEditHelp: "Fictional content. Page and shared fields have separate versions. Only safe example.invalid contact targets are permitted.",
+
   englishImageBlock:'English image block',englishSourceImage:'Dutch source image:',englishImageAlt:'English alt text',englishImageCaption:'English caption',
   englishDecorativeImage:'The Dutch source is decorative. Confirm explicitly empty English alt by clearing the missing checkbox; the source owns decorative use.',
   englishMeaningfulImage:'Enter meaningful English alt text. The source image and file version remain shared with Dutch.',
@@ -405,3 +447,6 @@ export function apiErrorMessage(status: number, body: unknown, fallback: Message
   const detail = typeof input.message === 'string' ? input.message : typeof input.errorCode === 'string' ? input.errorCode : null;
   return detail ? {literal: detail.slice(0, 500)} : message(fallback, {status});
 }
+
+const contactNlLabels={"metaTitle": "SEO-titel", "heading": "Kop", "intro": "Introductie", "note": "Contactnotitie", "email": "E-mailadres", "githubUrl": "Codeprofiellink", "linkedinUrl": "Werkprofiellink", "eyebrow": "Bovenkop", "githubLabel": "Label codeprofiellink", "linkedinLabel": "Label werkprofiellink", "brandName": "Merknaam", "skipLink": "Skiplink", "navHome": "Navigatie start", "navWork": "Navigatie werk", "navTravels": "Navigatie reizen", "navAbout": "Navigatie over", "navOffice": "Navigatie werkwijze", "navContact": "Navigatie contact", "navMenu": "Menuknop", "footerNow": "Footerlink nu", "footerCopyright": "Copyrighttekst", "primaryNavigationLabel": "Toegankelijkheidslabel hoofdnavigatie"} as const;
+export const contactFieldLabels:{nl:typeof contactNlLabels;en:{[K in keyof typeof contactNlLabels]:string}}={nl:contactNlLabels,en:{"metaTitle": "SEO title", "heading": "Heading", "intro": "Introduction", "note": "Contact note", "email": "Email address", "githubUrl": "Code profile URL", "linkedinUrl": "Work profile URL", "eyebrow": "Eyebrow", "githubLabel": "Code profile link label", "linkedinLabel": "Work profile link label", "brandName": "Brand name", "skipLink": "Skip link", "navHome": "Home navigation", "navWork": "Work navigation", "navTravels": "Travels navigation", "navAbout": "About navigation", "navOffice": "Practice navigation", "navContact": "Contact navigation", "navMenu": "Menu button", "footerNow": "Now footer link", "footerCopyright": "Copyright text", "primaryNavigationLabel": "Primary navigation accessible label"}};

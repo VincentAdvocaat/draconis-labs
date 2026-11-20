@@ -1,0 +1,407 @@
+{
+  "scannedRuntimeHead": "ea12b79ce8095878edc4d10ce3f260e3b35b9bf2",
+  "refs": {
+    "base": "fc43090d0f90892df97d7e033bef66b772c81aa8",
+    "cms42": "df6ec600aff4cdd8fff69640844cc882836bc0d0",
+    "catalog41": "3bc54baa1cafdb9e0a82118a4b419820af66de65",
+    "integration": "ea12b79ce8095878edc4d10ce3f260e3b35b9bf2"
+  },
+  "ancestors": {
+    "base": true,
+    "cms42": true,
+    "catalog41": true
+  },
+  "conflicts": [],
+  "sourcePathOverlap": [],
+  "unchangedPlannerAndSharedFiles": 83,
+  "newIntegrationBlobs": [
+    "docs/cms/acceptatiematrix.md",
+    "docs/integratie-v2/README.md",
+    "docs/integratie-v2/bewijs.md",
+    "docs/integratie-v2/blobherkomst.json",
+    "server/api/src/modules/cms/recovery-catalog.ts",
+    "server/api/src/modules/cms/recovery.ts",
+    "server/api/tests/cms-recovery-catalog.test.ts"
+  ],
+  "files": [
+    {
+      "path": "apps/cms/src/contact-template.tsx",
+      "entry": "100644 blob 556399a2e1119f233c78586c47f96c2bce88b4e7",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "apps/cms/src/documents.tsx",
+      "entry": "100644 blob f6b1ba9c0b1d040fbc61e47270c123a21b2957c0",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "apps/cms/src/i18n.ts",
+      "entry": "100644 blob 53ae473295be9001eda7b826f00c304b70926606",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "apps/cms/src/main.tsx",
+      "entry": "100644 blob 8a76036bbd42532ca109a3ebf170850f4439ab2b",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "apps/cms/src/shared-navigation.tsx",
+      "entry": "100644 blob 18fa69a9b8f1e747bcee80461d58b972e690e872",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "apps/cms/vite.config.ts",
+      "entry": "100644 blob 290c30cc00b9f816e11669355bf8e847e3dfa2e8",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "docs/cms/acceptatiematrix.md",
+      "entry": "100644 blob a49037fb7e765696e6731143640df6bc25add28a",
+      "origins": []
+    },
+    {
+      "path": "docs/cms/backup-restore-proef.md",
+      "entry": "100644 blob 2c36cbed60d007a0b8fd9a143d95789bfc1d0b2e",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "docs/cms/contact-template-proef.md",
+      "entry": "100644 blob 322f61651908c2605cb4105715bd9db5598a8bc7",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "docs/cms/review-pr40.md",
+      "entry": "100644 blob c0829d01e79e8202cb70cf378ee84bcd6e2554f4",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "docs/cms/review-pr42.md",
+      "entry": "100644 blob 1e59bd407d2312a3e6a1edd6ba9531c3e7027c36",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "docs/integratie-v2/README.md",
+      "entry": "100644 blob e4bce1039861b09b8e691b5a93d3b938bf87b153",
+      "origins": []
+    },
+    {
+      "path": "docs/integratie-v2/bewijs.md",
+      "entry": "100644 blob 46ca2caa65256033c7645f361de3c365586bfdb8",
+      "origins": []
+    },
+    {
+      "path": "docs/integratie-v2/blobherkomst.json",
+      "entry": "100644 blob 0865b44f9a1a9426cbf5eca433556a368deacff8",
+      "origins": []
+    },
+    {
+      "path": "docs/media-catalogus/categories.md",
+      "entry": "100644 blob 37919eccc3abd08cc2428fba91cd0920d49645ce",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "docs/media-catalogus/item-order.md",
+      "entry": "100644 blob 92ffe7f3530651f37b78193d240923ef81ef3e76",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "docs/media-catalogus/media-library.md",
+      "entry": "100644 blob 07554a36a7ee535b931fee7967f4ebcbdf153ea2",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "docs/media-catalogus/status.md",
+      "entry": "100644 blob 8485cdfd8b4aa38805e9b95705f1c7496b0d78d7",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/scripts/cms-recovery.ts",
+      "entry": "100644 blob 3e2e9c582e5a143c30fc41cd26c5d3c6abbf5611",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "server/api/src/catalogus/app.ts",
+      "entry": "100644 blob 68e03cea511f8e7324787b4a71068b8975204f32",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/src/catalogus/categories.ts",
+      "entry": "100644 blob 1ec5f403e16c8eb6651737c6e3e89680f98b04d8",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/src/catalogus/category-copy.ts",
+      "entry": "100644 blob bb9f7d7f04c012fd44734f58af15e75ab8ff1a8d",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/src/catalogus/category-ui.ts",
+      "entry": "100644 blob 2920df464e36ea9a321cea1ab8138a8109e60cb0",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/src/catalogus/contracts.ts",
+      "entry": "100644 blob 0503d47d473f69ae95b87d62f109cfb814197839",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/src/catalogus/html.ts",
+      "entry": "100644 blob d1e2034a138cdfe89226a83b155fc221f5897474",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/src/catalogus/library-ui.ts",
+      "entry": "100644 blob 7d0c2753884fd281595126b49657953c9b6fcf12",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/src/catalogus/library.ts",
+      "entry": "100644 blob 5daed325675402b469650db54d1534395de35c9c",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/src/catalogus/locales.ts",
+      "entry": "100644 blob 750b2010b85f74898713f97cfbde419574d77d64",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/src/catalogus/order-ui.ts",
+      "entry": "100644 blob a64cb67c912cabf9d891d254dd871bca741fa3cc",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/src/catalogus/order.ts",
+      "entry": "100644 blob b2222f56c64123ef3e80b428fed1c4f51c78ee8f",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/src/catalogus/service.ts",
+      "entry": "100644 blob f51a15e732f2f26fa0f00967c6474c758bbb98a2",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/src/modules/cms/app.ts",
+      "entry": "100644 blob 0a18d54d2697fd27c6c936721a6abb23e4294581",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "server/api/src/modules/cms/contact-fields.ts",
+      "entry": "100644 blob 3b862329e28d7ed11a1352d7d3f7f75b0d94e7fe",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "server/api/src/modules/cms/contact-fixture/bundle.ts",
+      "entry": "100644 blob 81011105c77342a459ade3e90579ef040a6bb37d",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "server/api/src/modules/cms/contact-template.ts",
+      "entry": "100644 blob 1a0fc75c51a25a3dd15d031dffb67f23e2d65cd9",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "server/api/src/modules/cms/documents.ts",
+      "entry": "100644 blob 947de261c1e57c1dae813224ecc9048ee15e811b",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "server/api/src/modules/cms/index.ts",
+      "entry": "100644 blob f6123bfa30ed93ffe5d13a4da4aa8ecd83d0bd9a",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "server/api/src/modules/cms/local.ts",
+      "entry": "100644 blob b3df4f19b931cfaacb1dc4cf88ef655b31f39ecc",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "server/api/src/modules/cms/model.ts",
+      "entry": "100644 blob 384d0001f05e205c8cdc7ddc8356e7ea33c0d205",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "server/api/src/modules/cms/recovery-catalog.ts",
+      "entry": "100644 blob 0898e088b44362087bea551f5e4032edccae31bb",
+      "origins": []
+    },
+    {
+      "path": "server/api/src/modules/cms/recovery.ts",
+      "entry": "100644 blob 47365afdab26f8e5c81749b5b841ab682edb65b3",
+      "origins": []
+    },
+    {
+      "path": "server/api/src/modules/cms/service.ts",
+      "entry": "100644 blob f68899452f30245915f2b205ecbdf0e91cb85611",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "server/api/src/modules/cms/shared-navigation.ts",
+      "entry": "100644 blob e3bd6bb3c88343ad7b99847d686e6dfad1a57159",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "server/api/tests/catalogus-categories.test.ts",
+      "entry": "100644 blob 59f5b989fc1d4ed5d5c27f575e0381ed81135dba",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/tests/catalogus-locales.test.ts",
+      "entry": "100644 blob 6d7b6ee7d0ad8bbd8facdd2f1a17dcfdf42a33ec",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/tests/catalogus-order.test.ts",
+      "entry": "100644 blob 5fa0bfdb6af1e9ecfbf95af3494e0a0cd79e350b",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/tests/catalogus-ui.test.ts",
+      "entry": "100644 blob 9e738c28d89ba92dd87c24c679276dc524489747",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/tests/catalogus.test.ts",
+      "entry": "100644 blob be133f83864d77365774af7624c7b1bdf8f4f5ad",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/tests/cms-contact-proxy.test.ts",
+      "entry": "100644 blob f99d38b8883c3555254cff0b3265ebab9fbf52cc",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "server/api/tests/cms-contact-template.test.ts",
+      "entry": "100644 blob a1d7de57710cacaa8903c701eb537244d1c53283",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "server/api/tests/cms-editor.test.ts",
+      "entry": "100644 blob d69f974dcac8f201cbd9a9d0cbb9d5015c319b3d",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "server/api/tests/cms-i18n.test.ts",
+      "entry": "100644 blob 7203b669830b04114054acfea1a61915ca130667",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "server/api/tests/cms-recovery-catalog.test.ts",
+      "entry": "100644 blob 44a241bd04af0eebe70d66bd9498d80b142b9254",
+      "origins": []
+    },
+    {
+      "path": "server/api/tests/cms-recovery.test.ts",
+      "entry": "100644 blob c171362b9918010e7c2d12ace775247db02692aa",
+      "origins": [
+        "cms42"
+      ]
+    },
+    {
+      "path": "server/api/tests/media-library-ui.test.ts",
+      "entry": "100644 blob 0b48251eca8d0db1cfe93fa9156c96fea05155a8",
+      "origins": [
+        "catalog41"
+      ]
+    },
+    {
+      "path": "server/api/tests/media-library.test.ts",
+      "entry": "100644 blob d6f17d5c480aab427871ed03d80580cb5c4eb510",
+      "origins": [
+        "catalog41"
+      ]
+    }
+  ],
+  "note": "Immutable reviewed runtime-head inventory. Later report/demo/status documentation and this inventory update are outside the runtime snapshot; verify entries against scannedRuntimeHead, not the later documentation HEAD."
+}

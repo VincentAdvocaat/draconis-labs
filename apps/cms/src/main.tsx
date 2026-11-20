@@ -1,3 +1,4 @@
+import {ContactTemplateEditor,type ContactRecord,type ContactContent} from './contact-template';
 import {SharedNavigationEditor,SharedNavigationSummary,type SharedNavigationDto,type SharedNavigationContent} from './shared-navigation';
 import {apiErrorMessage, createCmsTranslator, formatUiMessage, message, type UiMessage, type UiLocale} from './i18n';
 import { createRoot } from 'react-dom/client';
@@ -18,6 +19,7 @@ interface Page {
   uploadEnabled?: boolean;
   pagesEnabled?: boolean;
   sharedEnabled?: boolean;
+  contactEnabled?:boolean;
 }
 interface UploadStatus { assetId: string; fileVersion: number; state: string; error: string | null; rights: string; metadataVersion?: number }
 interface RightsMetadata { assetId: string; metadataVersion: number; rights: string }
@@ -65,8 +67,15 @@ function App() {
   const [sharedLatest,setSharedLatest] = useState<SharedNavigationDto|null>(null);
   const [sharedChosen,setSharedChosen] = useState(false);
   const sharedDirty = !!shared && JSON.stringify(sharedDraft)!==JSON.stringify(shared.content);
+  const [contact,setContact]=useState<ContactRecord|null>(null);
+  const [contactDraft,setContactDraft]=useState<ContactContent|null>(null);
+  const [contactLatest,setContactLatest]=useState<ContactRecord|null>(null);
+  const [contactLocale,setContactLocale]=useState<'nl'|'en'>('en');
+  const [contactPreview,setContactPreview]=useState('');
+  const [contactChosen,setContactChosen]=useState(false);
+  const contactDirty=!!contact&&JSON.stringify(contactDraft)!==JSON.stringify(contact.content);
   const [sitePlan, setSitePlan] = useState<SitePlan | null>(null);
-  const [siteChoice, setSiteChoice] = useState<{ plan: SitePlan; locales: string[]; key: string } | null>(null);
+  const [siteChoice, setSiteChoice] = useState<{ plan: SitePlan; locales: string[]; contact:boolean; key: string } | null>(null);
   // Scope generation prevents late responses from a previous token/site reaching this view.
   const generation = useRef(0);
 
@@ -86,6 +95,7 @@ function App() {
   }
   function reset() {
     generation.current++;
+    setContact(null);setContactDraft(null);setContactLatest(null);setContactPreview('');
     setPage(null); setPreview(''); setAttempt(null); setDraftConflict(null);
     setPendingChoice(null); setPublicationConflict(false); setError(null); setBusy(false);
     setFile(null); setUploadJobId(''); setUploadStatus(null);
@@ -104,10 +114,11 @@ function App() {
   }
   function open(event?: FormEvent) {
     event?.preventDefault();
-    if ((dirty || documentDirty || englishDirty || sharedDirty) && !window.confirm(t.confirmOpen)) return;
+    if ((dirty || documentDirty || englishDirty || sharedDirty || contactDirty) && !window.confirm(t.confirmOpen)) return;
     void perform(async (current) => {
       const result = await request<Page>('/pages/home');
       if (!current()) return;
+      setContact(null);setContactDraft(null);setContactLatest(null);setContactPreview('');
       setPage(result); setValues(result.values); setDraftConflict(null); setAttempt(null);
       setPendingChoice(null); setPublicationConflict(false); setPreview('');
       setEnglishLatest(null); setEnglishConfirmedStructure(''); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setSelectedDocument(null); setDocumentDraft(null); setDocumentConflict(null); invalidateSiteChoice();
@@ -251,7 +262,7 @@ function App() {
       }
     });
   }
-  function invalidateSiteChoice() { setSharedChosen(false); setSitePlan(null); setSiteChoice(null); }
+  function invalidateSiteChoice() { setContactChosen(false); setSharedChosen(false); setSitePlan(null); setSiteChoice(null); }
   function changeDocument(content: DocumentContent) {
     const before = documentDraft?.blocks.find((block) => block.type === 'image')?.reference.assetId;
     const after = content.blocks.find((block) => block.type === 'image')?.reference.assetId;
@@ -262,7 +273,7 @@ function App() {
     void perform(async (current) => { const result = await request<SitePlan>('/site-plan'); if (current()) setOverview(result); });
   }
   function openDocument(pageId: string) {
-    if (busy || dirty || documentDirty || englishDirty || sharedDirty) return;
+    if (busy || dirty || documentDirty || englishDirty || sharedDirty || contactDirty) return;
     if (pageId === 'home') { open(); return; }
     void perform(async (current) => {
       const result = await request<DocumentDto>(`/documents/${pageId}`);
@@ -272,7 +283,7 @@ function App() {
     });
   }
   function createDocument() {
-    if (busy || dirty || documentDirty || englishDirty || sharedDirty) return;
+    if (busy || dirty || documentDirty || englishDirty || sharedDirty || contactDirty) return;
     void perform(async (current) => {
       const result = await request<DocumentDto>('/documents', { method: 'POST', body: JSON.stringify(newPage) });
       if (!current()) return;
@@ -335,7 +346,7 @@ function App() {
     });
   }
   function openShared() {
-    if(busy||sharedDirty)return;
+    if(busy||sharedDirty||contactDirty)return;
     void perform(async(current)=>{const record=await request<SharedNavigationDto>('/shared-navigation');if(!current())return;
       setShared(record);setSharedDraft(record.content);setSharedLatest(null);setPreview('');invalidateSiteChoice();});
   }
@@ -343,11 +354,11 @@ function App() {
     if(busy||!shared||!sharedDraft)return;
     void perform(async(current)=>{try{
       const record=await request<SharedNavigationDto>('/shared-navigation',{method:'PUT',body:JSON.stringify({expectedVersion:shared.version,content:sharedDraft})});
-      if(!current())return;setShared(record);setSharedDraft(record.content);setSharedLatest(null);setPreview('');invalidateSiteChoice();setStatus(message('sharedSaved'));
+      if(!current())return;setShared(record);setSharedDraft(record.content);setSharedLatest(null);setContactPreview('');setPreview('');invalidateSiteChoice();setStatus(message('sharedSaved'));
     }catch(error){if(error instanceof ApiError&&error.status===409){const latest=await request<SharedNavigationDto>('/shared-navigation');if(current())setSharedLatest(latest);}throw error;}});
   }
   function previewShared() {
-    if(busy||!shared||sharedDirty||dirty||documentDirty||englishDirty||!page?.pagesEnabled||(english&&!english.revisionId))return;
+    if(busy||!shared||sharedDirty||contactDirty||dirty||documentDirty||englishDirty||!page?.pagesEnabled||(english&&!english.revisionId))return;
     void perform(async(current)=>{
       const response=await fetch(base+'/shared-navigation/previews',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
         body:JSON.stringify({pageId:selectedDocument?.pageId??'home',revisionId:english?.revisionId??selectedDocument?.revisionId??page!.revisionId,locale:english?'en':'nl',sharedRevisionId:shared.revisionId,sharedVersion:shared.version})});
@@ -355,8 +366,22 @@ function App() {
       const html=await response.text();if(current()){setPreview(html);setStatus(message('sharedPreview'));}
     });
   }
+  function openContact(){
+    if(busy||contactDirty||sharedDirty)return;
+    void perform(async(current)=>{const [record,sr]=await Promise.all([request<ContactRecord>('/contact-template'),request<SharedNavigationDto>('/shared-navigation')]);if(!current())return;
+      setContact(record);setContactDraft(record.content);setContactLatest(null);setShared(sr);setSharedDraft(sr.content);setSharedLatest(null);setContactPreview('');invalidateSiteChoice();});
+  }
+  function saveContact(){if(busy||!contact||!contactDraft)return;void perform(async(current)=>{try{
+    const record=await request<ContactRecord>('/contact-template',{method:'PUT',body:JSON.stringify({expectedVersion:contact.version,content:contactDraft})});
+    if(!current())return;setContact({...contact,...record});setContactDraft(record.content);setContactLatest(null);setContactPreview('');invalidateSiteChoice();setStatus(message('contactSaved'));
+    }catch(error){if(error instanceof ApiError&&error.status===409){const latest=await request<ContactRecord>('/contact-template');if(current())setContactLatest(latest);}throw error;}});}
+  function previewContact(){if(busy||!contact||!shared||contactDirty||sharedDirty)return;void perform(async(current)=>{
+    const selected=await request<{previewId:string}>('/contact-template/previews',{method:'POST',body:JSON.stringify({revisionId:contact.revisionId,version:contact.version,templateHash:contact.template.hash,sharedRevisionId:shared.revisionId,sharedVersion:shared.version,locale:contactLocale})});
+    const response=await fetch(`${base}/contact-template/previews/${selected.previewId}`,{headers:{Authorization:`Bearer ${token}`}});if(!response.ok)throw new ApiError(response.status,apiErrorMessage(response.status,await response.json().catch(()=>null),'previewUnavailable'));
+    const html=await response.text();if(current()){setContactPreview(html);setStatus(message('contactPreviewReady'));}
+  });}
   function prepareSite() {
-    if (busy || dirty || documentDirty || englishDirty || sharedDirty || documentConflict || draftConflict) return;
+    if (busy || dirty || documentDirty || englishDirty || sharedDirty || contactDirty || documentConflict || draftConflict) return;
     void perform(async (current) => {
       const plan = await request<SitePlan>('/site-plan');
       if (!current()) return;
@@ -370,19 +395,20 @@ function App() {
       const chosenEnglish = english ? plan.localeVariants?.find((item) => item.pageId === english.pageId) : null;
       if (english && english.version > 0 && (chosenEnglish?.revisionId !== english.revisionId || chosenEnglish.version !== english.version || chosenEnglish.structure !== english.structure)) { invalidateSiteChoice(); throw new ApiError(409, message('unseenEnglish')); }
       if(shared&&plan.shared&&(shared.revisionId!==plan.shared.revisionId||shared.version!==plan.shared.version)){invalidateSiteChoice();throw new ApiError(409,message('sharedUnseen'));}
-      setSharedChosen(false); setSitePlan(plan); setSelectedLocales([]); setSiteChoice(null); setStatus(message('planTitle'));
+      if(contact&&(!plan.contactTemplate||contact.revisionId!==plan.contactTemplate.revisionId||contact.version!==plan.contactTemplate.version||contact.template.hash!==plan.contactTemplate.template.hash)){invalidateSiteChoice();throw new ApiError(409,message('contactUnseen'));}
+      setContactChosen(false);setSharedChosen(false); setSitePlan(plan); setSelectedLocales([]); setSiteChoice(null); setStatus(message('planTitle'));
     });
   }
   function publishSite() {
-    if (busy || !sitePlan || dirty || documentDirty || englishDirty || sharedDirty || (sitePlan.shared&&!sharedChosen) || documentConflict || draftConflict) return;
-    const choice = siteChoice ?? { plan: sitePlan, locales: selectedLocales, key: crypto.randomUUID() };
+    if (busy || !sitePlan || dirty || documentDirty || englishDirty || sharedDirty || contactDirty || (sitePlan.shared&&!sharedChosen) || documentConflict || draftConflict) return;
+    const choice = siteChoice ?? { plan: sitePlan, locales: selectedLocales, contact:contactChosen, key: crypto.randomUUID() };
     setSiteChoice(choice);
     void perform(async (current) => {
       try {
         const plan = choice.plan;
         const result = await request<Attempt>('/releases', { method: 'POST', headers: { 'Idempotency-Key': choice.key },
           body: JSON.stringify({ revisionId: plan.pages.find((item) => item.pageId === 'home')!.revisionId,
-            expectedActiveVersion: plan.activeVersion, ...(plan.shared?{expectedShared:{revisionId:plan.shared.revisionId,version:plan.shared.version}}:{}), expectedLocales: (plan.localeVariants ?? []).filter((item) => choice.locales.includes(item.pageId)).map(({pageId, locale, revisionId, version, structure}) => ({pageId, locale, revisionId, version, structure})), expectedPages: plan.pages.map(({ pageId, revisionId, version }) => ({ pageId, revisionId, version })) }),
+            expectedActiveVersion: plan.activeVersion, ...(choice.contact&&plan.contactTemplate?{expectedContact:{revisionId:plan.contactTemplate.revisionId,version:plan.contactTemplate.version,templateHash:plan.contactTemplate.template.hash,locales:['nl','en']}}:{}), ...(plan.shared?{expectedShared:{revisionId:plan.shared.revisionId,version:plan.shared.version}}:{}), expectedLocales: (plan.localeVariants ?? []).filter((item) => choice.locales.includes(item.pageId)).map(({pageId, locale, revisionId, version, structure}) => ({pageId, locale, revisionId, version, structure})), expectedPages: plan.pages.map(({ pageId, revisionId, version }) => ({ pageId, revisionId, version })) }),
         });
         if (!current()) return;
         setAttempt(result);
@@ -409,7 +435,7 @@ function App() {
     <section aria-labelledby="access-title"><h2 id="access-title">{t.openWebsite}</h2>
       <form onSubmit={open}>
         <label>{t.website}<select value={website} disabled={busy} onChange={(event) => {
-          if ((dirty || documentDirty || englishDirty || sharedDirty) && !window.confirm(t.confirmSite)) return;
+          if ((dirty || documentDirty || englishDirty || sharedDirty || contactDirty) && !window.confirm(t.confirmSite)) return;
           reset(); setWebsite(event.target.value);
         }}><option value="demo-cms">{t.trialSite}</option><option value="demo-other">{t.otherSite}</option></select></label>
         <label>{t.testToken}<input type="password" autoComplete="off" value={token} onChange={(event) => {
@@ -421,10 +447,15 @@ function App() {
     </section>
     <p role="status" aria-live="polite" className="status">{formatUiMessage(uiLocale,status)}</p>
     {error && <p role="alert" className="error">{formatUiMessage(uiLocale,error)}</p>}
-    {page?.sharedEnabled&&<section><h2>{t.sharedTitle}</h2><button disabled={busy||sharedDirty} onClick={openShared}>{t.openShared}</button>
-      {shared&&sharedDraft&&<SharedNavigationEditor record={shared} draft={sharedDraft} onChange={(content)=>{setSharedDraft(content);setPreview('');invalidateSiteChoice();}} busy={busy} dirty={sharedDirty} onSave={saveShared} onPreview={previewShared}
+    {page?.sharedEnabled&&<section><h2>{t.sharedTitle}</h2><button disabled={busy||sharedDirty||contactDirty} onClick={openShared}>{t.openShared}</button>
+      {shared&&sharedDraft&&<SharedNavigationEditor record={shared} draft={sharedDraft} onChange={(content)=>{setSharedDraft(content);setContactPreview('');setPreview('');invalidateSiteChoice();}} busy={busy} dirty={sharedDirty} onSave={saveShared} onPreview={previewShared}
         previewDisabled={!page?.pagesEnabled||dirty||documentDirty||englishDirty||!!english&&!english.revisionId} uiLocale={uiLocale}/>}
       {sharedLatest&&<aside><p>{t.sharedConflictHelp}</p><button disabled={busy} onClick={()=>{if(busy)return;setShared(sharedLatest);setSharedDraft(sharedLatest.content);setSharedLatest(null);setPreview('');invalidateSiteChoice();}}>{t.adoptShared}</button></aside>}
+    </section>}
+    {page?.contactEnabled&&<section><button disabled={busy||contactDirty||sharedDirty} onClick={openContact}>{t.openContact}</button>
+      {contact&&contactDraft&&sharedDraft&&<ContactTemplateEditor record={contact} draft={contactDraft} sharedDraft={sharedDraft} busy={busy} dirty={contactDirty} sharedDirty={sharedDirty} uiLocale={uiLocale} locale={contactLocale} onLocaleChange={(locale)=>{setContactLocale(locale);setContactPreview('');}} preview={contactPreview}
+        onChange={content=>{setContactDraft(content);setContactPreview('');invalidateSiteChoice();}} onSharedChange={content=>{setSharedDraft(content);setContactPreview('');invalidateSiteChoice();}} onSave={saveContact} onSaveShared={saveShared} onPreview={previewContact}/>}
+      {contactLatest&&<aside><p>{t.contactConflict}</p><button disabled={busy} onClick={()=>{setContact(contactLatest);setContactDraft(contactLatest.content);setContactLatest(null);setContactPreview('');invalidateSiteChoice();}}>{t.adoptContact}</button></aside>}
     </section>}
     {page?.pagesEnabled && <section><h2>{dc.pages}</h2>
       <button disabled={busy} onClick={refreshOverview}>{dc.refresh}</button>
@@ -523,11 +554,11 @@ function App() {
         {!page.pagesEnabled && <button disabled={busy || dirty || !!draftConflict || publicationConflict} onClick={publish}>{pendingChoice ? t.retryPage : t.publishPage}</button>}</div>}
       {!page.pagesEnabled && publicationConflict && <aside><p>{t.confirmRevision}</p><button disabled={busy} onClick={() => { if (busy) return; setPublicationConflict(false); setStatus(message('revisionConfirmed')); }}>{t.rechooseRevision}</button></aside>}
       {page.pagesEnabled && <fieldset disabled={busy}><legend>{dc.planTitle}</legend>
-        <button disabled={dirty || documentDirty || !!draftConflict || !!documentConflict || englishDirty || sharedDirty} onClick={prepareSite}>{dc.plan}</button>
-        {sitePlan && <>{sitePlan.shared&&<aside><p>{t.sharedRevision} {sitePlan.shared.revisionId} · v{sitePlan.shared.version}</p>
+        <button disabled={dirty || documentDirty || !!draftConflict || !!documentConflict || englishDirty || sharedDirty || contactDirty} onClick={prepareSite}>{dc.plan}</button>
+        {sitePlan && <>{sitePlan.contactTemplate&&<aside><p>{t.contactPin} · {sitePlan.contactTemplate.version} · {sitePlan.contactTemplate.template.hash}</p><label className="check"><input type="checkbox" checked={contactChosen} onChange={event=>{setContactChosen(event.target.checked);setSiteChoice(null);}}/>{t.contactPick}</label></aside>}{sitePlan.shared&&<aside><p>{t.sharedRevision} {sitePlan.shared.revisionId} · v{sitePlan.shared.version}</p>
           <SharedNavigationSummary record={sitePlan.shared} uiLocale={uiLocale}/>
           <label className="check"><input type="checkbox" checked={sharedChosen} onChange={(event)=>{setSharedChosen(event.target.checked);setSiteChoice(null);}}/>{t.chooseShared}</label></aside>}<ul>{sitePlan.pages.map((item) => <li key={item.pageId}>{item.title} · {item.file} · v{item.version}</li>)}</ul>
-          <button disabled={dirty || documentDirty || !!draftConflict || !!documentConflict || englishDirty || sharedDirty || !!sitePlan.shared&&!sharedChosen} onClick={publishSite}>{siteChoice ? dc.retry : dc.publish}</button></>}
+          <button disabled={dirty || documentDirty || !!draftConflict || !!documentConflict || englishDirty || sharedDirty || contactDirty || !!sitePlan.shared&&!sharedChosen} onClick={publishSite}>{siteChoice ? dc.retry : dc.publish}</button></>}
       </fieldset>}
       {sitePlan && <fieldset disabled={busy}><legend>{t.explicitLocales}</legend>
         <p>{t.retainedHelp}</p>

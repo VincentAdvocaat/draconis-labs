@@ -1,3 +1,4 @@
+import type {CmsContactTemplate,ContactPin} from './contact-template.js';
 import {languageNavigation, navigationBaseline, navigationText, type CmsSharedNavigation, type SharedNavigationDto} from './shared-navigation.js';
 import { randomUUID, createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -45,13 +46,13 @@ export type DocumentContent = z.infer<typeof documentContentSchema>;
 export interface DocumentDto { pageId: string; revisionId: string; version: number; content: DocumentContent; published: boolean }
 export interface SnapshotPage { pageId: string; revisionId: string; version: number; file: string;
   content: Omit<DocumentContent, 'locale'> & { locale: 'nl' | 'en' }; mediaRevisionId: string | null }
-export interface SiteSnapshot { schemaVersion: 1; websiteId: string; pages: SnapshotPage[]; shared?: SharedNavigationDto }
+export interface SiteSnapshot { schemaVersion: 1; websiteId: string; pages: SnapshotPage[]; shared?: SharedNavigationDto;contact?:ContactPin }
 export interface RenderedSite { files: Array<{ path: string; bytes: Buffer }>; metadata: Record<string, unknown>; revalidate: () => void; activate?: (callback: () => import('./model.js').Attempt) => import('./model.js').Attempt }
 interface DocumentRow { id: string; revision_id: string; version: number; content: string; media_revision_id: string | null }
 
 export class CmsDocuments {
   readonly locales: CmsPageLocales;
-  constructor(private repository: CmsRepository, private media?: CmsMedia, private uploads?: CmsUploads, readonly portfolio?: CmsPortfolio, readonly shared?: CmsSharedNavigation) {
+  constructor(private repository: CmsRepository, private media?: CmsMedia, private uploads?: CmsUploads, readonly portfolio?: CmsPortfolio, readonly shared?: CmsSharedNavigation,readonly contact?:CmsContactTemplate) {
     const db = repository.db;
     db.transaction(() => {
       db.exec(`
@@ -104,7 +105,7 @@ export class CmsDocuments {
   }
   plan(websiteId: string) {
     const home = this.repository.page(websiteId);
-    return { ...this.repository.active(websiteId), defaultLocale: 'nl' as const, ...(this.shared ? {shared: this.shared.get(websiteId)} : {}), localeVariants: this.locales.plan(websiteId), retainedLocales: this.retainedLocales(websiteId).map((page) => ({ pageId: page.pageId, locale: 'en', revisionId: page.revisionId, file: page.file, title: page.content.title })), pages: [
+    return { ...this.repository.active(websiteId), defaultLocale: 'nl' as const, ...(this.shared ? {shared: this.shared.get(websiteId)} : {}), ...(this.contact?{contactTemplate:this.contact.plan(websiteId)}:{}), localeVariants: this.locales.plan(websiteId), retainedLocales: this.retainedLocales(websiteId).map((page) => ({ pageId: page.pageId, locale: 'en', revisionId: page.revisionId, file: page.file, title: page.content.title })), pages: [
       { pageId: 'home', revisionId: home.revisionId, version: home.pageVersion, title: home.values.title, file: 'index.html' },
       ...this.rows(websiteId).map((row) => { const content = JSON.parse(row.content) as DocumentContent;
         return { pageId: row.id, revisionId: row.revision_id, version: row.version, title: content.title, file: `${content.slug}.html` }; }),
@@ -218,7 +219,9 @@ export class CmsDocuments {
     // Previously explicit EN publications remain pinned when publishing NL alone.
     // Omitting a new draft never silently removes an already published route.
     for (const retained of this.retainedLocales(websiteId)) if (!selected.some((item) => item.pageId === retained.pageId)) pages.push(retained);
-    return JSON.stringify({ schemaVersion: 1, websiteId, pages, ...(this.shared ? {shared: this.shared.capture(websiteId,input.expectedShared)} : {}) } satisfies SiteSnapshot);
+    const shared=this.shared?.capture(websiteId,input.expectedShared);
+    const contact=this.contact?.capture(websiteId,input.expectedContact,shared);
+    return JSON.stringify({schemaVersion:1,websiteId,pages,...(shared?{shared}:{}),...(contact?{contact}:{})} satisfies SiteSnapshot);
   }
   private retainedLocales(websiteId: string): SnapshotPage[] {
     const active = this.repository.active(websiteId).activeReleaseId;
@@ -336,10 +339,11 @@ export class CmsDocuments {
       }
       files.push({ path: page.file, bytes: Buffer.from(this.render(page.content, images, nav, portfolio)) });
     }
-    return { files, metadata: { schemaVersion: snapshot.schemaVersion, defaultLocale: 'nl', ...(snapshot.shared ? {sharedRevisionId:snapshot.shared.revisionId,sharedVersion:snapshot.shared.version} : {}), pages: snapshot.pages.map((page) => ({
+    if(snapshot.contact){if(!this.contact)throw new CmsError(503,'Contacttemplate niet beschikbaar');files.push(...this.contact.release(snapshot.contact,websiteId,releaseId));}
+    return { files, metadata: { ...(snapshot.contact?{contact:{revisionId:snapshot.contact.page.revisionId,version:snapshot.contact.page.version,sharedRevisionId:snapshot.contact.shared.revisionId,sharedVersion:snapshot.contact.shared.version,templateId:snapshot.contact.bundle.id,templateHash:snapshot.contact.templateHash,sourceDefaultLocale:snapshot.contact.bundle.sourceDefaultLocale,locales:snapshot.contact.locales}}:{}), schemaVersion: snapshot.schemaVersion, defaultLocale: 'nl', ...(snapshot.shared ? {sharedRevisionId:snapshot.shared.revisionId,sharedVersion:snapshot.shared.version} : {}), pages: snapshot.pages.map((page) => ({
       pageId: page.pageId, revisionId: page.revisionId, version: page.version, file: page.file, locale: page.content.locale,
       mediaRevisionId: page.mediaRevisionId, media: this.references(page.content),
       portfolio: page.content.blocks.filter((block) => block.type === 'portfolio'),
-    })) }, activate: (callback) => this.portfolio ? this.portfolio.activate(websiteId, releaseId, callback) : callback(), revalidate: () => { validate(); } };
+    })) }, activate: (callback) => this.portfolio ? this.portfolio.activate(websiteId, releaseId, callback) : callback(), revalidate: () => { validate(); if(snapshot.contact)this.contact!.validate(snapshot.contact); } };
   }
 }

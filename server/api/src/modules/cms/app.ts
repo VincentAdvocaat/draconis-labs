@@ -1,7 +1,9 @@
+import {CmsContactTemplate,templateCsp,contactRouteFiles} from './contact-template.js';
+import type {ContactBundle} from './contact-fixture/bundle.js';
 import {CmsSharedNavigation} from './shared-navigation.js';
 import Fastify from 'fastify';
 import { ZodError } from 'zod';
-import { readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, unlinkSync, mkdirSync, existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { z } from 'zod';
@@ -34,10 +36,14 @@ export interface CmsAppOptions {
   enablePages?: boolean;
   enablePortfolio?: boolean;
   enableSharedNavigation?: boolean;
+  enableContactTemplate?:boolean;
+  contactTemplateLoader?:()=>ContactBundle;
 }
 
 function lockRuntime(root: string): () => void {
   mkdirSync(root, { recursive: true });
+  const recoveryLock = join(root, '.recovery.lock');
+  if (existsSync(recoveryLock)) throw new Error('Offline recovery owns this fixture');
   const lock = join(root, 'runtime.lock');
   try {
     const pid = Number(readFileSync(lock, 'utf8'));
@@ -51,6 +57,7 @@ function lockRuntime(root: string): () => void {
   }
   // A second live process must not mark another process's in-flight builds interrupted.
   writeFileSync(lock, String(process.pid), { flag: 'wx' });
+  if (existsSync(recoveryLock)) { unlinkSync(lock); throw new Error('Offline recovery owns this fixture'); }
   return () => unlinkSync(lock);
 }
 
@@ -80,7 +87,9 @@ export async function buildCmsApp(options: CmsAppOptions) {
     if (options.seed) repository.seed();
     if (options.enablePortfolio && media) portfolio = new CmsPortfolio(media, repository);
     const shared = options.enableSharedNavigation ? new CmsSharedNavigation(repository) : undefined;
-    const documents = options.enablePages ? new CmsDocuments(repository, media, uploads, portfolio, shared) : undefined;
+    if(options.enableContactTemplate&&(!options.enablePages||!shared))throw new Error('Contacttemplate vereist paginas en gedeelde tekst');
+    const contact=options.enableContactTemplate?new CmsContactTemplate(repository,shared!,options.contactTemplateLoader):undefined;
+    const documents = options.enablePages ? new CmsDocuments(repository, media, uploads, portfolio, shared,contact) : undefined;
     const service = new CmsService(repository, join(root, 'releases'), options.hooks, media, mediaUnavailable, uploads, options.enableUploads, documents);
     app.addHook('onClose', async () => { portfolio?.close(); repository!.close(); uploads?.close(); media?.close(); unlock(); });
     app.addHook('onSend', async (_request, reply, payload) => {
@@ -101,13 +110,23 @@ export async function buildCmsApp(options: CmsAppOptions) {
       const {websiteId, filename} = request.params as {websiteId: string; filename: string};
       reply.header('Cache-Control', 'no-store');
       reply.header('Content-Security-Policy', "default-src 'none'; img-src 'self'; frame-ancestors 'self'; form-action 'none'; base-uri 'none'");
+      if(contact&&contactRouteFiles.includes(filename as typeof contactRouteFiles[number]))reply.header('Content-Security-Policy',templateCsp);
       return reply.type('text/html; charset=utf-8').send(await service.publicHtml(websiteId, `en/${filename}`));
     });
     app.get('/sites/:websiteId/:filename', async (request, reply) => {
       reply.header('Cache-Control', 'no-store');
       reply.header('Content-Security-Policy', "default-src 'none'; img-src 'self'; frame-ancestors 'self'; form-action 'none'; base-uri 'none'");
       const { websiteId, filename } = request.params as { websiteId: string; filename: string };
+      if(contact&&contactRouteFiles.includes(filename as typeof contactRouteFiles[number]))reply.header('Content-Security-Policy',templateCsp);
       return reply.type('text/html; charset=utf-8').send(await service.publicHtml(websiteId, filename));
+    });
+    if(contact)app.get('/contact-fixture-assets/:hash/:filename',async(request,reply)=>{
+      const {hash,filename}=request.params as {hash:string;filename:string};
+      return reply.type(filename.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8').send(contact.previewAsset(hash,filename));
+    });
+    app.get('/sites/:websiteId/template-assets/:releaseId/:filename',async(request,reply)=>{
+      const {websiteId,releaseId,filename}=request.params as {websiteId:string;releaseId:string;filename:string};
+      return reply.type(filename.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8').send(await service.publicTemplateAsset(websiteId,releaseId,filename));
     });
     app.get('/sites/:websiteId/media/:releaseId/:filename', async (request, reply) => {
       reply.header('Cache-Control', 'no-store');

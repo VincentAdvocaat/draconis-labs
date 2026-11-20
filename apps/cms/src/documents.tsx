@@ -6,7 +6,7 @@ export interface PortfolioSelection { ref: {websiteId: string; collectionId: 'po
 export interface PortfolioBlock extends PortfolioSelection { blockId: string; type: 'portfolio'; labels?: {heading: Partial<Record<'nl' | 'en', string | null>>; empty: Partial<Record<'nl' | 'en', string | null>>} }
 export interface DocumentContent { schemaVersion: 1; locale: 'nl'; title: string; slug: string; seoTitle: string; seoDescription: string; blocks: Array<TextBlock | ImageBlock | PortfolioBlock> }
 export interface DocumentDto { pageId: string; revisionId: string; version: number; content: DocumentContent; published: boolean }
-export interface SitePlan { shared?: import('./shared-navigation').SharedNavigationDto; localeVariants?: import('./page-locales').LocaleChoice[]; retainedLocales?: Array<{pageId: string; title: string; file: string}>; activeReleaseId: string | null; activeVersion: number; pages: Array<{ pageId: string; revisionId: string; version: number; title: string; file: string }> }
+export interface SitePlan {contactTemplate?:import('./contact-template').ContactRecord; shared?: import('./shared-navigation').SharedNavigationDto; localeVariants?: import('./page-locales').LocaleChoice[]; retainedLocales?: Array<{pageId: string; title: string; file: string}>; activeReleaseId: string | null; activeVersion: number; pages: Array<{ pageId: string; revisionId: string; version: number; title: string; file: string }> }
 
 export function DocumentEditor({ draft, onChange, busy, dirty, onSave, onPreview, availableImage, portfolioSelections = [], onLoadPortfolio, uiLocale = 'nl' }: {
   uiLocale?: UiLocale; draft: DocumentContent; onChange: (value: DocumentContent) => void; busy: boolean; dirty: boolean;
