@@ -53,6 +53,65 @@ describe('website categories and pinned publication labels', () => {
     expect(before.items[0].resolvedMedia.altText.nl).toBe(itemInput.media.altText.nl);
   });
 
+  it('filters the public NL and EN portfolio in pinned item order and keeps old links valid after a rename', async () => {
+    const projects = create('Projecten & werk', 'Projects & work');
+    const other = create('Overig', 'Other');
+    const empty = publish();
+    for (const [slug, categoryId] of [['z-last', projects.categoryId], ['other', other.categoryId], ['a-first', projects.categoryId]]) {
+      const item = service.save(site, { ...itemInput, slug, title: slug, categoryId });
+      service.saveLocaleVariant(site, item.itemId, 'en', {
+        expectedVersion: 1, title: `EN ${slug}`, slug: `en-${slug}`, description: '', alt: 'A red square',
+      });
+    }
+    const nl = publish();
+    const en = service.publish(site, service.list(site).version, { locale: 'en' });
+    const nlJson = JSON.stringify(nl);
+    service.saveCategory(site, projects.categoryId, { expectedVersion: 1, labels: { nl: 'Gewijzigd', en: 'Changed' } });
+
+    const app = await buildCatalogApp(fixture.root, 'category-test-token-123456789012345678');
+    const titles = (html: string) => [...html.matchAll(/<h2><a[^>]+>([^<]+)<\/a><\/h2>/g)].map(match => match[1]);
+    try {
+      const base = `/portfolio/${site}/${nl.snapshotId}`;
+      const query = `?category=${projects.categoryId}`;
+      const noItems = await app.inject(`/portfolio/${site}/${empty.snapshotId}`);
+      expect(noItems.statusCode).toBe(200);
+      expect(noItems.body).toContain('Deze snapshot bevat geen items.');
+      expect(noItems.body).not.toContain('?category=');
+      const all = await app.inject(base);
+      expect(all.statusCode).toBe(200);
+      expect(titles(all.body)).toEqual(['z-last', 'other', 'a-first']);
+      expect(all.body).toContain(`href="${base}${query}"`);
+      expect(all.body).toContain('aria-current="page">Alle items');
+
+      const selected = await app.inject(base + query);
+      expect(selected.statusCode).toBe(200);
+      expect(titles(selected.body)).toEqual(['z-last', 'a-first']);
+      expect(selected.body).toContain('aria-current="page">Projecten &amp; werk');
+      expect(selected.body).not.toContain('Gewijzigd');
+      expect((await app.inject(`${base}/items/z-last`)).statusCode).toBe(200);
+      const media = `${base}/media/${nl.items[0].itemId}/0`;
+      const image = await app.inject(media);
+      expect(image.statusCode).toBe(200);
+      expect((await app.inject(media + query)).rawPayload).toEqual(image.rawPayload);
+
+      const english = await app.inject(`/portfolio/${site}/${en.snapshotId}${query}`);
+      expect(english.statusCode).toBe(200);
+      expect(english.body).toContain('<html lang="en">');
+      expect(english.body).toContain('aria-current="page">Projects &amp; work');
+      expect(english.body).toContain('All items');
+      expect(titles(english.body)).toEqual(['EN z-last', 'EN a-first']);
+
+      for (const invalid of ['?category=', '?category=unknown', query + '&category=unknown']) {
+        const missing = await app.inject(base + invalid);
+        expect(missing.statusCode).toBe(404);
+        expect(missing.body).toContain('Deze categorie staat niet in deze publicatie.');
+        expect(missing.body).toContain(`href="${base}"`);
+        expect(titles(missing.body)).toEqual([]);
+      }
+      expect(JSON.stringify(service.resolveSnapshot({ websiteId: site, collectionId: 'portfolio', snapshotId: nl.snapshotId }))).toBe(nlJson);
+    } finally { await app.close(); }
+  });
+
   it('archives without removing references, blocks new selection and rejects delete even after item archive', () => {
     const category = create(), item = service.save(site, { ...itemInput, categoryId: category.categoryId });
     const before = publish();
@@ -115,6 +174,10 @@ describe('website categories and pinned publication labels', () => {
     try {
       for (const snapshot of snapshots) {
         expect(service.resolveSnapshot({ websiteId: site, collectionId: 'portfolio', snapshotId: snapshot.snapshotId })).toEqual(snapshot);
+        if (snapshot.schemaVersion < 3) {
+          expect(portfolioHtml(snapshot)).toContain('>Proef</a>');
+          expect(portfolioHtml(snapshot)).not.toContain('?category=');
+        }
         const pin = consumer.preparePin(site, { owner: { module: 'test', siteId: 'demo', ownerId: 'page', revisionId: 'revision', kind: 'release', slot: 'portfolio', attemptId: snapshot.snapshotId },
           ref: { websiteId: site, collectionId: 'portfolio', snapshotId: snapshot.snapshotId }, checksum: snapshot.checksum, localeContext: snapshot.localeContext ?? { defaultLocale: 'nl', locale: 'nl' } });
         expect(consumer.materialize(site, pin.pinId).snapshot).toEqual(snapshot);

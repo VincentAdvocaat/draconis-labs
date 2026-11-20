@@ -56,12 +56,18 @@ export async function buildCatalogApp(root: string, token: string) {
     const image = catalog.preview(request.params.site, request.params.id, Number(request.params.fileVersion));
     return reply.header('Cache-Control', 'no-store').type(image.mime).send(image.bytes);
   });
-  app.get<{ Params: { site: string; snapshot: string } }>('/portfolio/:site/:snapshot', async (request, reply) =>
-    reply.type('text/html; charset=utf-8').send(portfolioHtml(catalog.resolveSnapshot({ websiteId: request.params.site, collectionId: 'portfolio', snapshotId: request.params.snapshot }))));
+  app.get<{ Params: { site: string; snapshot: string }; Querystring: { category?: unknown } }>('/portfolio/:site/:snapshot', async (request, reply) => {
+    const snapshot = catalog.resolveSnapshot({ websiteId: request.params.site, collectionId: 'portfolio', snapshotId: request.params.snapshot });
+    const categoryId = request.query.category === undefined ? undefined :
+      snapshot.categories?.find(category => category.categoryId === request.query.category)?.categoryId;
+    const categoryMissing = request.query.category !== undefined && categoryId === undefined;
+    return reply.code(categoryMissing ? 404 : 200).type('text/html; charset=utf-8')
+      .send(portfolioHtml(snapshot, { categoryId, categoryMissing }));
+  });
   app.get<{ Params: { site: string; snapshot: string; slug: string } }>('/portfolio/:site/:snapshot/items/:slug', async (request, reply) => {
     const snapshot = catalog.resolveSnapshot({ websiteId: request.params.site, collectionId: 'portfolio', snapshotId: request.params.snapshot });
     if (!snapshot.items.some(i => i.slug === request.params.slug)) return reply.code(404).send({ message: 'Item not found in snapshot' });
-    return reply.type('text/html; charset=utf-8').send(portfolioHtml(snapshot, request.params.slug));
+    return reply.type('text/html; charset=utf-8').send(portfolioHtml(snapshot, { slug: request.params.slug }));
   });
   app.get<{ Params: { site: string; snapshot: string; item: string; variant: string } }>('/portfolio/:site/:snapshot/media/:item/:variant', async (request, reply) => {
     const image = catalog.variant({ websiteId: request.params.site, collectionId: 'portfolio', snapshotId: request.params.snapshot }, request.params.item, Number(request.params.variant));
