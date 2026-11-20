@@ -1,0 +1,517 @@
+{
+  "previous": {
+    "version": "0.1.0",
+    "electron": "45.4.1",
+    "node": "24.22.3",
+    "abi": "150",
+    "readyMs": 171.4327,
+    "readyEpochMs": 1795106215502,
+    "before": [
+      {
+        "id": "46a0a8db-2dc2-4325-a8ef-a8cd0370cc80",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 1000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:53.799Z",
+        "updatedAt": "2026-11-19T16:36:53.799Z",
+        "completedAt": null
+      },
+      {
+        "id": "829784d1-1a7c-4fce-85ee-13314bb40a51",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 2000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:54.344Z",
+        "updatedAt": "2026-11-19T16:36:54.344Z",
+        "completedAt": null
+      },
+      {
+        "id": "66e3de30-f88d-498b-86e6-c70543acf418",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 3000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:54.740Z",
+        "updatedAt": "2026-11-19T16:36:54.740Z",
+        "completedAt": null
+      },
+      {
+        "id": "f7fce42b-5f1d-4551-9c1d-e0172de7c0c9",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 4000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:55.142Z",
+        "updatedAt": "2026-11-19T16:36:55.142Z",
+        "completedAt": null
+      }
+    ],
+    "task": {
+      "id": "63029e5f-f7ed-4bfb-828a-ef6c7825647b",
+      "title": "Persistente fictieve desktoptaak",
+      "description": null,
+      "lane": "todo",
+      "plannedDate": null,
+      "dueDate": null,
+      "dueTime": null,
+      "timezone": null,
+      "recurrence": null,
+      "recurrenceParentId": null,
+      "position": 5000,
+      "version": 1,
+      "createdBy": "local-probe",
+      "priority": "normal",
+      "labels": [
+        "probe"
+      ],
+      "createdAt": "2026-11-19T16:36:55.505Z",
+      "updatedAt": "2026-11-19T16:36:55.505Z",
+      "completedAt": null
+    },
+    "read": [
+      {
+        "id": "46a0a8db-2dc2-4325-a8ef-a8cd0370cc80",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 1000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:53.799Z",
+        "updatedAt": "2026-11-19T16:36:53.799Z",
+        "completedAt": null
+      },
+      {
+        "id": "829784d1-1a7c-4fce-85ee-13314bb40a51",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 2000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:54.344Z",
+        "updatedAt": "2026-11-19T16:36:54.344Z",
+        "completedAt": null
+      },
+      {
+        "id": "66e3de30-f88d-498b-86e6-c70543acf418",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 3000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:54.740Z",
+        "updatedAt": "2026-11-19T16:36:54.740Z",
+        "completedAt": null
+      },
+      {
+        "id": "f7fce42b-5f1d-4551-9c1d-e0172de7c0c9",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 4000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:55.142Z",
+        "updatedAt": "2026-11-19T16:36:55.142Z",
+        "completedAt": null
+      },
+      {
+        "id": "63029e5f-f7ed-4bfb-828a-ef6c7825647b",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 5000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:55.505Z",
+        "updatedAt": "2026-11-19T16:36:55.505Z",
+        "completedAt": null
+      }
+    ],
+    "rejected": true,
+    "tokenRoundTrip": true,
+    "sqlite": "better-sqlite3"
+  },
+  "next": {
+    "version": "0.2.0",
+    "electron": "45.4.1",
+    "node": "24.22.3",
+    "abi": "150",
+    "readyMs": 1479.2514999999999,
+    "readyEpochMs": 1795106225831,
+    "before": [
+      {
+        "id": "46a0a8db-2dc2-4325-a8ef-a8cd0370cc80",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 1000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:53.799Z",
+        "updatedAt": "2026-11-19T16:36:53.799Z",
+        "completedAt": null
+      },
+      {
+        "id": "829784d1-1a7c-4fce-85ee-13314bb40a51",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 2000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:54.344Z",
+        "updatedAt": "2026-11-19T16:36:54.344Z",
+        "completedAt": null
+      },
+      {
+        "id": "66e3de30-f88d-498b-86e6-c70543acf418",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 3000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:54.740Z",
+        "updatedAt": "2026-11-19T16:36:54.740Z",
+        "completedAt": null
+      },
+      {
+        "id": "f7fce42b-5f1d-4551-9c1d-e0172de7c0c9",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 4000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:55.142Z",
+        "updatedAt": "2026-11-19T16:36:55.142Z",
+        "completedAt": null
+      },
+      {
+        "id": "63029e5f-f7ed-4bfb-828a-ef6c7825647b",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 5000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:55.505Z",
+        "updatedAt": "2026-11-19T16:36:55.505Z",
+        "completedAt": null
+      }
+    ],
+    "task": {
+      "id": "b620ed90-dec9-44f9-bb3d-150622cdf35e",
+      "title": "Persistente fictieve desktoptaak",
+      "description": null,
+      "lane": "todo",
+      "plannedDate": null,
+      "dueDate": null,
+      "dueTime": null,
+      "timezone": null,
+      "recurrence": null,
+      "recurrenceParentId": null,
+      "position": 6000,
+      "version": 1,
+      "createdBy": "local-probe",
+      "priority": "normal",
+      "labels": [
+        "probe"
+      ],
+      "createdAt": "2026-11-19T16:37:05.833Z",
+      "updatedAt": "2026-11-19T16:37:05.833Z",
+      "completedAt": null
+    },
+    "read": [
+      {
+        "id": "46a0a8db-2dc2-4325-a8ef-a8cd0370cc80",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 1000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:53.799Z",
+        "updatedAt": "2026-11-19T16:36:53.799Z",
+        "completedAt": null
+      },
+      {
+        "id": "829784d1-1a7c-4fce-85ee-13314bb40a51",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 2000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:54.344Z",
+        "updatedAt": "2026-11-19T16:36:54.344Z",
+        "completedAt": null
+      },
+      {
+        "id": "66e3de30-f88d-498b-86e6-c70543acf418",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 3000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:54.740Z",
+        "updatedAt": "2026-11-19T16:36:54.740Z",
+        "completedAt": null
+      },
+      {
+        "id": "f7fce42b-5f1d-4551-9c1d-e0172de7c0c9",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 4000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:55.142Z",
+        "updatedAt": "2026-11-19T16:36:55.142Z",
+        "completedAt": null
+      },
+      {
+        "id": "63029e5f-f7ed-4bfb-828a-ef6c7825647b",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 5000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:36:55.505Z",
+        "updatedAt": "2026-11-19T16:36:55.505Z",
+        "completedAt": null
+      },
+      {
+        "id": "b620ed90-dec9-44f9-bb3d-150622cdf35e",
+        "title": "Persistente fictieve desktoptaak",
+        "description": null,
+        "lane": "todo",
+        "plannedDate": null,
+        "dueDate": null,
+        "dueTime": null,
+        "timezone": null,
+        "recurrence": null,
+        "recurrenceParentId": null,
+        "position": 6000,
+        "version": 1,
+        "createdBy": "local-probe",
+        "priority": "normal",
+        "labels": [
+          "probe"
+        ],
+        "createdAt": "2026-11-19T16:37:05.833Z",
+        "updatedAt": "2026-11-19T16:37:05.833Z",
+        "completedAt": null
+      }
+    ],
+    "rejected": true,
+    "tokenRoundTrip": true,
+    "sqlite": "better-sqlite3"
+  },
+  "fullRecordsEqual": true
+}

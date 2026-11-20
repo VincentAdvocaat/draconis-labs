@@ -1,0 +1,322 @@
+{
+  "date": "2026-11-19",
+  "ownerChat": "01a1f49b-5ee0-7010-83f3-b62b8b94b041",
+  "base": "aed2c5369dab5243006e8f856f401b22e3113e90",
+  "tips": {
+    "cms": "3e4f764ade527ed2c79905526d4dc313e0f1923b",
+    "planner": "84952d86b82ee4c1141f691156396c82ec1c4b74",
+    "catalogus": "8d3eaeb30d5a8501c064ad1e7a0e4af22779e2c3"
+  },
+  "runtimeReviews": {
+    "cms": "fbb583f09c94411b9a4dadaf977d5daec31cce55",
+    "planner": "43c172c887e81fd09be999e1e28253825c4a4e12",
+    "catalogus": "264ce99cfd76493d0e4851de13d8c56ec524f23d"
+  },
+  "integrationRuntime": "7e6a6c9ee08dc9295f0066d149f3dcafde5eeefd",
+  "blobComparison": [
+    {
+      "path": "packages/shared/package.json",
+      "cmsBlob": "1556a0bccf2f8e9becf0d848bb447f01aaa41d61",
+      "catalogusBlob": "1556a0bccf2f8e9becf0d848bb447f01aaa41d61",
+      "equal": true
+    },
+    {
+      "path": "packages/shared/src/api.ts",
+      "cmsBlob": "c064b30657366c19bb208e693de47b324b3e4173",
+      "catalogusBlob": "c064b30657366c19bb208e693de47b324b3e4173",
+      "equal": true
+    },
+    {
+      "path": "packages/shared/src/index.ts",
+      "cmsBlob": "c7bb9ea1bcf56269333a1dbf32258154232e35c0",
+      "catalogusBlob": "c7bb9ea1bcf56269333a1dbf32258154232e35c0",
+      "equal": true
+    },
+    {
+      "path": "packages/shared/src/preferences.ts",
+      "cmsBlob": "5b8d09306acc4f30fd32df0a163ce225a92ebf2c",
+      "catalogusBlob": "5b8d09306acc4f30fd32df0a163ce225a92ebf2c",
+      "equal": true
+    },
+    {
+      "path": "packages/shared/src/scheduling.ts",
+      "cmsBlob": "721ffcd4c0e9a704e69a8b7597e9ede37d8cb799",
+      "catalogusBlob": "721ffcd4c0e9a704e69a8b7597e9ede37d8cb799",
+      "equal": true
+    },
+    {
+      "path": "packages/shared/src/schemas/common.ts",
+      "cmsBlob": "cd78d55c06cfcdc72a76ba7bc113f5abf1e85507",
+      "catalogusBlob": "cd78d55c06cfcdc72a76ba7bc113f5abf1e85507",
+      "equal": true
+    },
+    {
+      "path": "packages/shared/src/schemas/content-locale.ts",
+      "cmsBlob": "2d893ea7646cf5ca401e86e4445a20b067a7d2ee",
+      "catalogusBlob": "2d893ea7646cf5ca401e86e4445a20b067a7d2ee",
+      "equal": true
+    },
+    {
+      "path": "packages/shared/src/schemas/index.ts",
+      "cmsBlob": "a08eeca4ab10ad21cf1863235ec4998bd58592a6",
+      "catalogusBlob": "a08eeca4ab10ad21cf1863235ec4998bd58592a6",
+      "equal": true
+    },
+    {
+      "path": "packages/shared/src/schemas/manifest.ts",
+      "cmsBlob": "86e66aa410df2ea54e4e1141206de7032d51b69b",
+      "catalogusBlob": "86e66aa410df2ea54e4e1141206de7032d51b69b",
+      "equal": true
+    },
+    {
+      "path": "packages/shared/src/schemas/planner.ts",
+      "cmsBlob": "0cc03daa4e1df6dba6b481e7dffe48ffe1e5eba2",
+      "catalogusBlob": "0cc03daa4e1df6dba6b481e7dffe48ffe1e5eba2",
+      "equal": true
+    },
+    {
+      "path": "packages/shared/src/schemas/preferences.ts",
+      "cmsBlob": "78bdf867f54745cd978dea01f93b5b429736449e",
+      "catalogusBlob": "78bdf867f54745cd978dea01f93b5b429736449e",
+      "equal": true
+    },
+    {
+      "path": "packages/shared/tests/content-locale.test.ts",
+      "cmsBlob": "92d6aaba1b2bf642279282f84877a357c557fce6",
+      "catalogusBlob": "92d6aaba1b2bf642279282f84877a357c557fce6",
+      "equal": true
+    },
+    {
+      "path": "packages/shared/tests/template.test.ts",
+      "cmsBlob": "858c31dfff078849dbb04bd1aa975e8ccd3849a5",
+      "catalogusBlob": "858c31dfff078849dbb04bd1aa975e8ccd3849a5",
+      "equal": true
+    },
+    {
+      "path": "packages/shared/tsconfig.json",
+      "cmsBlob": "41620b4c4bb7180177e89dea682216f1c03b6a98",
+      "catalogusBlob": "41620b4c4bb7180177e89dea682216f1c03b6a98",
+      "equal": true
+    },
+    {
+      "path": "packages/shared/vitest.config.ts",
+      "cmsBlob": "8363e1642b789b9cb946a2556b1100415106374d",
+      "catalogusBlob": "8363e1642b789b9cb946a2556b1100415106374d",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/catalogus/consumer-fixture.ts",
+      "cmsBlob": "d2b88c9c4eea833a0d73596a0d286b5ee01736a2",
+      "catalogusBlob": "d2b88c9c4eea833a0d73596a0d286b5ee01736a2",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/catalogus/consumer-owner.ts",
+      "cmsBlob": "3666fb3a63bf9f00333c1ab8e2f092facfb14a80",
+      "catalogusBlob": "3666fb3a63bf9f00333c1ab8e2f092facfb14a80",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/catalogus/consumer.ts",
+      "cmsBlob": "8b904fc8b928c5827d08bbad5b4a1da3e937d1ba",
+      "catalogusBlob": "8b904fc8b928c5827d08bbad5b4a1da3e937d1ba",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/catalogus/contracts.ts",
+      "cmsBlob": "32faecfa888bf4b068d2693cc5567384128195d3",
+      "catalogusBlob": "32faecfa888bf4b068d2693cc5567384128195d3",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/catalogus/locales.ts",
+      "cmsBlob": "ef2b1e480437c41e834629f1539483ce158f878e",
+      "catalogusBlob": "ef2b1e480437c41e834629f1539483ce158f878e",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/catalogus/service.ts",
+      "cmsBlob": "83f2590cea007c3b2fbf0a22cc7b4dbb278788ef",
+      "catalogusBlob": "83f2590cea007c3b2fbf0a22cc7b4dbb278788ef",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/media-fixture/contracts.ts",
+      "cmsBlob": "4a5d6e761aa322e8b5e159611827a740b67d90c6",
+      "catalogusBlob": "4a5d6e761aa322e8b5e159611827a740b67d90c6",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/media-fixture/demo.ts",
+      "cmsBlob": "176539504e86c2df1fe49b95d59e5c80dcb7ce70",
+      "catalogusBlob": "176539504e86c2df1fe49b95d59e5c80dcb7ce70",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/media-fixture/fixture.ts",
+      "cmsBlob": "8953171a9c0162097fb15cecccc7b84da4fa8a50",
+      "catalogusBlob": "8953171a9c0162097fb15cecccc7b84da4fa8a50",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/media-fixture/safety.ts",
+      "cmsBlob": "5a114df5c7daf08d6c695f41c307c6e966d20c11",
+      "catalogusBlob": "5a114df5c7daf08d6c695f41c307c6e966d20c11",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/media-fixture/storage.ts",
+      "cmsBlob": "aadfa545123cba9dcbf0b36cfe91e992d5524ee7",
+      "catalogusBlob": "aadfa545123cba9dcbf0b36cfe91e992d5524ee7",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/media-upload/app.ts",
+      "cmsBlob": "93461389bbe858ce7b5fe5556734fb3395a353af",
+      "catalogusBlob": "bfb61a8d4095c0b0bfad5105777afed87e01e94f",
+      "equal": false
+    },
+    {
+      "path": "server/api/src/media-upload/cleanup.ts",
+      "cmsBlob": "c352fc98e0c8f1e0fec2585fe12cb711d004f56b",
+      "catalogusBlob": "c352fc98e0c8f1e0fec2585fe12cb711d004f56b",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/media-upload/processor.ts",
+      "cmsBlob": "86c6a4d0ff5611ebd9be3c87d47c6f3bf1122275",
+      "catalogusBlob": "86c6a4d0ff5611ebd9be3c87d47c6f3bf1122275",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/media-upload/rights.ts",
+      "cmsBlob": "93741f1a9635ddea66002484f1841b181ed9d26f",
+      "catalogusBlob": "93741f1a9635ddea66002484f1841b181ed9d26f",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/media-upload/service.ts",
+      "cmsBlob": "f86a4e9180b9ace8fc53d35d025927cac6669a72",
+      "catalogusBlob": "f86a4e9180b9ace8fc53d35d025927cac6669a72",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/media-upload/smoke.ts",
+      "cmsBlob": "8afce5de8fae66de01a665163d4f5d604de376cd",
+      "catalogusBlob": "8afce5de8fae66de01a665163d4f5d604de376cd",
+      "equal": true
+    },
+    {
+      "path": "server/api/src/media-upload/start.ts",
+      "cmsBlob": "a8c407d1889ff021647e063b74cd04b7a4f088e0",
+      "catalogusBlob": "a8c407d1889ff021647e063b74cd04b7a4f088e0",
+      "equal": true
+    },
+    {
+      "path": "server/api/tests/architecture.test.ts",
+      "cmsBlob": "f4590a3fd8a5a2548a0a4b6626796b59e3d742ef",
+      "catalogusBlob": "f4590a3fd8a5a2548a0a4b6626796b59e3d742ef",
+      "equal": true
+    },
+    {
+      "path": "server/api/tests/catalogus-consumer.test.ts",
+      "cmsBlob": "ba14a34942e14f2c385c7b14405ebd41471358ad",
+      "catalogusBlob": "ba14a34942e14f2c385c7b14405ebd41471358ad",
+      "equal": true
+    },
+    {
+      "path": "server/api/tests/http.test.ts",
+      "cmsBlob": "3db7e25af32cee762b7d88ec0fd35580af46de74",
+      "catalogusBlob": "3db7e25af32cee762b7d88ec0fd35580af46de74",
+      "equal": true
+    },
+    {
+      "path": "server/api/tests/media-fixture.test.ts",
+      "cmsBlob": "a51796f859d2dcfe264e5d900fd7977dc016e23e",
+      "catalogusBlob": "a51796f859d2dcfe264e5d900fd7977dc016e23e",
+      "equal": true
+    },
+    {
+      "path": "server/api/tests/media-upload.test.ts",
+      "cmsBlob": "ad013e2cfa6e7e0251117915419c1bd7531c38a8",
+      "catalogusBlob": "ad013e2cfa6e7e0251117915419c1bd7531c38a8",
+      "equal": true
+    },
+    {
+      "path": "server/api/tests/openapi-contract.test.ts",
+      "cmsBlob": "dc001c2ffb46253140e944db5564debf31ea8483",
+      "catalogusBlob": "dc001c2ffb46253140e944db5564debf31ea8483",
+      "equal": true
+    }
+  ],
+  "catalogusAddedPaths": [
+    "docs/media-catalogus/README.md",
+    "docs/media-catalogus/backlog.md",
+    "docs/media-catalogus/catalogus-flow.md",
+    "docs/media-catalogus/inventarisatie.md",
+    "docs/media-catalogus/locale-flow.md",
+    "docs/media-catalogus/ontwerp.md",
+    "docs/media-catalogus/snapshotbeheer.md",
+    "scripts/dev-cli/commands/catalogus.ps1",
+    "scripts/dev-cli/tests/catalogus-arguments.ps1",
+    "server/api/src/catalogus/app.ts",
+    "server/api/src/catalogus/html.ts",
+    "server/api/src/catalogus/start.ts",
+    "server/api/tests/catalogus-locales.test.ts",
+    "server/api/tests/catalogus-ui.test.ts",
+    "server/api/tests/catalogus.test.ts"
+  ],
+  "plannerOverlap": [
+    "packages/shared/src/index.ts",
+    "server/api/package.json",
+    "pnpm-lock.yaml"
+  ],
+  "checks": {
+    "frozenInstall": true,
+    "typecheck": true,
+    "lint": true,
+    "build": true,
+    "apiTests": 306,
+    "plannerUiTests": 20,
+    "sharedTests": 18,
+    "plannerCoreTests": 7,
+    "desktopProbeTests": 6,
+    "catalogusCliArgumentChecks": 8,
+    "privateStartSmoke": true,
+    "publicStartRestartSmoke": true,
+    "reproducerExecutedSuccessfully": true
+  },
+  "browser": {
+    "plannerTaskSave": true,
+    "modalTabShiftTabEscapeFocus": true,
+    "publicBookingReceipt": "514129d2-515e-43c1-9cae-29825646e500",
+    "bookingDate": "2026-11-20",
+    "privateBookingAfterRestart": true,
+    "cmsUploadRightsAndEnglishImageRelease": true,
+    "catalogusEnglishSnapshot": "bea5d129-d9fc-481f-9e05-1c38b8a69124",
+    "allModulesProcessRestart": true,
+    "cmsUsesSharedModal": false
+  },
+  "cleanup": {
+    "ownedPorts": [
+      3041,
+      3042,
+      3043,
+      3044,
+      3050,
+      3051
+    ],
+    "allListenersClosed": true
+  },
+  "limits": [
+    "No main merge or deployment",
+    "No customer data or existing user database touched",
+    "Separate synthetic stores per module",
+    "No claim of one shared production identity or hosted system"
+  ],
+  "review": {
+    "sha": "fb9c22d407a50fcc020d792a94261510019d65ad",
+    "reviewerId": "/root/review_pr37",
+    "status": "approved-no-required-findings"
+  }
+}

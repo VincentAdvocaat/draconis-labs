@@ -20,6 +20,18 @@ Prioriteit **P0** is vereist voor de eerste verticale oplevering. **P1** volgt n
 
 ## Fase 0 · Bewijs en beslissingen
 
+Uitvoering op 19 november 2026: de [PL-01-baseline](baseline.md) legt twee
+fictieve schemafixtures, 22 tests en de resterende UI-controle vast. De
+[Windows-ADR](adr-001-windows-runtime.md) bevat de uitvoerbare Electron-proef,
+meetresultaten en harde grenzen. PL-02 blijft voorlopig zolang de schone-VM-
+vergelijking, installatie-/upgradetest en identity-/signingcontroles ontbreken.
+De [eerste PL-11-opslagstap](pl11-core-en-opslag.md) deelt inmiddels service en
+SQLite-adapter met desktop. De [lokale clientstap](pl11-lokale-client.md) gebruikt inmiddels expliciete
+werkruimtecontext en dezelfde foutenvelop over HTTP en desktop. PL-12 en PL-13
+blijven afzonderlijke vervolgstappen. De [eerste SQLite-stap van PL-13](pl13-sqlite-atomiciteit.md)
+levert inmiddels genummerde migratie, verplichte workspace-versies en atomaire
+taakmutaties; PostgreSQL/import/herstel blijven open. Dit wijzigt geen Azure Boards-status.
+
 | Story | Prioriteit · vereist | Uitvoering en acceptatie |
 | --- | --- | --- |
 | PL-01 · Taakbaseline | P0 · start | Zet fictieve SQLite-fixtures op voor het oude en actuele taakschema. Leg veldwaarden, API-responses inclusief legacy-headers, recurrence, zichtbare sortering en acceptatiescenario's vast. **Gereed als** de huidige v1-suite én de genoteerde taakscenario's op de gekozen baseline reproduceerbaar zijn. |
@@ -53,6 +65,11 @@ Prioriteit **P0** is vereist voor de eerste verticale oplevering. **P1** volgt n
 
 ## Fase 2 · Zones en grotere capaciteit
 
+De [lokale PL-21/22-stap](pl21-22-zones-capaciteit.md) voegt vijf fictieve
+gebieden, expliciete demo-postcodes, standaardcapaciteit en slotuitzonderingen
+toe. Bestaande afspraken blijven behouden in de standaardzone. Dit wijzigt
+geen Azure Boards-status of eerdere open cloud-/releasevoorwaarden.
+
 | Story | Prioriteit · vereist | Uitvoering en acceptatie |
 | --- | --- | --- |
 | PL-21 · Werkgebieden | P1 · PL-18 | Voeg vijf fictieve zones en postcode-toewijzing toe als demo. Modelleer het oude impliciete werkgebied als blijvende standaardzone en migreer bestaande slots daarop. **Gereed als** een onbekende of dubbel geconfigureerde postcode een duidelijke uitkomst heeft en bestaande afspraken hun tijdvak en relatie behouden. |
@@ -61,6 +78,11 @@ Prioriteit **P0** is vereist voor de eerste verticale oplevering. **P1** volgt n
 **Fasegrens.** Een medewerker kan in de demo in alle vijf zones boeken. Dezelfde capaciteitsregels zijn bewezen voor meerdere gelijktijdige schrijvers.
 
 ## Fase 3 · Publiek boeken
+
+De [lokale PL-31/32-stap](pl31-32-lokaal-publiek-boeken.md) levert één expliciet
+gebonden lokaal kanaal, een bezoekerspagina en atomair reserveren met dezelfde
+capaciteitsregels. Dit lokale checkpoint wijzigt geen Azure-status of open
+cloud-, e-mail- en releasevoorwaarden.
 
 | Story | Prioriteit · vereist | Uitvoering en acceptatie |
 | --- | --- | --- |

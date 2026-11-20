@@ -1,0 +1,7 @@
+{
+  "normalization": "UTF-8, LF",
+  "sha256": {
+    "current.sql": "0e8968e2b3b3c77bd83b1c9cb263cb85ad0c2ffcb5e90c0dd330ad70e293d67d",
+    "legacy.sql": "e76de6c7ba2259656d14e48307b50715d4a12c671c41ab8a9e07153f4ec64561"
+  }
+}

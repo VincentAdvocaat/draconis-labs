@@ -1,0 +1,10 @@
+{
+  "pr": "https://github.com/VincentAdvocaat/draconis-labs/pull/37",
+  "sha": "fb9c22d407a50fcc020d792a94261510019d65ad",
+  "reviewerId": "/root/review_pr37",
+  "model": "gpt-6-astra",
+  "reasoning": "medium",
+  "sourceChat": "01a1f49b-5ee0-7010-83f3-b62b8b94b041",
+  "status": "approved-no-required-findings",
+  "report": "Integratiereview PR37 akkoord. Geen noodzakelijke fixes of concrete integratieregressies. Gecontroleerde lokale en remote refs/pull/37/head bij begin en einde: fb9c22d407a50fcc020d792a94261510019d65ad. Reviewer /root/review_pr37, GPT-6 Astra medium. Scope integratiedelta/conflictoplossingen/gedeelde consumers, geen volledige herhaling van eerdere modulebeoordelingen.\nAlle drie vastgezette brontips zijn ancestors. Alle getrackte eindbestanden vergeleken met drie brontips: alleen vier integratiedocumenten, verificatiescript, sharedrootexports, APImanifest en lockfile zijn nieuwe blobs. Alle overige bestanden zijn ongewijzigd uit minstens \u00e9\u00e9n brontip. Exports behouden contentlocale en Planner/bookings. APImanifest behoudt sharp en Plannerdeps plus benodigde tsx-startloader. Uploadcompositie exact uit catalogustip met default browserrequestweigering. CMS eigen bestaande appcompositie. Planner/SharedModal ongewijzigd overgenomen.\nZelf uitgevoerd: API306 in34bestanden, PlannerUI20, shared18, private startupsmoke CRUD/legacy/workspace/CORS/release-retry, publieke startupsmoke reservation/exact replay/private-routes-absent/receipt-capacity na processrestart, catalogusCLI8 argumentchecks: alles groen. Verificatiescript stopt bij mislukte pnpm-controle en herstelt werkdirectory. Documentatie onderscheidt geautomatiseerde checks, browseracceptatie en beperkingen gescheiden synthetische opslag correct.\nGeen optionele scopeuitbreidingen. Frozen install, volledige build/type/lint en browseracceptatie zijn gerapporteerd implementatiebewijs, niet door reviewer herhaald. Later voorbereide gebruikersdemo.md en mainmergeplan.md vallen buiten SHA-review. Alleen-lezen; geen externecomments, merge ofdeployment."
+}

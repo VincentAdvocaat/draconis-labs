@@ -1,0 +1,37 @@
+{
+  "name": "@draconis/desktop-probe",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "electron dist/stage",
+    "probe": "node scripts/probe.mjs",
+    "package": "node scripts/package.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint src scripts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@draconis/planner-core": "workspace:*",
+    "@draconis/planner-sqlite": "workspace:*",
+    "@draconis/shared": "workspace:*",
+    "@draconis/ui": "workspace:*",
+    "better-sqlite3": "13.2.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@electron/packager": "20.3.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "electron": "45.4.1",
+    "electron-winstaller": "5.4.4",
+    "esbuild": "0.28.1",
+    "oxlint": "^1.73.0",
+    "typescript": "~6.0.3",
+    "vitest": "^4.0.18"
+  }
+}

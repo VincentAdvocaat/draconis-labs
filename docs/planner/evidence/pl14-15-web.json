@@ -1,0 +1,77 @@
+{
+  "measuredAt": "2026-11-19T19:10:09.2088962Z",
+  "browser": "Chrome normal UI",
+  "mode": "Synthetic local HTTP demo, no real customer data",
+  "testedDate": "2026-11-21",
+  "actions": [
+    "Create contact via form",
+    "Block morning",
+    "Plan afternoon with internal 14:15",
+    "See full afternoon",
+    "Release morning after CORS fix",
+    "Reject arrival at exclusive end 12:00 visibly",
+    "Move to morning with internal 09:15",
+    "Block freed afternoon",
+    "Cancel appointment",
+    "Release afternoon",
+    "Reload and verify persisted cancellation/capacity",
+    "Archive contact and retain card/history",
+    "Exclude archived contact from new selection"
+  ],
+  "contacts": {
+    "archived": 1,
+    "total": 1
+  },
+  "appointments": [
+    {
+      "window": {
+        "date": "2026-11-21",
+        "daypartId": "morning",
+        "label": "Ochtend",
+        "startTime": "08:00",
+        "endTime": "12:00",
+        "timezone": "Europe/Amsterdam",
+        "startAt": "2026-11-21T07:00:00Z",
+        "endAt": "2026-11-21T11:00:00Z"
+      },
+      "arrivalAt": "2026-11-21T08:15:00Z",
+      "version": 3,
+      "status": "cancelled"
+    }
+  ],
+  "eventTypes": [
+    "planned",
+    "moved",
+    "cancelled"
+  ],
+  "availability": [
+    {
+      "available": true,
+      "daypart": "morning",
+      "blocked": false,
+      "occupied": 0
+    },
+    {
+      "available": true,
+      "daypart": "afternoon",
+      "blocked": false,
+      "occupied": 0
+    }
+  ],
+  "corsFailure": {
+    "afterFix": "Normal browser release succeeded; compiled start smoke covers repeated same-key DELETE",
+    "beforeFix": "OPTIONS only; no DELETE reached server; block still present",
+    "cause": "DELETE absent from allowed preflight methods"
+  },
+  "compiledApiRestart": {
+    "passed": true,
+    "entrypoint": "node --import tsx dist/index.js",
+    "preserved": [
+      "archived contact",
+      "cancelled appointment version3",
+      "three events",
+      "two free dayparts"
+    ],
+    "realUserData": false
+  }
+}
