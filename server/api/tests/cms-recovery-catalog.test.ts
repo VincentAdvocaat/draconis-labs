@@ -121,6 +121,30 @@ describe('reviewed CMS/catalog integration recovery', () => {
 });
 
 describe('explicit legacy media schemas', () => {
+  for (const version of [4, 5]) for (const damage of ['missing', 'archived']) it(`rejects a ${damage} system category on an empty website in schema ${version}`, async () => {
+    const fixture = await createRecoveryFixture(target()); mediaRoots.push(fixture.mediaRoot);
+    const path = join(fixture.mediaRoot, 'media.sqlite'), db = new Database(path);
+    try {
+      expect(db.prepare("SELECT COUNT(*) AS count FROM catalog_revisions WHERE website='fixture-beta'").get()).toEqual({ count: 0 });
+      if (version === 4) {
+        db.exec('ALTER TABLE catalog_items DROP COLUMN position');
+        db.prepare('UPDATE catalog_schema SET version=?').run(version);
+      }
+    } finally { db.close(); }
+    const output = target('backup'); await backupRecoveryFixture(fixture.root, output);
+    const sql = damage === 'missing'
+      ? "DELETE FROM catalog_categories WHERE website='fixture-beta' AND id='algemeen'"
+      : "UPDATE catalog_categories SET archived=1 WHERE website='fixture-beta' AND id='algemeen'";
+    for (const databasePath of [path, join(output, 'media/media.sqlite')]) {
+      const damaged = new Database(databasePath);
+      try { expect(damaged.prepare(sql).run().changes).toBe(1); } finally { damaged.close(); }
+    }
+    const manifest = json(join(output, 'backup.json')), entry = manifest.files.find((file: { path: string }) => file.path === 'media/media.sqlite');
+    const bytes = readFileSync(join(output, 'media/media.sqlite'));
+    entry.bytes = bytes.length; entry.sha256 = sha(bytes); writeFileSync(join(output, 'backup.json'), JSON.stringify(manifest));
+    await expect(backupRecoveryFixture(fixture.root, target('backup'))).rejects.toThrow('Active catalog system category is missing');
+    await expect(restoreRecoveryFixture(output, target())).rejects.toThrow('Active catalog system category is missing');
+  });
   for (const version of [3, 4]) it(`backs up and restores schema ${version} before a deliberate startup upgrade`, async () => {
     const fixture = await createRecoveryFixture(target()); mediaRoots.push(fixture.mediaRoot);
     const db = new Database(join(fixture.mediaRoot, 'media.sqlite'));

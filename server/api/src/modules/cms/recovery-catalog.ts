@@ -44,6 +44,9 @@ export function checkRecoveryCatalog(db: Database.Database): Version {
       positive.parse(row.version); z.union([z.literal(0), z.literal(1)]).parse(row.archived); categoryLabels.parse(JSON.parse(row.labels));
       categories.add(row.website + '/' + row.id);
     }
+    if (db.prepare(`SELECT 1 FROM catalog_collections c WHERE NOT EXISTS (
+      SELECT 1 FROM catalog_categories k WHERE k.website=c.website AND k.id='algemeen' AND k.archived=0
+    ) LIMIT 1`).get()) throw new Error('Active catalog system category is missing');
   }
   const category = (website: string, id: string) => {
     if (version >= 4 && !categories.has(website + '/' + id)) throw new Error('Retained catalog category is missing');
