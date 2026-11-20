@@ -49,4 +49,4 @@ De afzonderlijke proef en controles staan in [contact-template-proef.md](contact
 
 ## Fictieve back-up en restore
 
-CMS-09 heeft een afzonderlijke lokale CLI-proef voor twee databases en bestanden op nieuwe synthetische opslag. Zie [protocol en bewijs](backup-restore-proef.md). Productie-identiteit, echte klantimport, opslagbeleid en live omschakeling blijven open. Onafhankelijke review volgt vóór afronding.
+CMS-09 heeft een afzonderlijke lokale CLI-proef voor twee databases en bestanden op nieuwe synthetische opslag. Zie [protocol en bewijs](backup-restore-proef.md). Productie-identiteit, echte klantimport, opslagbeleid en live omschakeling blijven open. PR42 akkoord op runtimehead `65643c9b448cd139a2f51c4d61ca6fd1fa76fbf4`, Astra medium, P2 stale-recoverylock opgelost en herbeoordeeld. Volledige herreview en coördinatie staan in [review-pr42.md](review-pr42.md). Ondersteuning blijft bewust CMS-schema8/catalogusschema3; schema4/5 vereist de afzonderlijke gezamenlijke consolidatie.
