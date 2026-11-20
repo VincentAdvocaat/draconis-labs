@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync, symlinkSy
 import { join, resolve, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import Database from 'better-sqlite3';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { backupRecoveryFixture, createRecoveryFixture, openRecoveryFixture, quiesceRecoveryFixture, restoreRecoveryFixture } from '../src/modules/cms/recovery.js';
 
 const cleanup: Array<() => void | Promise<void>> = [];
@@ -96,6 +96,50 @@ describe('offline synthetic CMS recovery', () => {
     writeFileSync(join(source.root, 'runtime.lock'), '2147483647');
     expect(quiesceRecoveryFixture(source.root).offline).toBe(true);
     expect(existsSync(join(source.root, 'runtime.lock'))).toBe(false);
+  });
+  it('recovers a crashed recovery lease explicitly, preserving source bytes and allowing restart and backup', async () => {
+    const source = await fixture();
+    const lock = join(source.root, '.recovery.lock');
+    const before = [hash(join(source.root, 'cms.db')), hash(join(source.mediaRoot, 'media.sqlite'))];
+    writeFileSync(lock, '2147483647');
+    await expect(openRecoveryFixture(source.root)).rejects.toThrow('Offline recovery');
+    await expect(backupRecoveryFixture(source.root, target('backup'))).rejects.toThrow();
+    expect(quiesceRecoveryFixture(source.root).offline).toBe(true);
+    expect(existsSync(lock)).toBe(false);
+    expect([hash(join(source.root, 'cms.db')), hash(join(source.mediaRoot, 'media.sqlite'))]).toEqual(before);
+    const running = await opened(source.root); await running.app.close();
+    await backupRecoveryFixture(source.root, target('backup'));
+  });
+  it('preserves live, invalid, changed and unprovably dead recovery owners', async () => {
+    const source = await fixture(), lock = join(source.root, '.recovery.lock');
+    for (const owner of [String(process.pid), '', 'garbage', '-1', '1.5', '2147483648', ' 2147483647']) {
+      writeFileSync(lock, owner);
+      expect(() => quiesceRecoveryFixture(source.root)).toThrow();
+      expect(readFileSync(lock, 'utf8')).toBe(owner);
+    }
+    writeFileSync(lock, '2147483647');
+    const kill = vi.spyOn(process, 'kill').mockImplementation(() => { throw Object.assign(Error('denied'), { code: 'EPERM' }); });
+    try { expect(() => quiesceRecoveryFixture(source.root)).toThrow('denied'); }
+    finally { kill.mockRestore(); }
+    expect(readFileSync(lock, 'utf8')).toBe('2147483647');
+    const changed = vi.spyOn(process, 'kill').mockImplementation(() => {
+      writeFileSync(lock, String(process.pid)); throw Object.assign(Error('gone'), { code: 'ESRCH' });
+    });
+    try { expect(() => quiesceRecoveryFixture(source.root)).toThrow('Owner changed'); }
+    finally { changed.mockRestore(); }
+    expect(readFileSync(lock, 'utf8')).toBe(String(process.pid));
+  });
+  it('serializes recovery acquisition and leaves a replacement lease intact on release', async () => {
+    const source = await fixture(), lock = join(source.root, '.recovery.lock');
+    let checked = false;
+    await backupRecoveryFixture(source.root, target('backup'), { afterFile: () => {
+      if (checked) return; checked = true;
+      expect(() => quiesceRecoveryFixture(source.root)).toThrow();
+      expect(readFileSync(lock, 'utf8')).toBe(String(process.pid));
+      writeFileSync(lock, '2147483647');
+    } });
+    expect(readFileSync(lock, 'utf8')).toBe('2147483647');
+    expect(quiesceRecoveryFixture(source.root).offline).toBe(true);
   });
   it('rejects corruption, missing and extra files, incomplete manifests, traversal and unknown schemas before creating a target', async () => {
     const source = await fixture();

@@ -79,22 +79,50 @@ export async function openRecoveryFixture(root: string, uiRoot?: string) {
     enableMedia: true, enableUploads: true, enablePortfolio: true, enablePages: true, enableSharedNavigation: true,
     enableContactTemplate: true, uiRoot });
 }
+function assertDeadOwner(bytes: Buffer, catalog = false) {
+  const text = bytes.toString();
+  const pid = catalog ? (JSON.parse(text) as { pid: number }).pid : (/^[1-9][0-9]*$/.test(text) ? Number(text) : NaN);
+  if (!Number.isSafeInteger(pid) || pid < 1 || pid > 2147483647) throw new Error('Invalid owner PID');
+  try { process.kill(pid, 0); throw new Error('Stop the live owner first'); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error; }
+}
+function recoveryLease(root: string, reclaim = false) {
+  const path = join(root, 'cms.db');
+  regular(path);
+  const db = new Database(path, { fileMustExist: true, timeout: 0 });
+  const lock = join(root, '.recovery.lock'), bytes = Buffer.from(String(process.pid));
+  try {
+    // SQLite serializes cooperating recovery commands, including stale-file removal.
+    // A process crash releases this reservation without another persistent lock.
+    db.exec('BEGIN IMMEDIATE');
+    if (reclaim && existsSync(lock)) {
+      const previous = regular(lock);
+      assertDeadOwner(previous);
+      if (!regular(lock).equals(previous)) throw new Error('Owner changed during offline check');
+      unlinkSync(lock);
+    }
+    writeFileSync(lock, bytes, { flag: 'wx' });
+  } catch (error) {
+    if (db.inTransaction) db.exec('ROLLBACK'); db.close(); throw error;
+  }
+  return () => {
+    try {
+      if (regular(lock).equals(bytes)) unlinkSync(lock);
+    } finally { if (db.inTransaction) db.exec('ROLLBACK'); db.close(); }
+  };
+}
 /** Recover only fixed stale coordination files after an interrupted local process.
  * Never stop a process or infer that a live PID is safe to take over. */
 export function quiesceRecoveryFixture(sourceRoot: string) {
   const { root, mediaRoot } = source(sourceRoot);
-  const lock = join(root, '.recovery.lock');
-  writeFileSync(lock, String(process.pid), { flag: 'wx' });
+  const release = recoveryLease(root, true);
   try {
     if (existsSync(join(mediaRoot, '.catalog-consumer-acquiring'))) throw new Error('Inspect interrupted catalog acquisition manually');
     const stale: Array<{ path: string; bytes: Buffer }> = [];
     for (const path of [join(root, 'runtime.lock'), join(mediaRoot, '.catalog-consumer-owner.json')]) {
       if (!existsSync(path)) continue;
       const bytes = regular(path);
-      const pid = path.endsWith('runtime.lock') ? Number(bytes.toString()) : (JSON.parse(bytes.toString()) as { pid: number }).pid;
-      if (!Number.isSafeInteger(pid) || pid < 1) throw new Error('Invalid owner PID');
-      try { process.kill(pid, 0); throw new Error('Stop the live owner first'); }
-      catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error; }
+      assertDeadOwner(bytes, !path.endsWith('runtime.lock'));
       stale.push({ path, bytes });
     }
     for (const file of stale) {
@@ -102,7 +130,7 @@ export function quiesceRecoveryFixture(sourceRoot: string) {
       unlinkSync(file.path);
     }
     return { root, offline: true };
-  } finally { unlinkSync(lock); }
+  } finally { release(); }
 }
 export async function createRecoveryFixture(target: string) {
   const root = checkedTemp(target, 'draconis-cms-recovery-', false);
@@ -170,15 +198,14 @@ function validatePayload(root: string) {
 export async function backupRecoveryFixture(sourceRoot: string, target: string, hooks: RecoveryHooks = {}) {
   const { root, mediaRoot, marker } = source(sourceRoot);
   const output = checkedTemp(target, 'draconis-cms-backup-', false);
-  const lock = join(root, '.recovery.lock');
-  writeFileSync(lock, String(process.pid), { flag: 'wx' });
+  const release = recoveryLease(root);
   const guards: Database.Database[] = [];
   let created = false;
   try {
     if (existsSync(join(root, 'runtime.lock')) || existsSync(join(mediaRoot, '.catalog-consumer-owner.json')) || existsSync(join(mediaRoot, '.catalog-consumer-acquiring'))) throw new Error('Stop the owning CMS and catalog consumer before backup');
     // Reserve both SQLite writers for the complete copy. Filesystem quiescence still
     // requires the documented single offline owner; this is not a live atomic backup.
-    for (const path of [join(root, 'cms.db'), join(mediaRoot, 'media.sqlite')]) {
+    for (const path of [join(mediaRoot, 'media.sqlite')]) {
       regular(path);
       const db = new Database(path, { fileMustExist: true, timeout: 0 }); guards.push(db); db.exec('BEGIN IMMEDIATE');
     }
@@ -214,7 +241,7 @@ export async function backupRecoveryFixture(sourceRoot: string, target: string, 
     if (created) removeOwned(output, 'draconis-cms-backup-'); throw error;
   } finally {
     for (const db of guards.reverse()) { if (db.inTransaction) db.exec('ROLLBACK'); db.close(); }
-    unlinkSync(lock);
+    release();
   }
 }
 export async function restoreRecoveryFixture(packageRoot: string, target: string, hooks: RecoveryHooks = {}) {
