@@ -1,3 +1,4 @@
+import {contactSelectionSchema} from './contact-fields.js';
 import { z } from 'zod';
 import { mediaReferenceSchema } from '../../media-fixture/contracts.js';
 
@@ -13,6 +14,7 @@ export const draftSchema = z.object({
 export const releaseSchema = z.object({
   revisionId: z.string().uuid(),
   expectedActiveVersion: z.number().int().nonnegative(),
+  expectedContact: contactSelectionSchema.optional(),
   expectedShared: z.object({revisionId:z.string().uuid(),version:z.number().int().positive()}).strict().optional(),
   expectedLocales: z.array(z.object({ pageId: z.union([z.literal('home'),z.string().uuid()]), locale: z.literal('en'), revisionId: z.string().uuid(), version: z.number().int().positive(), structure: z.string().regex(/^[a-f0-9]{64}$/) }).strict()).max(33).optional(),
   expectedPages: z.array(z.object({ pageId: z.string().min(1).max(64), revisionId: z.string().uuid(),

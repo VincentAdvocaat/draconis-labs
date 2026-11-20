@@ -52,6 +52,10 @@ function editorHarness() {
   const sharedSource = readFileSync(new URL('../../../apps/cms/src/shared-navigation.tsx', import.meta.url), 'utf8');
   runInNewContext(ts.transpileModule(sharedSource, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText,
     {exports:sharedExports,require:(name:string)=>{if(name==='react/jsx-runtime')return {jsx,jsxs:jsx};if(name==='./i18n')return i18nExports;throw new Error(name);}});
+  const contactExports:Record<string,unknown>={};
+  const contactSource=readFileSync(new URL('../../../apps/cms/src/contact-template.tsx',import.meta.url),'utf8');
+  runInNewContext(ts.transpileModule(contactSource,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText,
+    {exports:contactExports,require:(name:string)=>{if(name==='react/jsx-runtime')return {jsx,jsxs:jsx};if(name==='./i18n')return i18nExports;throw Error(name);}});
   const source = readFileSync(new URL('../../../apps/cms/src/main.tsx', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
@@ -65,7 +69,7 @@ function editorHarness() {
       if (!result) throw new Error('Unexpected request');
       if (result instanceof Error) throw result;
       return { ok: result.status >= 200 && result.status < 300, status: result.status,
-        json: async () => result.body };
+        json: async () => result.body,text:async()=>typeof result.body==='string'?result.body:JSON.stringify(result.body) };
     },
     require: (name: string) => {
       if (name === 'react') return { useState, useRef, useEffect: (effect: () => void) => effect() };
@@ -73,6 +77,7 @@ function editorHarness() {
       if (name === 'react-dom/client') return { createRoot: () => ({ render: (element: Element) => { component = element.type as () => Element; } }) };
       if (name === './style.css') return {};
       if (name === './shared-navigation') return sharedExports;
+      if(name==='./contact-template')return contactExports;
       if (name === './i18n') return i18nExports;
       if (name === './page-locales') return englishExports;
       if (name === './documents') return documentExports;
@@ -212,6 +217,25 @@ describe('CMS editor recovery and selected revision', () => {
     finish({status: 200, body: pageA}); await pending; await ui.settle();
     expect(ui.status()).toBe('Draft version 1 loaded.'); expect(ui.requests).toHaveLength(1);
   });
+  it('preserves dirty contact and shared input through CAS conflicts and interface language changes',async()=>{
+    const {ui,contact,sr}=await openContactFixture();await ui.action(ui.field('Kop en'),'onChange',{target:{value:'My unsaved contact heading'}});
+    const latest={...contact,version:2,revisionId:'contact-two',content:{...contact.content,fields:{...contact.content.fields,heading:{en:'Other writer heading'}}}};
+    ui.results.push({status:409,body:{message:'Contact changed'}},{status:200,body:latest});await ui.action(ui.button('Contactconcept opslaan'));
+    expect(ui.field('Kop en').props.value).toBe('My unsaved contact heading');await ui.action(ui.field('Bedieningstaal'),'onChange',{target:{value:'en'}});expect(ui.field('Heading en').props.value).toBe('My unsaved contact heading');await ui.action(ui.button('Adopt current contact revision'));expect(ui.field('Heading en').props.value).toBe('Other writer heading');
+    await ui.action(ui.field('Brand name en'),'onChange',{target:{value:'My unsaved shared brand'}});const latestShared={...sr,version:3,revisionId:'shared-three',content:{...sr.content,contact:{brandName:{en:'Other shared brand'}}}};
+    ui.results.push({status:409,body:{message:'Shared changed'}},{status:200,body:latestShared});await ui.action(ui.button('Save shared template fields'));expect(ui.field('Brand name en').props.value).toBe('My unsaved shared brand');expect(JSON.parse(ui.requests.at(-2)!.init.body!)).toMatchObject({expectedVersion:2,content:{contact:{brandName:{en:'My unsaved shared brand'}}}});
+  });
+  it('pins contact/page/shared/template on explicit publication and reuses the exact selection after response loss',async()=>{
+    const {ui,contact,sr}=await openContactFixture();const plan={activeVersion:0,activeReleaseId:null,pages:[{pageId:'home',revisionId:pageA.revisionId,version:1,title:'Home',file:'index.html'}],shared:sr,contactTemplate:contact};
+    ui.results.push({status:200,body:plan});await ui.action(ui.button('Publicatieselectie ophalen'));await ui.action(ui.field('Deze navigatierevisie expliciet mee publiceren'),'onChange',{target:{checked:true}});await ui.action(ui.field('Deze contactrevisie met NL en EN expliciet publiceren'),'onChange',{target:{checked:true}});
+    ui.results.push(new Error('Response lost'));await ui.action(ui.button('Website lokaal publiceren'));const first=ui.requests.at(-1)!;expect(JSON.parse(first.init.body!)).toMatchObject({expectedShared:{revisionId:sr.revisionId,version:sr.version},expectedContact:{revisionId:contact.revisionId,version:contact.version,templateHash:contact.template.hash,locales:['nl','en']}});
+    ui.results.push({status:200,body:{status:'published',releaseId:'contact-release'}});await ui.action(ui.button('Websitepublicatie opnieuw controleren'));expect(ui.requests.at(-1)!.init.body).toBe(first.init.body);expect(ui.requests.at(-1)!.init.headers['Idempotency-Key']).toBe(first.init.headers['Idempotency-Key']);
+  });
+  it('opens a pinned contact preview and clears it when its editorial fields change',async()=>{
+    const {ui}=await openContactFixture();ui.results.push({status:200,body:{previewId:'pinned-preview'}},{status:200,body:'<!doctype html><h1>Pinned contact</h1>'});await ui.action(ui.button('Exacte contactpreview openen'));expect(ui.text()).toContain('Contacttemplateproef');expect(ui.requests.at(-1)!.path).toContain('/contact-template/previews/pinned-preview');
+    await ui.action(ui.field('Kop en'),'onChange',{target:{value:'New local heading'}});expect(ui.button('Exacte contactpreview openen').props.disabled).toBe(true);expect(ui.button('Publicatieselectie ophalen').props.disabled).toBe(true);
+  });
+
   it('edits home EN through the same source recovery flow without writing the NL home',async()=>{
     const ui=editorHarness();ui.results.push({status:200,body:{...pageA,pagesEnabled:true}});await ui.open();
     const english={pageId:'home',revisionId:null,version:0,structure:'source-one',savedStructure:'source-one',supported:true,needsUpdate:false,sourceImages:[],sourceBlocks:[{blockId:'home-text-id',type:'text'}],content:{schemaVersion:1,locale:'en',title:'English home',slug:'index',seoTitle:'English SEO',seoDescription:null,blocks:[{blockId:'home-text-id',type:'text',heading:null,body:null}]}};
@@ -502,3 +526,10 @@ describe('CMS editor recovery and selected revision', () => {
     expect(ui.status()).toContain('Actieve versie 1');
   });
 });
+
+async function openContactFixture(){
+ const ui=editorHarness();ui.results.push({status:200,body:{...pageA,pagesEnabled:true,sharedEnabled:true,contactEnabled:true}});await ui.open();
+ const contact={revisionId:'contact-one',version:1,template:{id:'sanitized-contact',schemaVersion:1,hash:'a'.repeat(64),sourceDefaultLocale:'en'},content:{schemaVersion:1,fields:{heading:{nl:'Kop',en:'Heading'},note:{en:null}}}};
+ const sr={revisionId:'shared-two',version:2,content:{schemaVersion:1,fields:{'navigation.languageLabel':{values:{nl:'Taal',en:'Language'}},'navigation.locale.nl':{value:'Nederlands',sourceLocale:'nl'},'navigation.locale.en':{value:'English',sourceLocale:'en'}},contact:{brandName:{nl:'Merk',en:'Brand'}}}};
+ ui.results.push({status:200,body:contact},{status:200,body:sr});await ui.action(ui.button('Contacttemplate openen'));return {ui,contact,sr};
+}

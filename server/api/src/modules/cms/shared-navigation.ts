@@ -1,3 +1,4 @@
+import {contactSharedFieldsSchema} from './contact-fields.js';
 import {randomUUID} from 'node:crypto';
 import {z} from 'zod';
 import {localizedTextValuesSchema, validateContentField, CONTENT_PUBLICATION_RULES_V1} from '@draconis/shared';
@@ -8,8 +9,8 @@ export const sharedNavigationSchema = z.object({schemaVersion: z.literal(1), fie
   'navigation.languageLabel': z.object({values: localizedTextValuesSchema}).strict(),
   'navigation.locale.nl': z.object({value: z.string().max(200).nullable(), sourceLocale: z.literal('nl')}).strict(),
   'navigation.locale.en': z.object({value: z.string().max(200).nullable(), sourceLocale: z.literal('en')}).strict(),
-}).strict()}).strict().refine((content) => Object.values(content.fields['navigation.languageLabel'].values)
-  .every((value) => value == null || value.length <= 200), 'Navigatietekst maximaal 200 tekens');
+}).strict(),contact:contactSharedFieldsSchema.optional()}).strict().refine((content) => Object.values(content.fields['navigation.languageLabel'].values)
+  .every((value) => value == null || value.length <= 200) && (!content.contact||Object.values(content.contact).every(map=>Object.values(map).every(value=>value==null||value.length<=5000))), 'Navigatietekst maximaal 200 tekens');
 export const sharedSaveSchema = z.object({expectedVersion: z.number().int().positive(), content: sharedNavigationSchema}).strict();
 export interface SharedSelection {revisionId: string; version: number}
 export interface SharedNavigationDto extends SharedSelection {content: z.infer<typeof sharedNavigationSchema>}
@@ -53,7 +54,7 @@ export class CmsSharedNavigation {
       const current = this.get(site);
       if (current.version !== input.expectedVersion) throw new CmsError(409,'Navigatietekst gewijzigd. Jouw invoer blijft behouden.');
       const id = randomUUID(); const version = current.version+1;
-      this.repository.db.prepare('INSERT INTO cms_shared_revisions VALUES(?,?,?,?,?,?)').run(id,site,version,JSON.stringify(input.content),actor,new Date().toISOString());
+      this.repository.db.prepare('INSERT INTO cms_shared_revisions VALUES(?,?,?,?,?,?)').run(id,site,version,JSON.stringify({...input.content,...(!input.content.contact&&current.content.contact?{contact:current.content.contact}:{})}),actor,new Date().toISOString());
       const updated = this.repository.db.prepare('UPDATE cms_shared_heads SET revision_id=?,version=? WHERE website_id=? AND version=?')
         .run(id,version,site,input.expectedVersion);
       if (!updated.changes) throw new CmsError(409,'Navigatietekst gewijzigd');

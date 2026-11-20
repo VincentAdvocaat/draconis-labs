@@ -14,7 +14,7 @@ Stand op 19 november 2026 na onafhankelijke review van PR36 op codecommit `fbb58
 | NL-pagina met NL/EN-portfolio | Gebouwd. Snapshot bepaalt bloklocale en expliciete fallback. Pagina blijft NL. |
 | Portfolio-kop en lege-staattekst redigeren | PR26 onafhankelijk gereviewd op `2fea3e3d`: CMS-owned localevelden, immutable paginarevisie/release en gedeeld localecontract. |
 | Eerste vaste publieke navigatiebindings | PR31 onafhankelijk gereviewd en P2-herreview gesloten op `71833ec4`: bestaande taalkeuze-aria-label en endoniemen via CMS-velden, migratie 5, revisie/CAS, exacte preview en expliciete shared releasepin. |
-| Alle publieke tekst centraal redigeerbaar | De huidige lokale navigatiebindings zijn aangesloten. Andere echte templates, footer en formulier-/linklabels waar aanwezig vragen nog inventaris/aansluiting. Geen claim van algemene template- of productievolledigheid. |
+| Alle publieke tekst centraal redigeerbaar | De huidige lokale navigatiebindings zijn aangesloten. De 27 bindings van één gesaneerde contactfixture, inclusief footer en linklabels, zijn in PR40 aangesloten. Andere echte templates vragen nog inventaris/aansluiting. Geen claim van algemene template- of productievolledigheid. |
 | Minimale CMS22-tekstpagina | PR27 onafhankelijk gereviewd op `f9538988`: dezelfde pagina-/blok-ID's, handmatige EN-titel/slug/SEO/tekst, EN-route/taalnav, expliciete publicatie en structuur-CAS. Legacy `/en.html` blijft bewerkbaar. |
 | EN-afbeelding per gebruik | PR32 onafhankelijk gereviewd op `cbf5c544`; drie noodzakelijke editorbevindingen opgelost en herreview gesloten. NL-bronbinding, EN-alt/bijschrift, expliciete bronbevestiging en immutable revisies. Zie [proef](engelse-afbeelding-proef.md). |
 | Portfolio op EN-pagina | PR34 onafhankelijk gereviewd, legacy-P2 opgelost en herreview akkoord op `7378fae1`. Zie [proef](engels-portfolio-proef.md). |
@@ -40,3 +40,13 @@ Deze acceptatie geldt voor afzonderlijke lokale worktrees en fictieve gegevens. 
 Media-, upload-, locale- en catalogusconsumercontracten zijn als eerder gereviewde subsets in deze CMS-keten opgenomen. De zelfstandige media/catalogus-PR's staan eveneens open. Tijdelijke integratie in PR37 heeft de overlap verenigd en de volledige gezamenlijke lokale poort en browser/herstartproef doorlopen; onafhankelijke review akkoord op fb9c22d. Gezamenlijke landing op main, productieconfiguratie en deployment zijn nog niet uitgevoerd. Zie [integratiebewijs](../integratie/README.md). Mergevolgorde en consolidatie vragen een afzonderlijke opdracht. Bestaande lokale proefbewijzen blijven geldig binnen hun opgegeven codehead; ze bewijzen geen echte klantimport of livewebsitewerking.
 
 EN-home is inmiddels lokaal gebouwd en gereviewd in PR36. De volgende prioriteit is gezamenlijke integratie/consolidatie in één checkout. Geen nieuwe contentuitbreiding tot de integratiegaten concrete eigenaren hebben. Echte klanttemplates en alle daarin aanwezige vaste tekstbindings blijven een aparte open aansluiting. De lokale renderer heeft geen footer of formulier; die worden niet als ontbrekende gebouwde functies verzonnen.
+
+
+## Gesaneerde contacttemplate
+
+De afzonderlijke proef en controles staan in [contact-template-proef.md](contact-template-proef.md). Alle 27 bindings zijn afgedekt met fictieve NL/EN-inhoud, vaste templatehash en expliciete pagina/shared/templatepins. PR 37 blijft de vaste basis; mediacatalogus M2/M3 zijn nog niet geconsolideerd. PR40 is onafhankelijk akkoord op `3fe4da5a4ad4228e8ded4aa4e8b8718aefd7eb5d` door `/root/review_pr40`, GPT-6 Astra medium, na een geverifieerde en herbeoordeelde Viteproxyfix. Volledig rapport: [review-pr40.md](review-pr40.md). Dit bewijst één gesaneerde fixture, geen echte site-import of algemene templateaansluiting. Extra templates zijn niet automatisch onderdeel van de scope. Volgende oorspronkelijke CMS-prioriteit is CMS-09, uitsluitend fictieve back-up en offline restore op nieuwe opslag.
+
+
+## Fictieve back-up en restore
+
+CMS-09 heeft een afzonderlijke lokale CLI-proef voor twee databases en bestanden op nieuwe synthetische opslag. Zie [protocol en bewijs](backup-restore-proef.md). Productie-identiteit, echte klantimport, opslagbeleid en live omschakeling blijven open. PR42 akkoord op runtimehead `65643c9b448cd139a2f51c4d61ca6fd1fa76fbf4`, Astra medium, P2 stale-recoverylock opgelost en herbeoordeeld. Volledige herreview en coördinatie staan in [review-pr42.md](review-pr42.md). Ondersteuning blijft bewust CMS-schema8/catalogusschema3; schema4/5 vereist de afzonderlijke gezamenlijke consolidatie.
