@@ -49,7 +49,7 @@ export function filtersToSearchParams(
   return params;
 }
 
-export function syncUrl(filter: TaskFilter, view: PlannerView, page?: number) {
+export function syncUrl(filter: TaskFilter, view?: PlannerView, page?: number) {
   // Packaged windows keep their exact local entry URL for the IPC sender guard.
   if (window.location.protocol === 'file:') return;
   const params = filtersToSearchParams(filter, view, page);

@@ -343,7 +343,7 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [totalTasks, setTotalTasks] = useState(0);
   const [page, setPage] = useState(Number(new URLSearchParams(window.location.search).get('page')) || 1);
-  const [view, setView] = useState<PlannerView>(initialUrl.view ?? DEFAULT_PREFERENCES.defaultView);
+  const [selectedView, setSelectedView] = useState<PlannerView | undefined>(initialUrl.view);
   const [taskFilter, setTaskFilter] = useState<TaskFilter>(initialUrl);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -353,6 +353,7 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
   const [conflictTask, setConflictTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const quickInput = useRef<HTMLInputElement>(null);
+  const view = selectedView ?? preferences.defaultView;
   const i18n = useMemo(() => createTranslator(preferences.locale), [preferences.locale]);
   const { t, formatDate, formatHeadingDate } = i18n;
   const timezone = preferences.timezone;
@@ -393,8 +394,8 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
     return () => { cancelled = true; };
   }, [client]);
   useEffect(() => {
-    syncUrl(taskFilter, view, page);
-  }, [taskFilter, view, page]);
+    syncUrl(taskFilter, selectedView, page);
+  }, [taskFilter, selectedView, page]);
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() === 'n' && !['INPUT', 'TEXTAREA', 'SELECT'].includes((event.target as HTMLElement).tagName)) {
@@ -508,7 +509,7 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
     const saved = await client.preferences.update(next);
     if (activeClient.current !== client) return;
     setPreferences(saved);
-    setView(saved.defaultView);
+    setSelectedView(saved.defaultView);
     setShowPreferences(false);
   };
 
@@ -547,7 +548,7 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
       <Topbar
         brand={<TopbarBrand mark="D" title={t.brand} subtitle={`${t.appName} · ${client.workspaceId}`} />}
         nav={(['board', 'scheduled', 'history'] as const).map((item) => (
-          <TopbarNavItem key={item} active={view === item} onClick={() => setView(item)}>
+          <TopbarNavItem key={item} active={view === item} onClick={() => setSelectedView(item)}>
             {i18n.viewLabel(item)}{item === 'scheduled' ? <span>{futureTasks.length}</span> : null}
           </TopbarNavItem>
         ))}
@@ -634,7 +635,7 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
                   <ScheduleZone id="schedule-tomorrow" icon="☀" title={t.tomorrow} subtitle={addDaysFrom(today, 1)} />
                   <ScheduleZone id="schedule-week" icon="▦" title={t.nextWeek} subtitle={nextWeekFrom(today, preferences.weekStart)} />
                   <ScheduleZone id="schedule-month" icon="◷" title={t.nextMonth} subtitle={nextMonthFrom(today)} />
-                  <button className="show-planned" onClick={() => setView('scheduled')}>{t.showPlanned}</button>
+                  <button className="show-planned" onClick={() => setSelectedView('scheduled')}>{t.showPlanned}</button>
                 </aside>
               </div>
               <DragOverlay>{activeTask ? <TaskCard task={activeTask} i18n={i18n} timezone={timezone} overlay /> : null}</DragOverlay>
