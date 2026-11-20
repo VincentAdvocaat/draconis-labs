@@ -147,6 +147,73 @@ describe('client identity owns all open Planner UI', () => {
     expect(b.client.remove).not.toHaveBeenCalled();
   });
 
+  it('shows a pending save and keeps the editor open until the update resolves', async () => {
+    const { client, task } = fixture('Task A');
+    const save = deferred<Task>();
+    client.update = vi.fn(() => save.promise);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    try {
+      await act(async () => root.render(<App client={client} />));
+      await openTask();
+      await editTitle('Draft A');
+      await click(button('Opslaan'));
+
+      expect(button('Opslaan…').disabled).toBe(true);
+      expect(button('Verwijderen').disabled).toBe(true);
+      expect(button('Annuleren').disabled).toBe(true);
+      expect(document.querySelector<HTMLInputElement>('[role="dialog"] input')?.disabled).toBe(true);
+      await act(async () => {
+        document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      });
+      expect(confirm).not.toHaveBeenCalled();
+      expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+      expect(client.update).toHaveBeenCalledOnce();
+      await act(async () => save.resolve({ ...task, title: 'Draft A', version: 2 }));
+      expect(document.querySelector('[role="dialog"]')).toBeNull();
+    } finally { confirm.mockRestore(); }
+  });
+
+  it('names the selected card and deletes only after explicit confirmation', async () => {
+    const { client, task } = fixture('Inspectie 17');
+    await act(async () => root.render(<App client={client} />));
+    await openTask();
+    await click(button('Verwijderen'));
+    expect(document.querySelector('.delete-confirm')?.textContent).toContain('«Inspectie 17»');
+    expect(client.remove).not.toHaveBeenCalled();
+
+    await click(button('Annuleren'));
+    expect(document.querySelector('.delete-confirm')).toBeNull();
+    expect(document.querySelector('.task-card')).not.toBeNull();
+    expect(client.remove).not.toHaveBeenCalled();
+
+    await click(button('Verwijderen'));
+    await click(button('Definitief verwijderen'));
+    expect(client.remove).toHaveBeenCalledExactlyOnceWith(task.id);
+    expect(document.querySelector('.task-card')).toBeNull();
+  });
+
+  it('prompts before discarding a dirty draft and leaves it intact when dismissed', async () => {
+    const { client } = fixture('Task A');
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+    try {
+      await act(async () => root.render(<App client={client} />));
+      await openTask();
+      await click(button('Annuleren'));
+      expect(confirm).not.toHaveBeenCalled();
+
+      await openTask();
+      await editTitle('Unsaved A');
+      await click(button('Annuleren'));
+      expect(confirm).toHaveBeenCalledWith('Je hebt ongeslagen wijzigingen. Sluiten zonder opslaan?');
+      expect(document.querySelector<HTMLInputElement>('[role="dialog"] input')?.value).toBe('Unsaved A');
+      await click(button('Annuleren'));
+      expect(confirm).toHaveBeenCalledTimes(2);
+      expect(document.querySelector('[role="dialog"]')).toBeNull();
+      expect(document.querySelector('.task-card')?.textContent).toContain('Task A');
+      expect(client.update).not.toHaveBeenCalled();
+    } finally { confirm.mockRestore(); }
+  });
+
   it('preserves the editor draft after a failed save and saves it on retry', async () => {
     const { client, task } = fixture('Task A');
     client.update = vi.fn<typeof client.update>().mockRejectedValueOnce(new Error('Connection lost'))
