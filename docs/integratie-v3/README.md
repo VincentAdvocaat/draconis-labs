@@ -32,3 +32,7 @@ Gebruik voor een handmatige export de bestaande [M5-instructie](../cms/statische
 M2-bestandsversies en lokale M5-exportacceptatie zijn nu verenigd; bredere M4-portfoliofuncties, echte M6-klantimport, CMS-template-/route-lifecycle en productie-identiteit/hosting blijven open. Bestaande gekopieerde releases worden door een rechtenwijziging of nieuwe upload niet ingetrokken. Twee databases en bestanden zijn niet live crash-atomair. Geen algemene JS-analyse, URL-rewrite, file://-garantie of cryptografisch ondertekende releaseketen.
 
 Deze taak wijzigt PR43 en main niet en voert geen deployment uit. Een latere expliciete opdracht kan de gewone mergeketen PR37→PR43→deze PR naar main laten doorlopen, telkens na controle van de actuele tips en base. De reeds opgenomen bron-PR's hoeven dan niet afzonderlijk opnieuw te worden gemerged. Geen automatische sluiting of branchverwijdering. Het bestaande [mainmergeplan](../integratie-v2/mainmergeplan.md) blijft een voorstel.
+
+## Overdracht
+
+[Lokale demo](lokale-demo.md), [actueel mergevoorstel](mainmergeplan.md), [geprioriteerde open criteria](open-criteria.md) en [integratiereviewstatus](review-pr46.md).
