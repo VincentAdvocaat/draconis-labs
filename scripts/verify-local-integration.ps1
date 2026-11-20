@@ -7,7 +7,9 @@ try {
   $integrationPnpmVersion = (& corepack pnpm --version).Trim()
   if ($LASTEXITCODE -ne 0 -or $integrationPnpmVersion -ne '11.10.0') { throw 'Deze proef vereist pnpm 11.10.0 uit packageManager.' }
   $integrationCommands = @(
-    @('install', '--frozen-lockfile'), @('build'), @('typecheck'), @('lint'), @('test'),
+    @('install', '--frozen-lockfile'), @('build'), @('typecheck'), @('lint'),
+    @('--filter', '@draconis/api', 'exec', 'vitest', 'run', '--maxWorkers=1', '--no-file-parallelism'),
+    @('--filter', '!@draconis/api', '-r', '--if-present', 'test'),
     @('--filter', '@draconis/api', 'smoke:start'), @('--filter', '@draconis/api', 'smoke:public')
   )
   foreach ($integrationCommand in $integrationCommands) {

@@ -1,0 +1,68 @@
+{
+  "pr": 45,
+  "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/45",
+  "reviewer": "/root/review_pr45",
+  "model": "gpt-6-astra",
+  "reasoning": "medium",
+  "base": "22f5c66659ab4abadb6a1f65b34b92846dce959f",
+  "reviewedSha": "fe76b4ca5e39d5bdeb447c8eb4d155d76d2f5437",
+  "status": "approved",
+  "findings": [
+    {
+      "severity": "P2",
+      "required": true,
+      "file": "server/api/src/media-upload/service.ts",
+      "line": 192,
+      "title": "Pas assetbrede pending-controle toe bij retry",
+      "scenario": "Een tweede LocalUploadService retryt oudere failed v2 terwijl v3 processing is. Jobsv2/v3 worden processing, maar filesv2 blijft failed.",
+      "evidence": "Eigen tijdelijke synthetische fixture van reviewer: jobs v1ready/v2processing attempts2/v3processing attempts1, files v1ready/v2failed/v3processing.",
+      "fix": "Binnen IMMEDIATE retry-transactie andere processingjob voor website/asset weigeren; bestaande niet-ready files-row processing zetten, legacyv1 zonder file behouden.",
+      "status": "closed"
+    }
+  ],
+  "otherFindings": [],
+  "checks": [
+    "media-file-versions + media-library-ui:17/17 groen",
+    "Eigen concurrente retryreproductie bevestigd",
+    "Read-only; werkboom schoon"
+  ],
+  "scope": "CAS, approvalrace, version storage/hash/owner/retry, legacy migration, recovery schema/jobs, UI bindings, old snapshots",
+  "fullReport": "Eén noodzakelijke P2; geen andere noodzakelijke of optionele bevindingen. Gerichte herreview vereist.",
+  "fix": {
+    "agent": "/root/fix_pr45",
+    "model": "gpt-6.1-sol",
+    "reasoning": "low",
+    "sha": "29fa8357276911795e006f976be56d0dc236f4b2",
+    "checks": [
+      "11/11 gerichte media-file-versions",
+      "API typecheck",
+      "API lint",
+      "git diff --check"
+    ],
+    "details": "IMMEDIATE assetbrede pendingguard vóór wijzigingen; bestaande unready files-row processing; twee regressies voor twee instanties, ongewijzigde database bij weigering, detail/status tijdens retry, readybytes/hashes en legacyv1zondermetadata."
+  },
+  "rereview": {
+    "sha": "29fa8357276911795e006f976be56d0dc236f4b2",
+    "reviewer": "/root/review_pr45",
+    "status": "approved",
+    "findings": [],
+    "checks": [
+      "11/11 media-file-versions,7.14s",
+      "Local/remote SHA confirmed",
+      "Read-only clean worktree"
+    ],
+    "report": "Gerichte herreview akkoord. Assetbrede guard gebeurt in dezelfde IMMEDIATE-transactie vóór wijzigingen, bestaande niet-ready filemetadata processing, legacyv1 zonder metadata blijft werken. Regressies twee instanties, ongewijzigde DB409, processingjob/detail, oldreadybytes, legacyretry correct. Geen nieuwe bevindingen."
+  },
+  "finalChecks": {
+    "sha": "29fa8357276911795e006f976be56d0dc236f4b2",
+    "api": {
+      "files": 44,
+      "passed": 388,
+      "durationSeconds": 219.62,
+      "command": "pnpm --filter @draconis/api exec vitest run --fileParallelism=false --maxWorkers=1",
+      "originalTimeouts": true
+    },
+    "workspace": "typecheck/lint/build green; existing Planner bundle size warning",
+    "browser": "Synthetisch v1/v2/NL/EN/approval/failedv3/retry/restart; old snapshots/refs/hashes preserved; own listeners/lock closed"
+  }
+}
