@@ -46,6 +46,7 @@ export function createWorkspacePlannerRoutes(service: PlannerService, workspaceI
     for (const [method, url, type, result] of routes) {
       app.route({ method, url, schema: {
         tags: ['planner'], summary: `Local workspace ${type}`,
+        security: [{ bearerAuth: [] }, {}],
         ...(type === 'tasks.create' ? { body: z.toJSONSchema(createTaskSchema, { target: 'draft-7' }) } : {}),
         ...(type === 'tasks.update' ? { body: z.toJSONSchema(workspaceUpdateTaskSchema, { target: 'draft-7' }) } : {}),
         ...(type === 'preferences.update' ? { body: z.toJSONSchema(updatePreferencesSchema, { target: 'draft-7' }) } : {}),

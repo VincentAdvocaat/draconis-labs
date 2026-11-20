@@ -10,13 +10,15 @@ export const itemInputSchema = z.object({
   description: z.string().max(5000),
   categoryId: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/),
   metadata: z.object({ year: z.number().int().min(1900).max(2200).optional() }).strict(),
+  publicPhotoCredit: z.string().trim().max(200).nullable().optional(),
   media: mediaReferenceSchema,
 }).strict();
 export type ItemInput = z.infer<typeof itemInputSchema>;
-export interface CatalogItem extends Omit<ItemInput, 'expectedVersion'> {
+export interface CatalogItem extends Omit<ItemInput, 'expectedVersion' | 'publicPhotoCredit'> {
   itemId: string;
   revisionId: string;
   version: number;
+  publicPhotoCredit?: string;
 }
 export interface CatalogSnapshot {
   schemaVersion: 1 | 2 | 3;

@@ -28,13 +28,41 @@ paths; older unversioned paths remain available during a deprecation window.
 | Module | Prefix | Description |
 |--------|--------|-------------|
 | planner | `/api/v1/planner` | Tasks, history, preferences |
+| planner-workspaces | `/api/v1/workspaces/{workspaceId}` | Workspace tasks, history, preferences with shared response envelopes |
 | system | `/api/v1/system` | Discovery and metadata |
 
 New app modules register through the server composition layer without importing
 Planner internals. See `server/api/src/core/` and `server/api/src/modules/`.
+
+## Local Planner agent integration
+
+Read `/api/v1/system/info` to discover the available modules and
+`/api/v1/openapi.json` for the operation and schema definitions. Use `local`
+as the workspace ID, so task operations start at `/api/v1/workspaces/local/tasks`.
+Send `Authorization: Bearer <api-key>` to identify the agent. A created task
+records the key's configured name as `createdBy`. The local UI can call these
+routes without a key. Planner keys have no per-operation scopes.
+
+Workspace responses wrap results as `{ "ok": true, "value": ... }` and errors
+as `{ "ok": false, "error": { "code": ..., "status": ..., "message": ... } }`.
+An invalid Bearer key returns `401 UNAUTHORIZED`. Task updates require the
+task's current `version`. On `409 VERSION_CONFLICT`, `error.task` contains the
+current task.
+
+Use `page=1` to get the first page of a task or history list. `pageSize` defaults
+to 50 and accepts values between 1 and 200. A paginated response places
+`items`, `total`, `page` and `pageSize` inside `value`. Keep the same filters
+when requesting the next page. Without `page`, `value` is an array.
+
+Task creation has no idempotency key. If the response is lost, check the task
+list for an existing result before repeating the create request.
 
 ## Contract checks
 
 CI diffs the committed OpenAPI snapshot (`server/api/openapi/v1.snapshot.json`)
 against the generated spec from `buildApp()`. The test fails when the snapshot
 is missing or out of date. Breaking changes require a major version bump.
+
+The compiled API smoke (`corepack pnpm --filter @draconis/api smoke:start`)
+uses its own loopback process and synthetic storage to check discovery,
+Bearer identity, task creation, pagination and version conflicts over HTTP.

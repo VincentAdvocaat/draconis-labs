@@ -10,7 +10,7 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "description": "Named API key (Bearer token). Required for task mutations."
+        "description": "Named API key (Bearer token) for agent identity. Planner keys have no per-operation scopes."
       }
     },
     "schemas": {
@@ -1328,6 +1328,12 @@
             "required": true
           }
         ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -1564,6 +1570,12 @@
             "name": "id",
             "required": true
           }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
         ],
         "responses": {
           "201": {
@@ -1817,6 +1829,12 @@
             "required": true
           }
         ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -1926,6 +1944,12 @@
             "name": "id",
             "required": true
           }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
         ],
         "responses": {
           "200": {
@@ -2068,6 +2092,12 @@
             "required": true
           }
         ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -2189,6 +2219,12 @@
             "name": "id",
             "required": true
           }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
         ],
         "responses": {
           "200": {
@@ -2423,6 +2459,12 @@
             "name": "id",
             "required": true
           }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
         ],
         "responses": {
           "200": {

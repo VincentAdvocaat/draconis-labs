@@ -109,14 +109,19 @@ export class CatalogService {
         .get(website, data.itemId) as { version: number; json: string } | undefined : undefined;
       if (data.itemId && !old) throw new MediaContractError(404, 'Item not found');
       if ((old?.version ?? 0) !== data.expectedVersion) throw new MediaContractError(409, 'Item version conflict');
-      this.categories.requireSelection(website, data.categoryId, old ? (JSON.parse(old.json) as CatalogItem).categoryId : undefined);
+      const previous = old ? JSON.parse(old.json) as CatalogItem : undefined;
+      this.categories.requireSelection(website, data.categoryId, previous?.categoryId);
       const id = data.itemId ?? randomUUID();
       const duplicate = this.db.prepare('SELECT id FROM catalog_items WHERE website=? AND slug=? AND id<>?').get(website, data.slug, id);
       if (duplicate) throw new MediaContractError(409, 'Slug already exists for website');
       const revisionId = randomUUID();
-      const { expectedVersion, ...fields } = data;
-      const item = this.locales.writeRevision(website, old ? JSON.parse(old.json) as CatalogItem : undefined,
-        { ...fields, itemId: id, revisionId, version: expectedVersion + 1 });
+      const { expectedVersion, publicPhotoCredit, ...fields } = data;
+      const priorMedia = previous?.media;
+      const sameUse = priorMedia?.assetId === fields.media.assetId && priorMedia.fileVersion === fields.media.fileVersion &&
+        priorMedia.usage === fields.media.usage;
+      const credit = publicPhotoCredit === undefined && sameUse ? previous?.publicPhotoCredit : publicPhotoCredit;
+      const item = this.locales.writeRevision(website, previous,
+        { ...fields, itemId: id, revisionId, version: expectedVersion + 1, ...(credit ? { publicPhotoCredit: credit } : {}) });
       this.commitRevision(website, item);
       return item;
     })();

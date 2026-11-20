@@ -22,7 +22,7 @@ export async function registerOpenApi(app: FastifyInstance) {
           bearerAuth: {
             type: 'http',
             scheme: 'bearer',
-            description: 'Named API key (Bearer token). Required for task mutations.',
+            description: 'Named API key (Bearer token) for agent identity. Planner keys have no per-operation scopes.',
           },
         },
       },
