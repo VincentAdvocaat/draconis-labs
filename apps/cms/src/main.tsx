@@ -413,9 +413,13 @@ function App() {
         if (!current()) return;
         setAttempt(result);
         if (result.status === 'building') { setStatus(message('buildingSite')); return; }
+        const latestDocument = selectedDocument ? await request<DocumentDto>(`/documents/${selectedDocument.pageId}`) : null;
+        if (!current()) return;
         invalidateSiteChoice();
         setPage((prior) => prior ? { ...prior, activeReleaseId: result.releaseId, activeVersion: plan.activeVersion + 1 } : prior);
-        setSelectedDocument((prior) => prior ? { ...prior, published: true } : prior);
+        if (latestDocument) setSelectedDocument((prior) => prior ? {
+          ...prior, published: latestDocument.published, publishedFile: latestDocument.publishedFile,
+        } : prior);
         setStatus(message('publishedSite',{version:plan.activeVersion+1}));
       } catch (err) {
         if (err instanceof ApiError && [409, 422, 428].includes(err.status) && current()) {
@@ -428,7 +432,7 @@ function App() {
   const availableImage: DocumentImageReference | null = uploadStatus?.state === 'ready'
     ? { assetId: uploadStatus.assetId, fileVersion: uploadStatus.fileVersion, usage: 'hero', decorative: false, altText: { nl: '' } }
     : values.image ?? null;
-  const publicUrl = selectedDocument ? selectedDocument.published ? `/sites/${website}/${selectedDocument.content.slug}.html` : null
+  const publicUrl = selectedDocument ? selectedDocument.publishedFile ? `/sites/${website}/${selectedDocument.publishedFile}` : null
     : attempt?.publicUrl ?? (page?.activeReleaseId ? `/sites/${website}/index.html` : null);
   return <main lang={uiLocale}><label>{t.uiLanguage}<select value={uiLocale} onChange={(event) => setUiLocale(event.target.value as UiLocale)}><option value="nl" lang="nl">Nederlands</option><option value="en" lang="en">English</option></select></label>
     <header><p className="eyebrow">{t.brand}</p><h1>{t.editPage}</h1><p>{t.introHelp}</p></header>
@@ -497,7 +501,7 @@ function App() {
           <button disabled={busy} onClick={() => {if(busy)return; setEnglishConfirmedStructure(''); setEnglish({...englishLatest,needsUpdate:true}); setEnglishLatest(null); setPreview(''); invalidateSiteChoice();}}>{t.reloadEnglishSource}</button>}
         <button disabled={busy} onClick={() => {if (busy) return; setEnglishConfirmedStructure(''); setEnglish(englishLatest); setEnglishDraft(englishLatest.content); setEnglishLatest(null); setPreview(''); invalidateSiteChoice();}}>{t.adoptEnglish}</button></aside>}
       {english && englishDraft && <EnglishEditor portfolioSelections={portfolioSelections} onLoadPortfolio={() => {if(busy)return;void perform(async(current)=>{const selections=await request<PortfolioSelection[]>('/portfolio-snapshots');if(current())setPortfolioSelections(selections);});}} uiLocale={uiLocale} sourceConfirmed={!!english&&englishConfirmedStructure===english.structure} onAlign={()=>{if(english)setEnglishConfirmedStructure(english.structure);}} record={english} draft={englishDraft} onChange={(content) => {setEnglishDraft(content); setPreview(''); invalidateSiteChoice();}} busy={busy} dirty={englishDirty} onSave={saveEnglish} onPreview={previewEnglish} />}
-      {selectedDocument && !english && documentDraft && <DocumentEditor uiLocale={uiLocale} draft={documentDraft} onChange={changeDocument} busy={busy} dirty={documentDirty}
+      {selectedDocument && !english && documentDraft && <DocumentEditor uiLocale={uiLocale} draft={documentDraft} onChange={changeDocument} busy={busy} dirty={documentDirty} publishedFile={selectedDocument.publishedFile}
         onSave={saveDocument} onPreview={previewDocument} availableImage={availableImage} portfolioSelections={portfolioSelections}
         onLoadPortfolio={() => { if (busy) return; void perform(async (current) => { const selections = await request<PortfolioSelection[]>('/portfolio-snapshots'); if (current()) setPortfolioSelections(selections); }); }} />}
       {documentConflict && <aside><p>{dc.conflict}</p><p>{documentConflict.content.title}</p>

@@ -1,25 +1,42 @@
 import type { CatalogSnapshot } from './contracts.js';
 import { libraryMarkup, libraryScript } from './library-ui.js';
 import { categoryMarkup, categoryScript } from './category-ui.js';
-import { categoryCopy } from './category-copy.js';
 import { orderMarkup, orderScript } from './order-ui.js';
 import { versionScript } from './version-ui.js';
 
 const escape = (value: string) => value.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const style = 'body{font:17px system-ui;margin:auto;max-width:1000px;padding:24px;background:#f4f5f7;color:#182433}label{display:block;margin:12px 0}input,textarea,select,button{font:inherit;padding:8px;max-width:100%;box-sizing:border-box}input:not([type=checkbox]),textarea{width:100%}button{cursor:pointer;margin:8px 8px 8px 0}fieldset,article{background:white;border:1px solid #ccd4de;border-radius:8px;padding:18px;margin:18px 0}img{max-width:100%;height:auto}nav{margin:20px 0}.grid img{width:100%;aspect-ratio:4/3;object-fit:cover}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px}#message{white-space:pre-wrap}a{color:#1455a0}:focus-visible{outline:3px solid #d96a00}small{display:block}';
-const page = (title: string, body: string, locale = 'nl') => `<!doctype html><html lang="${escape(locale)}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escape(title)}</title><style>${style}</style><body>${body}</body></html>`;
+const page = (title: string, body: string, locale = 'nl', styles = style) => `<!doctype html><html lang="${escape(locale)}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escape(title)}</title><style>${styles}</style><body>${body}</body></html>`;
+const portfolioStyle = `${style}.portfolio-filters{display:flex;flex-wrap:wrap;gap:12px 20px;list-style:none;padding:0}.portfolio-filters a[aria-current="page"]{font-weight:bold}`;
 
-export function portfolioHtml(snapshot: CatalogSnapshot, slug?: string) {
+const portfolioCopy = {
+  nl: { all: 'Alle items', categories: 'Filter op categorie', year: 'Jaar',
+    empty: 'Deze snapshot bevat geen items.', missing: 'Deze categorie staat niet in deze publicatie.' },
+  en: { all: 'All items', categories: 'Filter by category', year: 'Year',
+    empty: 'This snapshot contains no items.', missing: 'This category is not part of this publication.' },
+};
+
+export function portfolioHtml(snapshot: CatalogSnapshot, { slug, categoryId, categoryMissing = false }: {
+  slug?: string; categoryId?: string; categoryMissing?: boolean;
+} = {}) {
   const base = `/portfolio/${encodeURIComponent(snapshot.websiteId)}/${snapshot.snapshotId}`;
-  const items = slug ? snapshot.items.filter(item => item.slug === slug) : snapshot.items;
+  let items = snapshot.items;
+  if (slug) items = items.filter(item => item.slug === slug);
+  if (categoryId) items = items.filter(item => item.categoryId === categoryId);
+  if (categoryMissing) items = [];
   const locale = snapshot.localeContext?.locale ?? 'nl';
-  const categoryLabel = snapshot.categories ? snapshot.categories.map(category => `<span lang="${category.sourceLocale}" data-fallback="${category.isFallback}">${escape(category.name)}</span>`).join(', ') : 'Algemeen';
-  const categoryHeading = snapshot.categories ? categoryCopy[locale].category : categoryCopy.nl.category;
-  return page('Portfolio', `<header lang="nl"><h1>Portfolio</h1><p lang="${snapshot.categories ? locale : 'nl'}">${escape(categoryHeading)}: ${categoryLabel}</p><nav><a href="${base}">Alle items</a></nav></header><main class="grid">${items.map(item => {
+  const copy = portfolioCopy[locale];
+  const allCurrent = !slug && !categoryId && !categoryMissing ? ' aria-current="page"' : '';
+  const categoryLinks = slug ? '' : (snapshot.categories ?? []).map(category => {
+    const current = category.categoryId === categoryId ? ' aria-current="page"' : '';
+    return `<li><a href="${base}?category=${encodeURIComponent(category.categoryId)}" lang="${category.sourceLocale}" data-fallback="${category.isFallback}"${current}>${escape(category.name)}</a></li>`;
+  }).join('');
+  const navLabel = categoryLinks ? ` aria-label="${copy.categories}"` : '';
+  return page('Portfolio', `<header><h1>Portfolio</h1><nav${navLabel}><ul class="portfolio-filters"><li><a href="${base}"${allCurrent}>${copy.all}</a></li>${categoryLinks}</ul></nav></header><main class="grid">${items.map(item => {
     const media = item.resolvedMedia;
     const variant = media.variants[0];
-    return `<article><img src="${base}/media/${item.itemId}/0" width="${variant.width}" height="${variant.height}" alt="${escape(media.decorative ? '' : media.altText[locale])}" loading="lazy"><h2><a href="${base}/items/${item.slug}">${escape(item.title)}</a></h2><p lang="${escape(item.fieldSources?.description.sourceLocale ?? locale)}" data-fallback="${Boolean(item.fieldSources?.description.isFallback)}">${escape(item.description)}</p>${item.metadata.year ? `<small lang="nl">Jaar: ${item.metadata.year}</small>` : ''}</article>`;
-  }).join('') || '<p lang="nl">Deze snapshot bevat geen items.</p>'}</main>`, locale);
+    return `<article><img src="${base}/media/${item.itemId}/0" width="${variant.width}" height="${variant.height}" alt="${escape(media.decorative ? '' : media.altText[locale])}" loading="lazy"><h2><a href="${base}/items/${item.slug}">${escape(item.title)}</a></h2><p lang="${escape(item.fieldSources?.description.sourceLocale ?? locale)}" data-fallback="${Boolean(item.fieldSources?.description.isFallback)}">${escape(item.description)}</p>${item.metadata.year ? `<small>${copy.year}: ${item.metadata.year}</small>` : ''}</article>`;
+  }).join('') || `<p>${categoryMissing ? copy.missing : copy.empty}</p>`}</main>`, locale, portfolioStyle);
 }
 
 export const adminHtml = page('Catalogus beheren', `<h1>Catalogus en portfolio</h1><p>Lokale module. Concepten zijn privé. Publiceren maakt een gepinde lokale snapshot.</p>
