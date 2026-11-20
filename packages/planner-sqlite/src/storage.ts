@@ -1,6 +1,7 @@
 import type { PaginatedTasks, Task } from '@draconis/shared';
 import {
   ISO_DATE_PATTERN,
+  dayBoundsInTimezone,
   todayInTimezone,
 } from '@draconis/shared';
 import type { TaskListQuery as PlannerListQuery, UserPreferences } from '@draconis/shared';
@@ -19,6 +20,7 @@ import {
   isNotNull,
   isNull,
   like,
+  lt,
   lte,
   max,
   or,
@@ -27,16 +29,11 @@ import {
 import { tasks, userPreferences } from './schema.js';
 import { toTask, toRow } from './mapper.js';
 
-function localDayStart(date = new Date()) {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  return start.toISOString();
-}
-
 function buildTaskFilters(query: PlannerListQuery) {
   const filters: SQL[] = [];
   const timezone = query.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const today = todayInTimezone(timezone);
+  const now = new Date();
+  const today = todayInTimezone(timezone, now);
 
   if (query.lane) filters.push(eq(tasks.lane, query.lane));
   if (query.priority) filters.push(eq(tasks.priority, query.priority));
@@ -57,12 +54,13 @@ function buildTaskFilters(query: PlannerListQuery) {
   if (query.future) {
     filters.push(gt(tasks.plannedDate, today));
   } else if (query.date === 'today') {
-    const todayStart = localDayStart();
+    const { start, end } = dayBoundsInTimezone(timezone, now);
     filters.push(
       or(
         and(
           or(isNotNull(tasks.completedAt), eq(tasks.lane, 'done')),
-          gte(tasks.completedAt, todayStart),
+          gte(tasks.completedAt, start),
+          lt(tasks.completedAt, end),
         ),
         and(
           or(eq(tasks.lane, 'todo'), eq(tasks.lane, 'doing')),

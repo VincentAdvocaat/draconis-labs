@@ -1,3 +1,5 @@
+import { Temporal } from '@js-temporal/polyfill';
+
 export const RECURRENCE_FREQUENCIES = ['daily', 'weekly', 'monthly'] as const;
 export type RecurrenceFrequency = (typeof RECURRENCE_FREQUENCIES)[number];
 
@@ -48,22 +50,36 @@ export function nowTimeInTimezone(timezone: string, date = new Date()) {
   }).format(date);
 }
 
+export function dayBoundsInTimezone(timezone: string, date: Date) {
+  const local = Temporal.Instant.fromEpochMilliseconds(date.getTime()).toZonedDateTimeISO(timezone);
+  return {
+    start: new Date(local.startOfDay().epochMilliseconds).toISOString(),
+    end: new Date(local.add({ days: 1 }).startOfDay().epochMilliseconds).toISOString(),
+  };
+}
+
 export function addRecurrence(dueDate: string, rule: RecurrenceRule) {
   const { year, month, day } = parseIsoDate(dueDate);
-  const date = new Date(year, month - 1, day);
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
   const interval = rule.interval ?? 1;
   switch (rule.frequency) {
     case 'daily':
-      date.setDate(date.getDate() + interval);
+      date.setUTCDate(date.getUTCDate() + interval);
       break;
     case 'weekly':
-      date.setDate(date.getDate() + 7 * interval);
+      date.setUTCDate(date.getUTCDate() + 7 * interval);
       break;
-    case 'monthly':
-      date.setMonth(date.getMonth() + interval);
+    case 'monthly': {
+      const dueDay = date.getUTCDate();
+      date.setUTCMonth(date.getUTCMonth() + interval, 1);
+      const lastDay = new Date(date);
+      lastDay.setUTCMonth(lastDay.getUTCMonth() + 1, 0);
+      date.setUTCDate(Math.min(dueDay, lastDay.getUTCDate()));
       break;
+    }
   }
-  return isoDateFromParts(date.getFullYear(), date.getMonth() + 1, date.getDate());
+  return date.toISOString().slice(0, 10);
 }
 
 export function isTaskOverdue(
