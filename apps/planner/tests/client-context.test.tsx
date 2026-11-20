@@ -2,7 +2,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_PREFERENCES, PlannerConflictError, type PlannerClient, type Task } from '@draconis/shared';
+import { DEFAULT_PREFERENCES, PlannerConflictError, type PlannerClient, type Task, type UserPreferences } from '@draconis/shared';
 import { newTask } from '@draconis/planner-core';
 import App from '../src/App';
 
@@ -40,10 +40,77 @@ async function editTitle(value: string) {
   });
 }
 
+let root: Root;
+beforeEach(() => {
+  window.history.replaceState(null, '', '/');
+  document.body.innerHTML = '<div id="test-root"></div>';
+  root = createRoot(document.getElementById('test-root')!);
+});
+afterEach(async () => {
+  await act(async () => root.unmount());
+  document.body.replaceChildren();
+});
+
+describe('Planner startup view', () => {
+  it.each(['?q=inspection&page=2', '?q=inspection&page=2&view=unknown'])('loads the saved default view for %s', async (search) => {
+    window.history.replaceState(null, '', `/${search}`);
+    const { client } = fixture('Task A');
+    const pending = deferred<UserPreferences>();
+    client.preferences.get = vi.fn(() => pending.promise);
+    await act(async () => root.render(<App client={client} />));
+    expect(document.querySelector('h1')?.textContent).toBe('Vandaag');
+    expect(window.location.search).toBe('?q=inspection&page=2');
+
+    await act(async () => pending.resolve({ ...DEFAULT_PREFERENCES, defaultView: 'scheduled' }));
+    expect(document.querySelector('h1')?.textContent).toBe('Gepland');
+    expect(window.location.search).toBe('?q=inspection&page=2');
+  });
+
+  it('honors a valid URL view before and after preferences load', async () => {
+    window.history.replaceState(null, '', '/?view=history');
+    const { client } = fixture('Task A');
+    const pending = deferred<UserPreferences>();
+    client.preferences.get = vi.fn(() => pending.promise);
+    await act(async () => root.render(<App client={client} />));
+    expect(document.querySelector('h1')?.textContent).toBe('Geschiedenis');
+
+    await act(async () => pending.resolve({ ...DEFAULT_PREFERENCES, defaultView: 'scheduled' }));
+    expect(document.querySelector('h1')?.textContent).toBe('Geschiedenis');
+    expect(window.location.search).toBe('?view=history');
+  });
+
+  it.each([
+    ['Geschiedenis', 'history', 'History'],
+    ['Vandaag', 'board', 'Today'],
+  ])('keeps an explicit click on %s when preferences load late', async (label, view, translatedHeading) => {
+    const { client } = fixture('Task A');
+    const pending = deferred<UserPreferences>();
+    client.preferences.get = vi.fn(() => pending.promise);
+    await act(async () => root.render(<App client={client} />));
+    await click(button(label));
+    expect(window.location.search).toBe(`?view=${view}`);
+
+    await act(async () => pending.resolve({ ...DEFAULT_PREFERENCES, locale: 'en', defaultView: 'scheduled' }));
+    expect(document.querySelector('h1')?.textContent).toBe(translatedHeading);
+    expect(window.location.search).toBe(`?view=${view}`);
+  });
+
+  it('loads the replacement client default and ignores the previous preference response', async () => {
+    const a = fixture('Task A'), b = fixture('Task B');
+    const pending = deferred<UserPreferences>();
+    a.client.preferences.get = vi.fn(() => pending.promise);
+    b.client.preferences.get = vi.fn(async () => ({ ...DEFAULT_PREFERENCES, defaultView: 'scheduled' }));
+    await act(async () => root.render(<App client={a.client} />));
+    await act(async () => root.render(<App client={b.client} />));
+    expect(document.querySelector('h1')?.textContent).toBe('Gepland');
+
+    await act(async () => pending.resolve({ ...DEFAULT_PREFERENCES, locale: 'en', defaultView: 'history' }));
+    expect(document.querySelector('h1')?.textContent).toBe('Gepland');
+    expect(window.location.search).toBe('');
+  });
+});
+
 describe('client identity owns all open Planner UI', () => {
-  let root: Root;
-  beforeEach(() => { document.body.innerHTML = '<div id="test-root"></div>'; root = createRoot(document.getElementById('test-root')!); });
-  afterEach(async () => { await act(async () => root.unmount()); document.body.replaceChildren(); });
   const openTask = async () => {
     await act(async () => { document.querySelector('.task-card')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); });
   };
