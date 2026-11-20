@@ -1,0 +1,20 @@
+{
+  "pr": 46,
+  "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/46",
+  "reviewedSha": "52623691417d252fb6ba1fa2053b4aaeb5cabfb0",
+  "codeAndGateSha": "65a3dd3ec1f5b579f57fb526cf84b8b86fd377bb",
+  "reviewerId": "01a1f8be-ca70-7ec1-a39f-50e6589066bb",
+  "model": "gpt-6-astra",
+  "reasoning": "medium",
+  "status": "approved-no-required-findings",
+  "findings": [],
+  "reviewerChecks": {
+    "files": 1,
+    "tests": 1,
+    "testSeconds": 3.85,
+    "totalSeconds": 5.58,
+    "fullSuiteRepeated": false
+  },
+  "report": "Onafhankelijke gerichte integratiereview PR #46 afgerond. Geen noodzakelijke bevindingen of blokkerende regressies gevonden binnen de afgesproken scope.\n\nGecontroleerde lokale en remote PR-head: 52623691417d252fb6ba1fa2053b4aaeb5cabfb0. Werkboom voor en na controle schoon. Reviewerchat: 01a1f8be-ca70-7ec1-a39f-50e6589066bb, GPT-6 Astra medium. De eerder vastgelegde uitvoeringsblokkade is daarmee historisch; inhoudelijke review is nu geleverd.\n\nZelf gecontroleerd: beide whole sourceheads PR44 b4ef056286fe8d028e418eb99eb10d9472bf0e58 en PR45 29fa8357276911795e006f976be56d0dc236f4b2 zijn ancestors van HEAD. Alle door die bronnen gewijzigde bestanden behalve de bewust gecombineerde docs/media-catalogus/status.md zijn blobgelijk aan hun bronhead. Apps/packages en root package-/lock-/workspacebestanden hebben geen diff tegenover base22f5c66659ab4abadb6a1f65b34b92846dce959f. Na mergetipf022f780 zijn buiten documentatie uitsluitend de nieuwe gezamenlijke test en de seriële gatescriptwijziging toegevoegd. Na65a3dd3 is uitsluitend documentatie gewijzigd.\n\nInhoudelijk beoordeeld: de 126-regelige testcase, fixturecleanup, sluiting van services vóór backup, vergelijking van alle DB-rijen en manifesthashes vóór herstelstartup, CMS-NL/EN-snapshotpins voor v1/v2, herapproval na onbekende rechten, failed-v3 en retry met dezelfde binding/poging2, oude bytes en actieve/oude export. De relevante bestaande recovery-upload- en static-exportcontracten zijn gericht meegelezen. De gate behoudt frozen install/build/typecheck/lint, voert API-tests serieel uit en daarna de overige workspace-tests, beide smokes en CLI-argumentchecks, met foutafhandeling. Geen bestaande timeoutverhoging.\n\nZelf uitgevoerde gerichte controle op deze head: corepack pnpm --filter @draconis/api exec vitest run tests/cms-version-export-integration.test.ts --maxWorkers=1 --no-file-parallelism. Exit0, 1 bestand/1 test geslaagd, test3,85s, totale Vitestduur5,58s. Geen fullsuite herhaald.\n\nBewijsgrens: de458-testpoort en echte CLI/browser/procesherstartproeven zijn parentbewijs zoals vastgelegd in bewijs.md en pr-afronding.md, niet door mij opnieuw uitgevoerd. Historische bronreviews zijn niet blind herhaald. De documentatie onderscheidt de aparte rich-fixture-upload correct van de werkelijk gepinde uploads in de regressiecase, en begrenst statische/offline- en productieclaims. Mergeplan37→43→46 blijft een voorstel. Geen externe comment, edit, merge, deployment of cleanup uitgevoerd.\n\nGeen fix- of herreviewronde nodig. Leg dit volledige rapport, SHA, reviewer-ID en status duurzaam vast in review-pr46.md en de opvolgregisters; werk daar de nog open uitvoeringsstatus bij. Dat is administratieve verwerking van dit rapport, geen nieuwe codefix.",
+  "archiveOwner": "Coördinerende chat; geen archivering door implementatiechat."
+}

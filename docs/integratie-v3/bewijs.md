@@ -32,4 +32,4 @@ Na retry en procesherstart is de echte CLI-export opnieuw naar een vers doel uit
 
 ## Reviewstatus
 
-De onafhankelijke Astra-medium integratiereview is aangevraagd, maar heeft na de begrensde wachttijd nog geen uitvoer geleverd. De actuele [reviewstatus](review-pr46.md) blijft open. De bronreviews zijn gesloten; de integratiereview beoordeelt actuele SHA, ancestry/blobherkomst, gezamenlijke contracten, script en nieuwe test. Geen blinde herreview van alle al beoordeelde moduleketens. Geen mainmerge of deployment.
+Onafhankelijke Astra-medium integratiereview akkoord op52623691417d252fb6ba1fa2053b4aaeb5cabfb0, geen noodzakelijke bevindingen. Zelfstandig1/1 gerichte testcase groen,3.85s test/5.58s totaal; geen fullsuiteherhaling. Parentpoort458 en echte CLI/browser/procesherstart blijven afzonderlijk toegeschreven. [Volledig rapport](review-pr46.md). Geen codefix of herreview nodig; alleen administratieve opvolging. Geen mainmerge, deployment, cleanup of archivering uitgevoerd.

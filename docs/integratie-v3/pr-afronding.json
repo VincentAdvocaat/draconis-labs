@@ -461,7 +461,7 @@
     },
     {
       "pr": 46,
-      "head": "e52aeca7cdc08cbeae165b484c45ba0b2e2e6aef",
+      "head": "52623691417d252fb6ba1fa2053b4aaeb5cabfb0",
       "url": "https://github.com/VincentAdvocaat/draconis-labs/pull/46",
       "draft": true,
       "state": "OPEN",
@@ -470,13 +470,15 @@
       "reviewers": [
         "01a1f8be-ca70-7ec1-a39f-50e6589066bb"
       ],
-      "status": "review-in-progress",
-      "test": "458 volledige poort op65a3dd3/API407in46; actuelee52aeca1/1(19.83s), verse95fileCLI/allrows/newsecrets, failedv3samebindingattempt2/echteprocesherstart,10staticroutes/CSP/API404/browser/hostrestart/27herexportbytegelijk.",
-      "evidence": "docs/integratie-v3/review-pr46.md; docs/integratie-v3/bewijs.md",
-      "block": "Onafhankelijke integratiereview loopt op dezelfde bestaande Astra-medium-chat; geen approvalclaim.",
+      "status": "approved-no-required-findings",
+      "test": "458 volledige poort op65a3dd3/API407in46; actuelee52aeca1/1(19.83s), verse95fileCLI/allrows/newsecrets, failedv3samebindingattempt2/echteprocesherstart,10staticroutes/CSP/API404/browser/hostrestart/27herexportbytegelijk. Reviewer op5262369:1/1,3.85s test/5.58s totaal,geenfullsuiteherhaling.",
+      "evidence": "docs/integratie-v3/review-pr46.md; docs/integratie-v3/bewijs.md; docs/integratie-v3/review-pr46.json",
+      "block": null,
       "seriesReviewers": [],
       "reviewerModel": "gpt-6-astra",
-      "reviewerReasoning": "medium"
+      "reviewerReasoning": "medium",
+      "reviewHead": "52623691417d252fb6ba1fa2053b4aaeb5cabfb0"
     }
-  ]
+  ],
+  "closedIntegrationReview": "52623691417d252fb6ba1fa2053b4aaeb5cabfb0"
 }
