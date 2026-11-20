@@ -10,6 +10,7 @@ import { checksum } from '../src/media-fixture/storage.js';
 import { LocalUploadService } from '../src/media-upload/service.js';
 import { MediaRightsService } from '../src/media-upload/rights.js';
 import { CatalogService } from '../src/catalogus/service.js';
+import { MediaLibrary } from '../src/catalogus/library.js';
 import { CatalogSnapshotConsumer } from '../src/catalogus/consumer.js';
 import { buildUploadApp } from '../src/media-upload/app.js';
 
@@ -91,6 +92,42 @@ describe('new file versions on an existing asset', () => {
     await expect(service.retryFailed(site, jobId!)).rejects.toThrow('failed upload');
   });
 
+  it('rejects an older retry while another worker processes the asset and exposes processing during an admitted retry', async () => {
+    const first = await service.upload(site, await image(), 'first.png', 'image/png');
+    rights.setRights(site, first.assetId, decision(1));
+    const oldBytes = first.variants.map(v => readFileSync(join(fixture.root, v.path)));
+    const oldHashes = oldBytes.map(checksum);
+    service.close(); let failOnce = true;
+    service = new LocalUploadService(fixture.root, path => {
+      if (path.includes(join(first.assetId, '2', 'staging')) && failOnce) { failOnce = false; throw new Error('Injected transient lock'); }
+      rmSync(path, { recursive: true, force: true });
+    });
+    await expect(service.uploadVersion(site, first.assetId, 2, 1, await image(64), 'second.png', 'image/png')).rejects.toThrow();
+    const db = new Database(join(fixture.root, 'media.sqlite')), another = new LocalUploadService(fixture.root);
+    try {
+      const job = db.prepare('SELECT id FROM upload_jobs WHERE asset=? AND file_version=2').get(first.assetId) as { id: string };
+      const snapshot = () => ['upload_jobs', 'files', 'assets', 'media_rights_audit'].map(table => db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all());
+      const bytes = await image(128);
+      const pending = service.uploadVersion(site, first.assetId, 3, 2, bytes, 'third.png', 'image/png');
+      const before = snapshot();
+      const rejected = another.retryFailed(site, job.id);
+      expect(snapshot()).toEqual(before);
+      await expect(rejected).rejects.toMatchObject({ statusCode: 409, message: 'An asset version is already processing' });
+      await pending;
+      const metadata = db.prepare('SELECT * FROM assets WHERE id=?').get(first.assetId);
+      const audit = db.prepare('SELECT * FROM media_rights_audit WHERE asset=?').all(first.assetId);
+      const retry = another.retryFailed(site, job.id);
+      expect(another.status(site, job.id)).toMatchObject({ state: 'processing', attempts: 2, variants: [] });
+      expect(new MediaLibrary(db).detail(site, first.assetId).versions.find(v => v.fileVersion === 2))
+        .toMatchObject({ state: 'processing', job: { state: 'processing', attempts: 2 } });
+      expect(db.prepare('SELECT * FROM assets WHERE id=?').get(first.assetId)).toEqual(metadata);
+      expect(db.prepare('SELECT * FROM media_rights_audit WHERE asset=?').all(first.assetId)).toEqual(audit);
+      expect(await retry).toMatchObject({ fileVersion: 2, state: 'ready', attempts: 2 });
+      expect(first.variants.map(v => readFileSync(join(fixture.root, v.path)))).toEqual(oldBytes);
+      expect(first.variants.map(v => checksum(readFileSync(join(fixture.root, v.path))))).toEqual(oldHashes);
+    } finally { another.close(); db.close(); }
+  });
+
   it('rejects invalid envelopes before reservation and bounds retries of a bad decoder/source', async () => {
     const first = await service.upload(site, await image(), 'first.png', 'image/png');
     await expect(service.uploadVersion(site, first.assetId, 1, 1, await image(), 'fake.jpg', 'image/jpeg')).rejects.toMatchObject({ statusCode: 415 });
@@ -139,6 +176,24 @@ describe('new file versions on an existing asset', () => {
     service = new LocalUploadService(fixture.root); await service.recover();
     expect(service.status(site, first.assetId)).toMatchObject({ assetId: first.assetId, fileVersion: 1, state: 'ready', attempts: 1 });
     expect(readFileSync(join(fixture.root, 'private', site, first.assetId, 'source'))).toEqual(original);
+  });
+
+  it('retries a failed legacy v1 without pre-existing asset or file metadata', async () => {
+    service.close(); let failOnce = true;
+    service = new LocalUploadService(fixture.root, path => {
+      if (path.endsWith('staging') && failOnce) { failOnce = false; throw new Error('Injected transient lock'); }
+      rmSync(path, { recursive: true, force: true });
+    });
+    await expect(service.upload(site, await image(), 'legacy.png', 'image/png')).rejects.toThrow();
+    const db = new Database(join(fixture.root, 'media.sqlite'));
+    let jobId: string;
+    try {
+      jobId = (db.prepare('SELECT id FROM upload_jobs WHERE filename=?').get('legacy.png') as { id: string }).id;
+      db.prepare('UPDATE upload_jobs SET asset=NULL WHERE id=?').run(jobId);
+      expect(db.prepare('SELECT * FROM assets WHERE id=?').get(jobId)).toBeUndefined();
+      expect(db.prepare('SELECT * FROM files WHERE asset=?').get(jobId)).toBeUndefined();
+    } finally { db.close(); }
+    expect(await service.retryFailed(site, jobId!)).toMatchObject({ assetId: jobId!, fileVersion: 1, state: 'ready', attempts: 2 });
   });
 
   function child(code: string): Promise<string> {

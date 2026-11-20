@@ -192,6 +192,9 @@ export class LocalUploadService {
     const job = this.db.transaction(() => {
       const current = this.job(website, id);
       if (current.state !== 'failed' || current.attempts >= MAX_UPLOAD_ATTEMPTS || this.isReady(current)) throw new UploadError(409, 'Only an unready failed upload below the retry limit can be retried');
+      const assetId = current.asset ?? current.id;
+      if (this.db.prepare("SELECT 1 FROM upload_jobs WHERE website=? AND COALESCE(asset,id)=? AND state='processing' AND id<>?").get(website, assetId, id)) throw new UploadError(409, 'An asset version is already processing');
+      this.db.prepare("UPDATE files SET state='processing' WHERE website=? AND asset=? AND version=? AND state<>'ready'").run(website, assetId, current.file_version);
       this.db.prepare("UPDATE upload_jobs SET state='processing',owner_pid=?,error=NULL WHERE id=?").run(process.pid, id);
       return this.job(website, id);
     }).immediate();
