@@ -1,6 +1,6 @@
-import { beforeAll, afterAll, describe, it, expect } from 'vitest';
+import { beforeAll, afterAll, describe, it, expect, vi } from 'vitest';
 import { randomUUID, createHash } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync, cpSync, symlinkSync, unlinkSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync, cpSync, symlinkSync, unlinkSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createServer } from 'node:http';
@@ -8,6 +8,11 @@ import { execFileSync } from 'node:child_process';
 import Database from 'better-sqlite3';
 import { exportStaticRelease } from '../src/modules/cms/static-export.js';
 import { staticExportFixture } from './helpers/static-export-fixture.js';
+
+vi.mock('node:fs', async importOriginal => {
+  const fs = await importOriginal<typeof import('node:fs')>();
+  return { ...fs, lstatSync: vi.fn(fs.lstatSync), readFileSync: vi.fn(fs.readFileSync) };
+});
 
 const roots: string[] = [], media: string[] = [];
 function target(kind = 'export') { const root = join(tmpdir(), `draconis-cms-${kind}-${randomUUID()}`); roots.push(root); return root; }
@@ -98,6 +103,41 @@ describe('published static release export', () => {
       if (mode === 'identity') manifest(root, value => { value.releaseId = randomUUID(); });
       const chosen = input(root); expect(() => exportStaticRelease(chosen), mode).toThrow(); expect(existsSync(chosen.targetRoot), mode).toBe(false);
     }
+  });
+  it.each([
+    '<script>fetch("/api/v1/cms")</script>',
+    '<style>body{background:url(https://example.invalid/image)}</style>',
+    '<p style="background:url(/api/image)">Inline</p>',
+    '<img srcset="https://example.invalid/image 1x">',
+    '<img src=https://example.invalid/image>',
+    '<img src="/sites/demo-cms/index.html" onerror="fetch(\'/api\')">',
+    '<iframe src="https://example.invalid/"></iframe>',
+    '<meta http-equiv="refresh" content="0;url=https://example.invalid/">',
+    '<object data="/api/image"></object>',
+  ])('rejects unsupported HTML before creating a target: %s', addition => {
+    const root = clone(), path = join(sourceRelease(root), 'index.html');
+    const text = readFileSync(path, 'utf8') + addition;
+    writeFileSync(path, text); manifest(root, value => { value.files['index.html'] = hash(text); });
+    const chosen = input(root);
+    expect(() => exportStaticRelease(chosen)).toThrow(/Unsupported HTML|Inline scripts/);
+    expect(existsSync(chosen.targetRoot)).toBe(false);
+  });
+  it('rejects a file exceeding the remaining budget before reading its bytes', () => {
+    const root = clone(), source = sourceRelease(root), inventory = json(join(source, 'release.json'));
+    const names = Object.keys(inventory.files), oversized = join(source, names[1]!);
+    const firstBytes = readFileSync(join(source, names[0]!)).length;
+    const original = vi.mocked(lstatSync).getMockImplementation()!;
+    vi.mocked(lstatSync).mockImplementation(((...args: Parameters<typeof lstatSync>) => {
+      const stat = original(...args);
+      return args[0] === oversized ? Object.assign(Object.create(Object.getPrototypeOf(stat)), stat, { size: 256 * 1024 * 1024 - firstBytes + 1 }) : stat;
+    }) as typeof lstatSync);
+    vi.mocked(readFileSync).mockClear();
+    const chosen = input(root);
+    try {
+      expect(() => exportStaticRelease(chosen)).toThrow('exceeds 256 MiB');
+      expect(vi.mocked(readFileSync).mock.calls.some(args => args[0] === oversized)).toBe(false);
+      expect(existsSync(chosen.targetRoot)).toBe(false);
+    } finally { vi.mocked(lstatSync).mockImplementation(original); }
   });
   it('rejects symlinks and preserves an existing destination', () => {
     const root = clone(), path = join(sourceRelease(root), 'template-assets'), original = path + '-original';
