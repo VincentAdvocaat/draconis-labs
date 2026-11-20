@@ -1,22 +1,19 @@
 export function addDaysFrom(baseIso: string, days: number) {
-  const [year, month, day] = baseIso.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  date.setDate(date.getDate() + days);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const date = new Date(`${baseIso}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 export function nextWeekFrom(baseIso: string, weekStart: 0 | 1) {
-  const [year, month, day] = baseIso.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  const target = weekStart;
-  const until = ((7 + target - date.getDay()) % 7) || 7;
-  date.setDate(date.getDate() + until);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const weekday = new Date(`${baseIso}T00:00:00.000Z`).getUTCDay();
+  const until = ((7 + weekStart - weekday) % 7) || 7;
+  return addDaysFrom(baseIso, until);
 }
 
 export function nextMonthFrom(baseIso: string) {
-  const [year, month] = baseIso.split('-').map(Number);
-  return `${year}-${String(month + 1).padStart(2, '0')}-01`;
+  const date = new Date(`${baseIso}T00:00:00.000Z`);
+  date.setUTCMonth(date.getUTCMonth() + 1, 1);
+  return date.toISOString().slice(0, 10);
 }
 
 export function parseQuickTask(value: string, locale: 'nl' | 'en', today: string, weekStart: 0 | 1) {

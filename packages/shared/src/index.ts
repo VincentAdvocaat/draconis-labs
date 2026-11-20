@@ -8,6 +8,7 @@ export type { RecurrenceFrequency, RecurrenceRule } from './scheduling.js';
 export {
   RECURRENCE_FREQUENCIES,
   addRecurrence,
+  dayBoundsInTimezone,
   isIsoDate,
   isIsoTime,
   isTaskOverdue,

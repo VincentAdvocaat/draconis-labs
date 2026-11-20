@@ -1,9 +1,10 @@
+import { randomUUID } from 'node:crypto';
 import Database from 'better-sqlite3';
 import Fastify from 'fastify';
 import { createPlannerRoutes } from '../src/modules/planner/routes.js';
 import { createPlannerService, TaskConflictError } from '@draconis/planner-core';
 import { createSqlitePlannerStorage, initializePlannerSqlite } from '@draconis/planner-sqlite';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('injected Planner service with real SQLite', () => {
   it('keeps two compositions isolated while preserving ordering, versions, recurrence and preferences', async () => {
@@ -45,5 +46,67 @@ describe('injected Planner service with real SQLite', () => {
       expect(b.history({})).toEqual([]);
       expect(() => b.update(initial.id, { title: 'Vreemde database' })).toThrow('Taak niet gevonden');
     } finally { await http.close(); first.close(); second.close(); }
+  });
+
+  it.each([
+    ['spring', '2026-03-29', '2026-03-30', '2026-03-28T22:59:59.999Z', '2026-03-28T23:00:00.000Z', '2026-03-29T21:59:59.999Z', '2026-03-29T22:00:00.000Z'],
+    ['autumn', '2026-10-25', '2026-10-26', '2026-10-24T21:59:59.999Z', '2026-10-24T22:00:00.000Z', '2026-10-25T22:59:59.999Z', '2026-10-25T23:00:00.000Z'],
+  ])('returns only completions within the selected local day at the %s DST change', async (_season, today, tomorrow, beforeStart, start, beforeEnd, end) => {
+    const db = new Database(':memory:');
+    const http = Fastify();
+    let completedAt = beforeStart;
+    const actor = { kind: 'user', name: 'injected-user' } as const;
+    try {
+      initializePlannerSqlite(db);
+      const service = createPlannerService(createSqlitePlannerStorage(db), { id: randomUUID, now: () => completedAt });
+      await http.register(createPlannerRoutes(service, () => actor), { prefix: '/api/v1/planner' });
+
+      for (const [title, timestamp] of Object.entries({ yesterday: beforeStart, first: start, last: beforeEnd, tomorrow: end })) {
+        const task = service.create({ title }, actor);
+        completedAt = timestamp;
+        service.update(task.id, { lane: 'done', version: task.version });
+      }
+      service.create({ title: 'active', plannedDate: today }, actor);
+      service.create({ title: 'scheduled', plannedDate: tomorrow }, actor);
+
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(`${today}T12:00:00.000Z`));
+      const result = await http.inject('/api/v1/planner/tasks?date=today&timezone=Europe%2FAmsterdam');
+      expect(result.statusCode).toBe(200);
+      expect(result.json().map(({ title }: { title: string }) => title).sort()).toEqual(['active', 'first', 'last']);
+    } finally {
+      vi.useRealTimers();
+      await http.close();
+      db.close();
+    }
+  });
+
+  it('creates one monthly successor in February when completing a task due January 31', async () => {
+    const db = new Database(':memory:');
+    const http = Fastify();
+    try {
+      initializePlannerSqlite(db);
+      const service = createPlannerService(createSqlitePlannerStorage(db), { id: randomUUID, now: () => '2028-01-31T09:30:00.000Z' });
+      await http.register(createPlannerRoutes(service, () => ({ kind: 'user', name: 'injected-user' })), { prefix: '/api/v1/planner' });
+      const created = await http.inject({
+        method: 'POST', url: '/api/v1/planner/tasks',
+        payload: { title: 'Monthly inspection', dueDate: '2028-01-31', dueTime: '10:00', timezone: 'Europe/Amsterdam', recurrence: { frequency: 'monthly' } },
+      });
+      expect(created.statusCode).toBe(201);
+      const task = created.json();
+      const completed = await http.inject({
+        method: 'PATCH', url: `/api/v1/planner/tasks/${task.id}`, payload: { lane: 'done', version: task.version },
+      });
+      expect(completed.statusCode).toBe(200);
+      expect(completed.json()).toMatchObject({ id: task.id, dueDate: '2028-01-31', lane: 'done' });
+      const listed = await http.inject('/api/v1/planner/tasks?lane=todo');
+      expect(listed.statusCode).toBe(200);
+      expect(listed.json()).toMatchObject([{
+        recurrenceParentId: task.id, dueDate: '2028-02-29', plannedDate: '2028-02-29', dueTime: '10:00', timezone: 'Europe/Amsterdam',
+      }]);
+    } finally {
+      await http.close();
+      db.close();
+    }
   });
 });
