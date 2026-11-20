@@ -13,3 +13,11 @@ Gevraagde scope: actuele lokale/remote head, whole-source-ancestry/blobherkomst,
 Parentbewijs staat in [bewijs.md](bewijs.md): volledige458-testpoort, echte95-bestanden-CLI-restore/allrows/newsecrets, echte retry/procesherstart, CMS/API-uit static27files/tienNLENroutes/herexportbytegelijkheid. Testblob `55948a110b74a3423c4d269224d7d5516de46e09`, gatescriptblob `fc2558d6e466b8e2b3d18dea15349fac4cf71293` zijn na de poort exact gelijk aan de opgegeven reviewhead.
 
 De volgende commit werkt uitsluitend documentatie bij: demo, mergevoorstel, open criteria en deze reviewcoördinatie. Runtime, test en gatescript blijven ongewijzigd. De definitieve documentatietip wordt in PRbody vastgelegd. Geen onafhankelijke goedkeuring geclaimd zolang het rapport ontbreekt.
+
+## Begrensde uitvoeringsblokkade
+
+Om12:47 op20 november2026 is na meer dan tien minuten vanaf de start nog geen eerste bericht, beginstand, toolmarker, fout of approvalverzoek zichtbaar in compacte wait_threads-snapshots. De cursor bleef94f08924-6020-4e94-893a-903f81918e28:1, threadstatus active. Twee statusvragen zijn verstuurd; daarna zijn alleen compacte waits gebruikt. Er is geen foutcode die de onderliggende oorzaak bewijst. De concrete beperking is dat de vereiste Astra-model/toolroute geen review-uitvoer levert, zowel bij de inmiddels gestopte subagent als bij deze ene behouden fallbackchat.
+
+Integratiereview blijft OPEN/GEBLOKKEERD OP UITVOERING. Geen bevindingen ontvangen betekent geen bewezen afwezigheid van fouten. Geen goedkeuring, stilzwijgende modelsubstitutie of nieuwe reviewchat. De fallbackchat blijft beschikbaar; na een daadwerkelijk rapport moeten eventuele noodzakelijke bevindingen worden geverifieerd, binnen scope door GPT-6.1 Sol low worden opgelost en indien substantieel door dezelfde reviewer worden herbeoordeeld. Pas na afsluiting en duurzame rapportvastlegging mag de aparte reviewchat worden gearchiveerd.
+
+De implementatie-/acceptatiehead65a3dd3 blijft code/test/gategewijs identiek. De afzonderlijke docs-tip5771e72 bevat demo, exacte mergeketen en geprioriteerde open criteria; de volgende commit legt alleen deze blokkade vast en wordt in PRbody vermeld. Alle eigen listeners zijn gesloten en main/PR43 blijven ongewijzigd.
