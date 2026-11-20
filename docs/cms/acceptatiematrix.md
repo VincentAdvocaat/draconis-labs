@@ -62,4 +62,4 @@ De volledige modulecriteria zijn vergeleken in [open-criteria](../integratie-v2/
 
 ## Zelfstandige M5-export
 
-Een apart release-only CLI-commando en statische proef staan in [statische-export-proef.md](statische-export-proef.md). De bestaande gepubliceerde bytes worden op hun gedocumenteerde /sites/<website>/-basis zonder CMS/API geladen. Geen file://-rewrite of nieuwe renderer. De onafhankelijke review van deze stap volgt.
+Een apart release-only CLI-commando en statische proef staan in [statische-export-proef.md](statische-export-proef.md). De bestaande gepubliceerde bytes worden op hun gedocumenteerde /sites/<website>/-basis zonder CMS/API geladen. Geen file://-rewrite of nieuwe renderer. PR44 heeft gesloten Astra-medium herreview op `349db0b3bfc2e2c85bfe852a7788ea3a9b571c69`; de finale volledige API-suite op die runtimehead is groen met387/43, één worker en oorspronkelijke timeouts. Zie [rapport](review-pr44.md).
