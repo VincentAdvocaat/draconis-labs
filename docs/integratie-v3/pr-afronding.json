@@ -16,17 +16,20 @@
         46
       ],
       "runtime": null,
-      "reviewers": [],
-      "status": "review-not-established",
-      "test": "Alleen ontwerp/documentatie; historische diffcheck. Geen runtime-/hersteltest geclaimd.",
-      "evidence": "docs/cms/backlog.md; PR7-body",
-      "block": "PR-body vermeldt review volgt; geen afgesloten onafhankelijk oordeel of reviewer-ID teruggevonden.",
+      "reviewers": [
+        "01a1f4a1-3308-7f92-8e40-f20dba4d0561"
+      ],
+      "status": "closed-original-report-recovered",
+      "test": "Documentatie: historische gerichte herreview/diffcheck; actuele5docs/7relatievelinks/bestaande scriptpaden/protocolstappencontrole groen. Geen runtimetest geclaimd.",
+      "evidence": "docs/cms/backlog.md; PR7-body; docs/integratie-v3/oude-reviewrapporten.json",
+      "block": null,
       "seriesReviewers": [
         "/root/review_pr37",
         "01a1f871-2224-7cd0-8ef9-7f9380635e68"
       ],
-      "reviewerModel": null,
-      "reviewerReasoning": null
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "02ac4291ba12987f0a30921339897185d25a7f32"
     },
     {
       "pr": 10,
@@ -40,17 +43,20 @@
         46
       ],
       "runtime": "0179a4ffeb2b340c421c7d1b43bd2913d410e07d",
-      "reviewers": [],
-      "status": "historical-review-closed-id-missing",
+      "reviewers": [
+        "01a1f4af-51c6-72f2-b217-8ae6f655d331"
+      ],
+      "status": "closed-original-report-recovered",
       "test": "21/21; reviewer herhaalde21. Echte loopback HTTP, draft/preview/publish/conflict, browser en procesherstart.",
-      "evidence": "docs/cms/lokale-proef.md; PR10-body",
-      "block": "Reviewer-ID/model niet duurzaam teruggevonden; gesloten P2 en SHA wel vastgelegd.",
+      "evidence": "docs/cms/lokale-proef.md; PR10-body; docs/integratie-v3/oude-reviewrapporten.json",
+      "block": null,
       "seriesReviewers": [
         "/root/review_pr37",
         "01a1f871-2224-7cd0-8ef9-7f9380635e68"
       ],
-      "reviewerModel": null,
-      "reviewerReasoning": null
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "0179a4ffeb2b340c421c7d1b43bd2913d410e07d"
     },
     {
       "pr": 13,
@@ -64,17 +70,20 @@
         46
       ],
       "runtime": "06fc8e6af5aebaded00f17fd7274c6399e519c3c",
-      "reviewers": [],
-      "status": "historical-review-closed-id-missing",
+      "reviewers": [
+        "01a1f4bc-901b-7b01-983b-1db77f878d64"
+      ],
+      "status": "closed-original-report-recovered",
       "test": "55/55 reviewer/parent; private preview, retained refs, hashes; echte image-URL200 bij offline bron en procesherstart.",
-      "evidence": "docs/cms/media-proef.md; PR13-body",
-      "block": "Reviewer-ID niet duurzaam teruggevonden; twee P2's gesloten op exacte head.",
+      "evidence": "docs/cms/media-proef.md; PR13-body; docs/integratie-v3/oude-reviewrapporten.json",
+      "block": null,
       "seriesReviewers": [
         "/root/review_pr37",
         "01a1f871-2224-7cd0-8ef9-7f9380635e68"
       ],
-      "reviewerModel": null,
-      "reviewerReasoning": null
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "06fc8e6af5aebaded00f17fd7274c6399e519c3c"
     },
     {
       "pr": 17,
@@ -88,17 +97,20 @@
         46
       ],
       "runtime": "6a6628f20af3f48879b3a055c1860149f1f20fe2",
-      "reviewers": [],
-      "status": "historical-review-closed-id-missing",
+      "reviewers": [
+        "01a1f4db-83ff-79b0-a6dc-7d1f91c6e49b"
+      ],
+      "status": "closed-original-report-recovered",
       "test": "78/78 parent,11 gericht reviewer; invalid upload→failed/retry→ready unknown→expliciete vrijgave→publish; echte herstart.",
-      "evidence": "docs/cms/upload-proef.md; PR17-body",
-      "block": "Reviewer-ID niet duurzaam teruggevonden; P1/P2 gesloten op exacte head.",
+      "evidence": "docs/cms/upload-proef.md; PR17-body; docs/integratie-v3/oude-reviewrapporten.json",
+      "block": null,
       "seriesReviewers": [
         "/root/review_pr37",
         "01a1f871-2224-7cd0-8ef9-7f9380635e68"
       ],
-      "reviewerModel": null,
-      "reviewerReasoning": null
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "6a6628f20af3f48879b3a055c1860149f1f20fe2"
     },
     {
       "pr": 21,
@@ -112,17 +124,20 @@
         46
       ],
       "runtime": "0a9a9b76b0df289c404e97b2d05254dac7e62d74",
-      "reviewers": [],
-      "status": "historical-review-closed-id-missing",
+      "reviewers": [
+        "01a1f4fe-d8ee-70e2-8787-a98dd9083e3d"
+      ],
+      "status": "closed-original-report-recovered",
       "test": "91 parent;10 documenttests herreview. Nieuwe pagina/blokken/beeld/SEO/sitepublish en echte herstart; slugracefix.",
-      "evidence": "docs/cms/paginas-blokken-proef.md; PR21-body",
-      "block": "Astra-review genoemd maar reviewer-ID ontbreekt in duurzame bron.",
+      "evidence": "docs/cms/paginas-blokken-proef.md; PR21-body; docs/integratie-v3/oude-reviewrapporten.json",
+      "block": null,
       "seriesReviewers": [
         "/root/review_pr37",
         "01a1f871-2224-7cd0-8ef9-7f9380635e68"
       ],
-      "reviewerModel": null,
-      "reviewerReasoning": null
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "0a9a9b76b0df289c404e97b2d05254dac7e62d74"
     },
     {
       "pr": 25,
@@ -136,17 +151,20 @@
         46
       ],
       "runtime": "741cacf595b2b228be6fbed8a938e1ab66160a32",
-      "reviewers": [],
-      "status": "historical-review-closed-id-missing",
+      "reviewers": [
+        "01a1f518-c7ee-7371-9d9b-be771b50f3bf"
+      ],
+      "status": "closed-original-report-recovered",
       "test": "7 gerichte portfolio-integratietests bij fix/herreview; NL/ENpin/privatepreview/sitepublish/reconcile en browserherstart.",
-      "evidence": "docs/cms/portfolio-proef.md; docs/cms/acceptatiematrix.md; PR25-body",
-      "block": "Reviewer-ID niet duurzaam teruggevonden; twee P2-padfouten gesloten.",
+      "evidence": "docs/cms/portfolio-proef.md; docs/cms/acceptatiematrix.md; PR25-body; docs/integratie-v3/oude-reviewrapporten.json",
+      "block": null,
       "seriesReviewers": [
         "/root/review_pr37",
         "01a1f871-2224-7cd0-8ef9-7f9380635e68"
       ],
-      "reviewerModel": null,
-      "reviewerReasoning": null
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "741cacf595b2b228be6fbed8a938e1ab66160a32"
     },
     {
       "pr": 26,
@@ -160,17 +178,20 @@
         46
       ],
       "runtime": "2fea3e3d8c259cb9b3cf1e9c0d1e9a551e0cb416",
-      "reviewers": [],
-      "status": "historical-review-closed-id-missing",
+      "reviewers": [
+        "01a1f521-0ebd-7902-83da-e63aaa539f17"
+      ],
+      "status": "closed-original-report-recovered",
       "test": "Reviewer117 API/component+15shared en workspacechecks; ENheading/emptytext/preview/pin/browserherstart.",
-      "evidence": "docs/cms/portfolio-blokteksten.md; PR26-body",
-      "block": "Reviewer-ID niet duurzaam teruggevonden. Optionele legacy/whitespace-testversterking bleef optioneel.",
+      "evidence": "docs/cms/portfolio-blokteksten.md; PR26-body; docs/integratie-v3/oude-reviewrapporten.json",
+      "block": null,
       "seriesReviewers": [
         "/root/review_pr37",
         "01a1f871-2224-7cd0-8ef9-7f9380635e68"
       ],
-      "reviewerModel": null,
-      "reviewerReasoning": null
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "2fea3e3d8c259cb9b3cf1e9c0d1e9a551e0cb416"
     },
     {
       "pr": 27,
@@ -184,17 +205,20 @@
         46
       ],
       "runtime": "f95389882d7b69d246f66070dec1d37c81123c56",
-      "reviewers": [],
-      "status": "historical-review-closed-id-missing",
+      "reviewers": [
+        "01a1f52e-7ce1-7720-b25d-44bec23755e0"
+      ],
+      "status": "closed-original-report-recovered",
       "test": "123API+15shared vóór legacyfix;16 relevante tests nafix/herreview; handmatige ENtekst/SEO/nav/explicietpublish/browserherstart.",
-      "evidence": "docs/cms/paginatalen-proef.md; PR27-body",
-      "block": "Reviewer-ID niet duurzaam teruggevonden; legacyNLslug-P2 gesloten. Na runtime alleen docs.",
+      "evidence": "docs/cms/paginatalen-proef.md; PR27-body; docs/integratie-v3/oude-reviewrapporten.json",
+      "block": null,
       "seriesReviewers": [
         "/root/review_pr37",
         "01a1f871-2224-7cd0-8ef9-7f9380635e68"
       ],
-      "reviewerModel": null,
-      "reviewerReasoning": null
+      "reviewerModel": "gpt-6-astra",
+      "reviewerReasoning": "medium",
+      "reviewHead": "f95389882d7b69d246f66070dec1d37c81123c56"
     },
     {
       "pr": 29,
