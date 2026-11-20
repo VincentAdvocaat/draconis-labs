@@ -36,3 +36,5 @@ Deze taak wijzigt PR43 en main niet en voert geen deployment uit. Een latere exp
 ## Overdracht
 
 [Lokale demo](lokale-demo.md), [actueel mergevoorstel](mainmergeplan.md), [geprioriteerde open criteria](open-criteria.md) en [integratiereviewstatus](review-pr46.md).
+
+[Afrondingsregister van19 CMS/integratie-PRs](pr-afronding.md), [machineleesbare exacte heads](pr-afronding.json) en [lokale bestanden](lokale-bestanden.json).

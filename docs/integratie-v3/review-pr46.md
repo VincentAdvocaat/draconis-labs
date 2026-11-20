@@ -21,3 +21,9 @@ Om12:47 op20 november2026 is na meer dan tien minuten vanaf de start nog geen ee
 Integratiereview blijft OPEN/GEBLOKKEERD OP UITVOERING. Geen bevindingen ontvangen betekent geen bewezen afwezigheid van fouten. Geen goedkeuring, stilzwijgende modelsubstitutie of nieuwe reviewchat. De fallbackchat blijft beschikbaar; na een daadwerkelijk rapport moeten eventuele noodzakelijke bevindingen worden geverifieerd, binnen scope door GPT-6.1 Sol low worden opgelost en indien substantieel door dezelfde reviewer worden herbeoordeeld. Pas na afsluiting en duurzame rapportvastlegging mag de aparte reviewchat worden gearchiveerd.
 
 De implementatie-/acceptatiehead65a3dd3 blijft code/test/gategewijs identiek. De afzonderlijke docs-tip5771e72 bevat demo, exacte mergeketen en geprioriteerde open criteria; de volgende commit legt alleen deze blokkade vast en wordt in PRbody vermeld. Alle eigen listeners zijn gesloten en main/PR43 blijven ongewijzigd.
+
+## Hervatte zichtbare activiteit bij de afrondingsronde
+
+In dezelfde fallbackchat is nu een concreet beginbericht en één succesvol read-only commando zichtbaar: skill lezen, gitstatus, lokale HEAD en remote refs/pull/46/head. Exit0,1935ms. Er is nog geen inhoudelijk rapport of bevinding ontvangen. Eén diagnostische read_thread-opvraag bevestigt dit; daarna worden compacte waits gebruikt. De eerdere uitvoeringsblokkade blijft historische coördinatie, geen reden voor een nieuwe reviewer. Reviewstatus blijft OPEN/IN UITVOERING, zonder goedkeuring.
+
+De actuele gecombineerde workflow op e52aeca is opnieuw groen; zie het [afrondingsregister](pr-afronding.md). Code/test/gatescript blijven blobgelijk65a3dd3; uitsluitend documentatie wordt toegevoegd. Er wordt geen tweede volledige458-testpoort geclaimd. De nieuwe coördinerende chat01a1f8c9-010e-7ff1-8eac-5e3069414570 beslist over opruimen en archiveren; deze implementatiechat archiveert geen reviewchat of werkmap.

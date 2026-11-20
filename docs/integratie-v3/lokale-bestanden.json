@@ -1,0 +1,213 @@
+{
+  "date": "2026-11-20",
+  "scope": "Read-only inventaris CMS- en integratieworktrees. Geen opruiming/verwijdering/archivering. Aantallen zijn een momentopname vóór het schrijven van dit register en latere bewijsmutaties.",
+  "root": "C:/git/draconis-labs/.worktrees/feature",
+  "canonicalDirectoriesChecked": true,
+  "reparsePointsFound": false,
+  "protectedRootFile": {
+    "path": "scripts/backlog-data.json",
+    "gitStatus": "M, bestond vóór deze opdracht",
+    "gitHeadBlob": "c0fd86e721d9cf730e655c13d69ed97ad22e5a80",
+    "workingBlobAtStart": "b11b85139912e977d5ffa00b401b98c112694452",
+    "changedByTask": false
+  },
+  "historicalListeners": [
+    {
+      "port": 3016,
+      "pid": 19048,
+      "worktree": "feature/cms-local-text"
+    },
+    {
+      "port": 3020,
+      "pid": 40568,
+      "worktree": "feature/cms-portfolio-block"
+    },
+    {
+      "port": 3021,
+      "pid": 18016,
+      "worktree": "feature/cms-portfolio-text"
+    },
+    {
+      "port": 3022,
+      "pid": 55856,
+      "worktree": "feature/cms-page-locales"
+    }
+  ],
+  "freshWorkflowListenersClosed": [
+    3055,
+    3060,
+    3061
+  ],
+  "worktrees": [
+    {
+      "worktree": "feature/cms-contact-template-fixture",
+      "head": "d3b881b63b29350b4ed575544f5441fd6b9cb92e",
+      "status": [],
+      "ignoredDataFiles": 29,
+      "ignoredDataBytes": 813040,
+      "localHelpers": []
+    },
+    {
+      "worktree": "feature/cms-design-backlog",
+      "head": "02ac4291ba12987f0a30921339897185d25a7f32",
+      "status": [],
+      "ignoredDataFiles": 0,
+      "ignoredDataBytes": null,
+      "localHelpers": []
+    },
+    {
+      "worktree": "feature/cms-english-image",
+      "head": "80957852af15cb6576beeaa6bdb9578896800a9d",
+      "status": [],
+      "ignoredDataFiles": 19,
+      "ignoredDataBytes": 566234,
+      "localHelpers": []
+    },
+    {
+      "worktree": "feature/cms-english-portfolio",
+      "head": "9ec2c02940cffde0f318dd6e4e2d6b37e1790653",
+      "status": [],
+      "ignoredDataFiles": 18,
+      "ignoredDataBytes": 571533,
+      "localHelpers": []
+    },
+    {
+      "worktree": "feature/cms-fixture-backup-restore",
+      "head": "df6ec600aff4cdd8fff69640844cc882836bc0d0",
+      "status": [],
+      "ignoredDataFiles": 3,
+      "ignoredDataBytes": 263496,
+      "localHelpers": []
+    },
+    {
+      "worktree": "feature/cms-home-english",
+      "head": "3e4f764ade527ed2c79905526d4dc313e0f1923b",
+      "status": [],
+      "ignoredDataFiles": 19,
+      "ignoredDataBytes": 617229,
+      "localHelpers": []
+    },
+    {
+      "worktree": "feature/cms-local-text",
+      "head": "0179a4ffeb2b340c421c7d1b43bd2913d410e07d",
+      "status": [],
+      "ignoredDataFiles": 14,
+      "ignoredDataBytes": 463820,
+      "localHelpers": []
+    },
+    {
+      "worktree": "feature/cms-media-reference",
+      "head": "06fc8e6af5aebaded00f17fd7274c6399e519c3c",
+      "status": [],
+      "ignoredDataFiles": 22,
+      "ignoredDataBytes": 548229,
+      "localHelpers": []
+    },
+    {
+      "worktree": "feature/cms-page-locales",
+      "head": "e074f7cf999445c08d517e99a7dccc03118c05d2",
+      "status": [],
+      "ignoredDataFiles": 15,
+      "ignoredDataBytes": 503376,
+      "localHelpers": []
+    },
+    {
+      "worktree": "feature/cms-pages-blocks",
+      "head": "0a9a9b76b0df289c404e97b2d05254dac7e62d74",
+      "status": [],
+      "ignoredDataFiles": 17,
+      "ignoredDataBytes": 532994,
+      "localHelpers": []
+    },
+    {
+      "worktree": "feature/cms-portfolio-block",
+      "head": "741cacf595b2b228be6fbed8a938e1ab66160a32",
+      "status": [],
+      "ignoredDataFiles": 15,
+      "ignoredDataBytes": 453344,
+      "localHelpers": []
+    },
+    {
+      "worktree": "feature/cms-portfolio-text",
+      "head": "2fea3e3d8c259cb9b3cf1e9c0d1e9a551e0cb416",
+      "status": [],
+      "ignoredDataFiles": 15,
+      "ignoredDataBytes": 437395,
+      "localHelpers": []
+    },
+    {
+      "worktree": "feature/cms-real-upload",
+      "head": "6a6628f20af3f48879b3a055c1860149f1f20fe2",
+      "status": [],
+      "ignoredDataFiles": 17,
+      "ignoredDataBytes": 376938,
+      "localHelpers": []
+    },
+    {
+      "worktree": "feature/cms-shared-navigation",
+      "head": "0bb3c0d063cd9ad92a3c2e8b46f06596f93caea6",
+      "status": [],
+      "ignoredDataFiles": 15,
+      "ignoredDataBytes": 557765,
+      "localHelpers": []
+    },
+    {
+      "worktree": "feature/cms-static-release-export",
+      "head": "b4ef056286fe8d028e418eb99eb10d9472bf0e58",
+      "status": [],
+      "ignoredDataFiles": 7,
+      "ignoredDataBytes": 345225,
+      "localHelpers": [
+        "server\\api\\data\\static-export-demo\\prepare.ts",
+        "server\\api\\data\\static-export-demo\\serve.ts"
+      ]
+    },
+    {
+      "worktree": "feature/cms-ui-locales",
+      "head": "ea1c8623833bbf029755cb1142efe22c6923939c",
+      "status": [],
+      "ignoredDataFiles": 16,
+      "ignoredDataBytes": 601468,
+      "localHelpers": []
+    },
+    {
+      "worktree": "feature/local-modules-integration",
+      "head": "fc43090d0f90892df97d7e033bef66b772c81aa8",
+      "status": [],
+      "ignoredDataFiles": 27,
+      "ignoredDataBytes": 830123,
+      "localHelpers": [
+        "server\\api\\data\\integration-evidence\\restart-planner.mjs"
+      ]
+    },
+    {
+      "worktree": "feature/local-modules-integration-v2",
+      "head": "22f5c66659ab4abadb6a1f65b34b92846dce959f",
+      "status": [],
+      "ignoredDataFiles": 8,
+      "ignoredDataBytes": 280721,
+      "localHelpers": [
+        "server\\api\\data\\profile-old-recovery.ts",
+        "server\\api\\data\\integration-v2\\restore-start.ts",
+        "server\\api\\data\\integration-v2\\start.ts"
+      ]
+    },
+    {
+      "worktree": "feature/local-modules-integration-v3",
+      "head": "e52aeca7cdc08cbeae165b484c45ba0b2e2e6aef",
+      "status": [],
+      "ignoredDataFiles": 20,
+      "ignoredDataBytes": 355967,
+      "localHelpers": [
+        "server\\api\\data\\closure-2026-11-20\\prepare.ts",
+        "server\\api\\data\\closure-2026-11-20\\reopen.ts",
+        "server\\api\\data\\closure-2026-11-20\\serve.ts",
+        "server\\api\\data\\closure-2026-11-20\\verify-restore.ts",
+        "server\\api\\data\\integration-v3\\prepare.ts",
+        "server\\api\\data\\integration-v3\\reopen.ts",
+        "server\\api\\data\\integration-v3\\serve.ts",
+        "server\\api\\data\\integration-v3\\verify-restore.ts"
+      ]
+    }
+  ]
+}
