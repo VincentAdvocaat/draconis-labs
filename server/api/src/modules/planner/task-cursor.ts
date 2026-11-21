@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { PlannerService } from '@draconis/planner-core';
+import type { PlannerCommandService } from '@draconis/planner-core';
 import { ISO_DATE_PATTERN, LANES, taskListQuerySchema, todayInTimezone, type PlannerReply } from '@draconis/shared';
 import { z } from 'zod';
 import { parseTaskListQuery } from './query.js';
@@ -31,7 +31,7 @@ function decodeCursor(token: string) {
   }
 }
 
-export function listWorkspaceTasksByCursor(service: PlannerService, workspaceId: string, requestedWorkspaceId: string, rawQuery: unknown): PlannerReply {
+export async function listWorkspaceTasksByCursor(service: PlannerCommandService, workspaceId: string, requestedWorkspaceId: string, rawQuery: unknown): Promise<PlannerReply> {
   const parsed = workspaceTaskListQuerySchema.safeParse(rawQuery);
   if (!parsed.success || parsed.data.page !== undefined) return invalidInput;
   if (requestedWorkspaceId !== workspaceId) {
@@ -58,7 +58,7 @@ export function listWorkspaceTasksByCursor(service: PlannerService, workspaceId:
   const after = cursor === undefined ? undefined : decodeCursor(cursor);
   if (cursor !== undefined && after?.context !== context) return invalidInput;
 
-  const rows = service.listByCursor({ filters: { ...filters, timezone }, after, limit: pageSize + 1, now });
+  const rows = await service.listByCursor({ filters: { ...filters, timezone }, after, limit: pageSize + 1, now });
   const items = rows.slice(0, pageSize);
   const last = items.at(-1);
   const nextCursor = rows.length > pageSize && last

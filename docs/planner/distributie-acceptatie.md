@@ -9,12 +9,19 @@ op HTTPS of op loopback voor een lokale proef. Controleer in een apart
 browserprofiel dat Planner in een zelfstandig venster opent en na herstart
 dezelfde fictieve taak toont. [Installatie in Edge](https://learn.microsoft.com/en-us/microsoft-edge/progressive-web-apps/ux)
 
-De huidige browserapp laadt het webpakket bij navigatie en houdt geen tweede
-gegevenskopie aan. Serveer de HTML en het manifest met hervalidatie, en serveer
-de bestanden met een inhoudshash met een lange cacheduur. AB#287 houdt de
-installatie van de overkoepelende shell en een melding bij updates open.
-AB#288 vraagt nog om een offline scherm, zichtbare laatste synchronisatie,
-gedrag voor mutaties zonder verbinding en conflictacceptatie bij hervatten.
+De productiebuild van Planner bewaart de statische shell en gebundelde
+bestanden in de serviceworkercache. Een navigatie probeert eerst het netwerk
+en valt bij een verbindingsfout terug op die shell. Een geopende app kan de
+laatst geladen gegevens blijven tonen. Een offline herstart laadt alleen het
+scherm, omdat API-antwoorden, taakgegevens en boekingsgegevens niet
+persistent worden gecachet.
+
+Zonder verbinding pauzeert de browserclient mutaties. Na herstel controleert
+de app de API en leest zij de werkruimte opnieuw voordat schrijven weer
+beschikbaar is. Een boeking waarvan het antwoord is weggevallen kan de
+gebruiker met dezelfde sleutel opnieuw proberen. Er is geen wachtrij voor
+nieuwe offline wijzigingen. De Windows-client houdt zijn eigen lokale modus.
+AB#287 houdt installatie van de overkoepelende shell en een updatemelding open.
 
 ## Windows
 

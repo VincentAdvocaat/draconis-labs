@@ -7,6 +7,10 @@ import { allowScopedAgents, createLocalIdentity, localIdentityHost } from './cor
 import { createAgentCredentials } from './core/agent-credentials.js';
 
 const identityFile = process.env.DRACONIS_LOCAL_IDENTITY_FILE;
+const postgresUrl = process.env.DRACONIS_PLANNER_POSTGRES_URL;
+if (postgresUrl !== undefined && identityFile === undefined) {
+  throw new Error('De lokale PostgreSQL-proef vereist DRACONIS_LOCAL_IDENTITY_FILE.');
+}
 if (identityFile !== undefined && !process.env.DATABASE_PATH) {
   throw new Error('Geef DATABASE_PATH op voor de aparte lokale testdatabase.');
 }
@@ -56,12 +60,16 @@ app.setErrorHandler((error, _request, reply) => {
   });
 });
 
-if (authorize) {
-  const { sqlite } = await import('./core/db.js');
-  await registerPlatformApi(app, allowScopedAgents(authorize, createAgentCredentials(sqlite)));
-} else {
-  await registerPlatformApi(app);
+try {
+  if (authorize) {
+    const { sqlite } = await import('./core/db.js');
+    await registerPlatformApi(app, allowScopedAgents(authorize, createAgentCredentials(sqlite)), 'rest', postgresUrl);
+  } else {
+    await registerPlatformApi(app);
+  }
+  const port = Number(process.env.PORT ?? 3001);
+  await app.listen({ port, host });
+} catch (error) {
+  await app.close();
+  throw error;
 }
-
-const port = Number(process.env.PORT ?? 3001);
-await app.listen({ port, host });

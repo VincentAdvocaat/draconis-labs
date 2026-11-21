@@ -1,15 +1,15 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-import { createAsyncPlannerService, createPlannerService, TaskConflictError, TaskCreationConflictError } from '@draconis/planner-core';
+import { createAsyncPlannerService, createPlannerService, executePlannerCommand, TaskConflictError, TaskCreationConflictError } from '@draconis/planner-core';
 import { createPlannerSnapshotTools, initializePlannerSqlite, createSqlitePlannerStorage } from '@draconis/planner-sqlite';
-import type { Task, TaskListQuery } from '@draconis/shared';
+import { DEFAULT_ZONE_ID, LOCAL_DEMO_POSTCODES, type Availability, type Task, type TaskListQuery } from '@draconis/shared';
 import Database from 'better-sqlite3';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, expect, it } from 'vitest';
-import { createPlannerPostgresWorkspace, createPostgresPlannerStorage, importPlannerPostgresSnapshot, migratePlannerPostgres } from '../src/index.js';
+import { createPostgresBookings, createPostgresPlannerAudit, createPlannerPostgresWorkspace, createPostgresPlannerStorage, importPlannerPostgresSnapshot, migratePlannerPostgres } from '../src/index.js';
 
 const connectionString = process.env.PLANNER_POSTGRES_TEST_URL;
 if (!connectionString || new URL(connectionString).pathname !== '/draconis_planner_test') {
@@ -31,7 +31,7 @@ let ownsSchema = false;
 beforeAll(async () => {
   await admin.query(`CREATE SCHEMA ${schema}`);
   ownsSchema = true;
-  await expect(Promise.all(pools.map(migratePlannerPostgres))).resolves.toEqual([[1, 2], [1, 2]]);
+  await expect(Promise.all(pools.map(migratePlannerPostgres))).resolves.toEqual([[1, 2, 3, 4], [1, 2, 3, 4]]);
 });
 afterAll(async () => {
   try {
@@ -81,14 +81,14 @@ it('upgrades a version-one schema without changing its existing tasks', async ()
   await createPlannerPostgresWorkspace(pools[0], workspace);
   const planner = service(pools[0], workspace);
   const task = await planner.create(recurring, actor);
-  await pools[0].query('DROP TABLE planner_snapshot_imports; DELETE FROM planner_schema_migrations WHERE version = 2');
+  await pools[0].query('DROP TABLE planner_snapshot_imports, local_planner_activity, planner_booking_state; DELETE FROM planner_schema_migrations WHERE version >= 2');
   // A conflicting table causes migration 2 to fail without registering it.
   await pools[0].query('CREATE TABLE planner_snapshot_imports (id integer)');
   await expect(migratePlannerPostgres(pools[0])).rejects.toMatchObject({ code: '42P07' });
   await expect(pools[0].query('SELECT version FROM planner_schema_migrations ORDER BY version'))
     .resolves.toMatchObject({ rows: [{ version: 1 }] });
   await pools[0].query('DROP TABLE planner_snapshot_imports');
-  await expect(migratePlannerPostgres(pools[0])).resolves.toEqual([1, 2]);
+  await expect(migratePlannerPostgres(pools[0])).resolves.toEqual([1, 2, 3, 4]);
   expect(await planner.list({})).toEqual([task]);
 });
 
@@ -277,4 +277,127 @@ it('rejects malformed historical receipt tasks and replays a valid receipt after
   expect(await planner.list({})).toEqual([]);
   expect(await planner.create(input, actor, { ...key, workspaceId })).toEqual(created);
   expect(await planner.list({})).toEqual([]);
+});
+
+const bookingEnv = { ...environment, hash: (input: string) => createHash('sha256').update(input).digest('hex') };
+const bookingDate = '2026-11-21';
+const bookingOrigin = 'https://fixture.example.test';
+const postcode = LOCAL_DEMO_POSTCODES.find(item => item.zoneId === DEFAULT_ZONE_ID)!.postcode;
+
+async function bookingFixture(workspaceId: string) {
+  await createPlannerPostgresWorkspace(pools[0], workspaceId);
+  const [first, second] = pools.map(pool => createPostgresBookings(pool, workspaceId, bookingEnv));
+  const channel = { workspaceId, id: randomUUID(), name: 'Fictief kanaal', siteOrigin: bookingOrigin, active: true };
+  await first.registerChannel(channel);
+  const contact = await first.invoke({
+    workspaceId, type: 'contacts.create', key: randomUUID(), input: { name: 'Bestaande fictieve relatie' },
+  }, actor);
+  expect(contact.ok).toBe(true);
+  if (!contact.ok) throw new Error('Fixture contact failed');
+  const availability = await first.invoke({ workspaceId, type: 'availability.list', date: bookingDate }, actor);
+  if (!availability.ok) throw new Error('Fixture availability failed');
+  const [slot] = availability.value as Availability[];
+  const staff = {
+    workspaceId, type: 'appointments.create', key: randomUUID(),
+    input: { contactId: (contact.value as { id: string }).id, slotId: slot.slot.id },
+  };
+  const visitor = { slotId: slot.slot.id, postcode, key: randomUUID(), contact: { name: 'Fictieve bezoeker' } };
+  return { first, second, channel, slot, staff, visitor };
+}
+
+it('adds bookings to an audit-version-3 database while preserving a task, receipt and audit entry', async () => {
+  const workspaceId = 'booking-upgrade';
+  await pools[0].query('DROP TABLE planner_booking_state; DELETE FROM planner_schema_migrations WHERE version = 4');
+  await createPlannerPostgresWorkspace(pools[0], workspaceId);
+  const audit = createPostgresPlannerAudit(pools[0], workspaceId, environment, 'rest');
+  const identity = { kind: 'user' as const, name: 'Fictieve auditplanner' };
+  const command = { workspaceId, type: 'tasks.create', input: { title: 'Taak voor boekingsupgrade' } };
+  const key = { actorKind: identity.kind, key: 'booking-upgrade-fixture' };
+  const task = await audit.execute({ actor: identity, requestId: randomUUID(), workspaceId, operation: 'tasks.create' },
+    planner => executePlannerCommand(planner, workspaceId, identity, command, key));
+  expect(task.ok).toBe(true);
+  const activity = () => pools[0].query('SELECT * FROM local_planner_activity WHERE workspace_id = $1', [workspaceId]);
+  const before = (await activity()).rows;
+  expect(before).toMatchObject([{ operation: 'tasks.create', status: 201 }]);
+
+  await expect(migratePlannerPostgres(pools[0])).resolves.toEqual([1, 2, 3, 4]);
+  expect(await executePlannerCommand(service(pools[0], workspaceId), workspaceId, identity, command, key)).toEqual(task);
+  const { first, staff } = await bookingFixture(workspaceId);
+  await expect(first.invoke(staff, actor)).resolves.toMatchObject({ ok: true, value: { status: 'planned' } });
+  expect((await activity()).rows).toEqual(before);
+});
+
+it('serializes staff and public writers racing for the last PostgreSQL place', async () => {
+  const workspaceId = 'booking-race';
+  const { first, second, channel, slot, staff, visitor } = await bookingFixture(workspaceId);
+  const outcomes = await whileBothWait(workspaceId, [
+    () => first.invoke(staff, actor),
+    () => second.publicReserve(channel.id, bookingOrigin, visitor),
+  ]);
+  const results = outcomes.map(result => {
+    if (result.status === 'rejected') throw result.reason;
+    return result.value;
+  });
+  expect(results.filter(result => result.ok)).toHaveLength(1);
+  expect(results.find(result => !result.ok)).toMatchObject({ error: { code: 'SLOT_FULL', status: 409 } });
+  const { rows } = await pools[0].query('SELECT state FROM planner_booking_state WHERE workspace_id = $1', [workspaceId]);
+  const state = rows[0].state;
+  expect(state.appointments).toHaveLength(1);
+  expect(state.events).toMatchObject([{ appointmentId: state.appointments[0].id, type: 'planned' }]);
+  const publicWon = state.appointments[0].source === 'public';
+  expect(state.contacts).toHaveLength(publicWon ? 2 : 1);
+  expect(state.publicReceipts).toHaveLength(publicWon ? 1 : 0);
+  if (publicWon) {
+    expect(await second.publicReserve(channel.id, bookingOrigin, visitor)).toEqual(results[1]);
+  } else {
+    expect(await second.invoke(staff, actor)).toEqual(results[0]);
+  }
+  expect(await second.invoke({
+    workspaceId, type: 'slots.capacity', id: slot.slot.id, key: randomUUID(),
+    input: { version: slot.slot.version, capacity: 0 },
+  }, actor)).toMatchObject({ ok: false, error: { code: 'CAPACITY_BELOW_OCCUPANCY' } });
+  expect(await second.invoke({
+    workspaceId, type: 'appointments.status', id: state.appointments[0].id, key: randomUUID(),
+    input: { version: 1, status: 'cancelled' },
+  }, actor)).toMatchObject({ ok: true, value: { status: 'cancelled', version: 2 } });
+  const reopened = await first.publicAvailability(channel.id, bookingOrigin, { postcode, date: bookingDate });
+  expect(reopened).toMatchObject({ ok: true, value: { slots: expect.arrayContaining([{ id: slot.slot.id, remaining: 1, window: expect.any(Object) }]) } });
+});
+
+it('persists a public retry once and discards staged booking data if PostgreSQL aborts', async () => {
+  const workspaceId = 'booking-rollback';
+  const { first, second, channel, visitor } = await bookingFixture(workspaceId);
+  const read = () => pools[0].query('SELECT state FROM planner_booking_state WHERE workspace_id = $1', [workspaceId]);
+  const before = await read();
+  await pools[0].query(`
+    CREATE FUNCTION fail_booking_state() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN
+      IF NEW.state->'appointments' <> OLD.state->'appointments' THEN
+        RAISE EXCEPTION 'fixture booking rollback';
+      END IF;
+      RETURN NEW;
+    END
+    $$;
+    CREATE TRIGGER fail_booking_state AFTER UPDATE ON planner_booking_state
+    FOR EACH ROW EXECUTE FUNCTION fail_booking_state();
+  `);
+  try {
+    await expect(first.publicReserve(channel.id, bookingOrigin, visitor)).resolves.toMatchObject({ ok: false, error: { code: 'INTERNAL_ERROR', status: 500 } });
+    expect((await read()).rows).toEqual(before.rows);
+  } finally {
+    await pools[0].query('DROP TRIGGER fail_booking_state ON planner_booking_state; DROP FUNCTION fail_booking_state()');
+  }
+  expect(await second.publicReserve(channel.id, 'https://other.example.test', visitor)).toMatchObject({
+    ok: false, error: { code: 'ORIGIN_NOT_ALLOWED' },
+  });
+  const [firstResult, retry] = await Promise.all(pools.map(pool =>
+    createPostgresBookings(pool, workspaceId, bookingEnv).publicReserve(channel.id, bookingOrigin, visitor)));
+  expect(firstResult).toMatchObject({ ok: true, value: { status: 'confirmed' } });
+  expect(retry).toEqual(firstResult);
+  const [{ state }] = (await read()).rows;
+  expect(state.contacts).toHaveLength(2);
+  for (const rows of [state.appointments, state.events, state.requests, state.publicReceipts]) expect(rows).toHaveLength(1);
+  expect(await first.publicReserve(channel.id, bookingOrigin, { ...visitor, contact: { name: 'Ander verzoek' } }))
+    .toMatchObject({ ok: false, error: { code: 'IDEMPOTENCY_CONFLICT', status: 409 } });
+  expect((await read()).rows[0].state).toEqual(state);
 });

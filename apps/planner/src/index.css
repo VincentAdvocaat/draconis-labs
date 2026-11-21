@@ -18,3 +18,20 @@ body {
   color: #fff;
   background: #356e56;
 }
+
+.planner-read-filters {
+  border: 0;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.planner-connection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+  padding: .65rem 1rem;
+  background: #fff3d6;
+  color: #30230a;
+}

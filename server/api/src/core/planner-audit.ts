@@ -78,8 +78,12 @@ export function createPlannerAudit(db: Database.Database, client: AuditClient = 
 
 export type PlannerAudit = ReturnType<typeof createPlannerAudit>;
 
+export function parsePlannerActivityFilters(input: unknown) {
+  return filters.parse(input);
+}
+
 export function listPlannerActivity(db: Database.Database, input: unknown) {
-  const filter = filters.parse(input);
+  const filter = parsePlannerActivityFilters(input);
   return db.prepare<Record<string, string | number | null>, Activity>([
     'SELECT occurred_at AS occurredAt, actor_kind AS actorKind, actor_name AS actor,',
     '       client, request_id AS requestId, workspace_id AS workspaceId, operation, target_id AS targetId, status',

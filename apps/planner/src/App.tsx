@@ -326,16 +326,20 @@ function TaskEditor({
   );
 }
 
-export default function App({ client = plannerApi }: { client?: PlannerClient } = {}) {
+export default function App({ client = plannerApi, readOnly = false, refreshVersion = 0 }: { client?: PlannerClient; readOnly?: boolean; refreshVersion?: number } = {}) {
   const [context, setContext] = useState({ client, generation: 0 });
   if (context.client !== client) {
     setContext({ client, generation: context.generation + 1 });
   }
-  return <PlannerWorkspace key={context.generation} client={client} />;
+  return <PlannerWorkspace key={context.generation} client={client} readOnly={readOnly} refreshVersion={refreshVersion} />;
 }
 
-function PlannerWorkspace({ client }: { client: PlannerClient }) {
+function PlannerWorkspace({ client, readOnly, refreshVersion }: { client: PlannerClient; readOnly: boolean; refreshVersion: number }) {
   const activeClient = useRef(client);
+  const readGeneration = useRef(0);
+  const currentRefresh = useRef<(() => Promise<void>) | null>(null);
+  const [loadedVersion, setLoadedVersion] = useState(0);
+  const writesPaused = readOnly || loadedVersion !== refreshVersion;
   const pendingUpdates = useRef(new Set<string>());
   activeClient.current = client;
   const initialUrl = parseFiltersFromUrl(window.location.search);
@@ -365,13 +369,16 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
   );
 
   const refresh = useCallback(async () => {
+    if (currentRefresh.current !== refresh) return;
+    const generation = ++readGeneration.current;
     try {
       setError(null);
       const query = serverFiltered
         ? { ...taskFilter, timezone, page, pageSize: 50 }
         : undefined;
       const result = await client.list(query);
-      if (activeClient.current !== client) return;
+      if (activeClient.current !== client || currentRefresh.current !== refresh || generation !== readGeneration.current) return;
+      setLoadedVersion(refreshVersion);
       if (isPaginatedTasks(result)) {
         setTasks(result.items);
         setTotalTasks(result.total);
@@ -380,19 +387,23 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
         setTotalTasks(result.length);
       }
     } catch (cause) {
-      if (activeClient.current === client) setError(cause instanceof Error ? cause.message : t.loadFailed);
+      if (activeClient.current === client && currentRefresh.current === refresh && generation === readGeneration.current) setError(cause instanceof Error ? cause.message : t.loadFailed);
     } finally {
-      if (activeClient.current === client) setLoading(false);
+      if (activeClient.current === client && currentRefresh.current === refresh && generation === readGeneration.current) setLoading(false);
     }
-  }, [client, page, serverFiltered, taskFilter, timezone, t.loadFailed]);
+  }, [client, page, serverFiltered, taskFilter, timezone, t.loadFailed, refreshVersion]);
+
+  currentRefresh.current = refresh;
 
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => {
-    let cancelled = false;
     setTasks([]); setLoading(true); setPreferences(DEFAULT_PREFERENCES); setEditingTask(null); setConflictTask(null);
+  }, [client]);
+  useEffect(() => {
+    let cancelled = false;
     void client.preferences.get().then(value => { if (!cancelled) setPreferences(value); }).catch(() => undefined);
     return () => { cancelled = true; };
-  }, [client]);
+  }, [client, refreshVersion]);
   useEffect(() => {
     syncUrl(taskFilter, selectedView, page);
   }, [taskFilter, selectedView, page]);
@@ -425,7 +436,7 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
 
   const createTask = async () => {
     const parsed = parseQuickTask(quickTitle, preferences.locale, today, preferences.weekStart);
-    if (!parsed.title) return;
+    if (!parsed.title || writesPaused) return;
     try {
       const task = await client.create(parsed);
       if (activeClient.current !== client) return;
@@ -437,6 +448,7 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
   };
 
   const updateTask = async (id: string, changes: UpdateTaskInput, expectedVersion?: number) => {
+    if (writesPaused) throw new Error(preferences.locale === 'nl' ? 'Opslaan is gepauzeerd.' : 'Saving is paused.');
     const existing = tasks.find((task) => task.id === id);
     if (!existing) return;
     if (pendingUpdates.current.has(id)) {
@@ -452,11 +464,11 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
       const updated = await client.update(id, { ...changes, version: expectedVersion ?? existing.version });
       if (activeClient.current !== client) return updated;
       if (changes.lane === 'done' && existing.lane !== 'done' && existing.recurrence) {
-        await refresh();
+        await currentRefresh.current?.();
         return updated;
       }
       if (changes.position !== undefined || changes.lane !== undefined) {
-        await refresh();
+        await currentRefresh.current?.();
         return updated;
       }
       setTasks((current) => current.map((task) => task.id === id && task.version <= updated.version ? updated : task));
@@ -506,6 +518,7 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
   };
 
   const savePreferences = async (next: UserPreferences) => {
+    if (writesPaused) throw new Error(preferences.locale === 'nl' ? 'Opslaan is gepauzeerd.' : 'Saving is paused.');
     const { locale, timezone, weekStart, defaultView } = next;
     const saved = await client.preferences.update({ locale, timezone, weekStart, defaultView });
     if (activeClient.current !== client) return;
@@ -515,6 +528,7 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
   };
 
   const saveViewList = async (savedViews: SavedView[]) => {
+    if (writesPaused) return false;
     try {
       const saved = await client.preferences.update({ savedViews });
       if (activeClient.current !== client) return false;
@@ -569,6 +583,7 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
           <>
             <input
               className="search"
+              disabled={readOnly}
               value={taskFilter.q ?? ''}
               onChange={(event) => {
                 setTaskFilter((current) => ({ ...current, q: event.target.value || undefined }));
@@ -589,9 +604,10 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
             <h1>{i18n.viewLabel(view)}</h1>
             <p>{t.viewCopy[view]}</p>
           </div>
-          <Button variant="primary" className="page-new-task" onClick={() => quickInput.current?.focus()}>＋ {t.newTask} <kbd>N</kbd></Button>
+          <Button variant="primary" className="page-new-task" disabled={writesPaused} onClick={() => quickInput.current?.focus()}>＋ {t.newTask} <kbd>N</kbd></Button>
         </section>
 
+        <fieldset className="planner-read-filters" disabled={readOnly}>
         <FilterPanel
           filter={taskFilter}
           savedViews={preferences.savedViews}
@@ -602,13 +618,14 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
           onRenameView={(id, name) => saveViewList(preferences.savedViews.map((item) => item.id === id ? { ...item, name } : item))}
           onDeleteView={(id) => saveViewList(preferences.savedViews.filter((item) => item.id !== id))}
         />
+        </fieldset>
 
         {error && <div className="error-banner">{error}<button onClick={() => { setError(null); setConflictTask(null); }}>×</button></div>}
         {conflictTask && (
           <div className="conflict-banner">
             <span>{t.conflict(conflictTask.title)}</span>
             <button type="button" className="secondary-button" onClick={() => {
-              setTasks((current) => current.map((task) => task.id === conflictTask.id ? conflictTask : task));
+              setTasks((current) => current.map((task) => task.id === conflictTask.id && task.version <= conflictTask.version ? conflictTask : task));
               setConflictTask(null);
               setError(null);
             }}>{t.applyServer}</button>
@@ -620,7 +637,7 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
             <div className="quick-add">
               <span>＋</span>
               <input ref={quickInput} value={quickTitle} onChange={(event) => setQuickTitle(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void createTask(); }} placeholder={t.quickAddPlaceholder} />
-              <button onClick={() => void createTask()}>{t.addTask}</button>
+              <button disabled={writesPaused} onClick={() => void createTask()}>{t.addTask}</button>
             </div>
             <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={({ active }) => setActiveTask(tasks.find((task) => task.id === active.id) ?? null)} onDragEnd={handleDragEnd}>
               <div className="workspace">
@@ -686,8 +703,8 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
           <div className="pagination">
             <span>{t.totalTasks(totalTasks)} · {t.page} {page} {t.of} {totalPages}</span>
             <div>
-              <button type="button" className="secondary-button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>←</button>
-              <button type="button" className="secondary-button" disabled={page >= totalPages} onClick={() => setPage((value) => value + 1)}>→</button>
+              <button type="button" className="secondary-button" disabled={readOnly || page <= 1} onClick={() => setPage((value) => value - 1)}>←</button>
+              <button type="button" className="secondary-button" disabled={readOnly || page >= totalPages} onClick={() => setPage((value) => value + 1)}>→</button>
             </div>
           </div>
         )}
@@ -719,6 +736,7 @@ function PlannerWorkspace({ client }: { client: PlannerClient }) {
             }, draft.version);
           }}
           onDelete={async (task) => {
+            if (writesPaused) throw new Error(preferences.locale === 'nl' ? 'Opslaan is gepauzeerd.' : 'Saving is paused.');
             await client.remove(task.id);
             if (activeClient.current !== client) return;
             setTasks((current) => current.filter(({ id }) => id !== task.id));

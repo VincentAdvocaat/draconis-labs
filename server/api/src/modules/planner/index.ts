@@ -1,3 +1,4 @@
+import type { PostgresPlannerAudit } from '@draconis/planner-postgres';
 import type { ApiModule } from '../../core/module.js';
 import { identifyActor } from '../../core/auth.js';
 import { createPlannerRoutes } from './routes.js';
@@ -22,12 +23,12 @@ export const plannerWorkspaceModule: ApiModule = {
   register: createWorkspacePlannerRoutes(plannerService, LOCAL_WORKSPACE_ID, identifyActor),
 };
 
-export function protectedPlannerWorkspaceModule(authorize: AuthorizePlanner, client: AuditClient): ApiModule {
+export function protectedPlannerWorkspaceModule(authorize: AuthorizePlanner, client: AuditClient, postgres?: PostgresPlannerAudit): ApiModule {
   return {
     ...plannerWorkspaceModule,
     description: 'Authenticated local workspace task contract',
     register: createWorkspacePlannerRoutes(plannerService, LOCAL_WORKSPACE_ID, identifyActor, {
-      authorize, audit: createPlannerAudit(sqlite, client),
+      authorize, ...(postgres ? { postgres } : { audit: createPlannerAudit(sqlite, client) }),
     }),
   };
 }

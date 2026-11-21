@@ -4,6 +4,7 @@ import type { Actor } from '../../core/auth.js';
 import type { AuthorizePlanner } from '../../core/local-identity.js';
 import { agentScopeFor } from '../../core/agent-credentials.js';
 import type { PlannerAudit } from '../../core/planner-audit.js';
+import type { PostgresPlannerAudit } from '@draconis/planner-postgres';
 import { createTaskSchema, workspaceUpdateTaskSchema, updatePreferencesSchema, historyQuerySchema, type PlannerReply } from '@draconis/shared';
 import { z } from 'zod';
 import { taskResponseSchema, paginatedTaskListSchema } from './schemas.js';
@@ -32,7 +33,9 @@ export function createWorkspacePlannerRoutes(
   service: PlannerService,
   workspaceId: string,
   identifyActor: (request: FastifyRequest) => Actor,
-  protection?: { authorize: AuthorizePlanner; audit: PlannerAudit },
+  protection?: { authorize: AuthorizePlanner } & (
+    { audit: PlannerAudit; postgres?: never } | { audit?: never; postgres: PostgresPlannerAudit }
+  ),
 ) {
   const authorize = protection?.authorize;
   return async (app: FastifyInstance) => {
@@ -75,7 +78,9 @@ export function createWorkspacePlannerRoutes(
           const access = authorize(request, workspaceId, type);
           if (!access.ok) {
             if (access.error.status === 403 && access.actor) {
-              protection?.audit.denied({ actor: access.actor, requestId: request.id, workspaceId, operation: type, targetId: id });
+              const event = { actor: access.actor, requestId: request.id, workspaceId, operation: type, targetId: id };
+              if (protection?.postgres) await protection.postgres.denied(event);
+              else protection?.audit.denied(event);
             }
             return reply.code(access.error.status).send({ ok: false, error: access.error });
           }
@@ -104,14 +109,14 @@ export function createWorkspacePlannerRoutes(
           required: pathParameters,
         },
         response: { [method === 'POST' ? 201 : 200]: success(result), 400: errorRef, 401: errorRef, ...(authorize ? { 403: errorRef } : {}), 404: errorRef, 409: errorRef, 500: errorRef, 503: errorRef },
-      }, handler: (request, reply) => {
+      }, handler: async (request, reply) => {
         const params = request.params as { workspaceId: string; id?: string };
         const query = { ...request.query as Record<string, unknown> };
         let outcome: PlannerReply;
         try {
           const actor = authorize ? request.getDecorator<Actor>('plannerActor') : identifyActor(request);
           if (type === 'tasks.list' && ('pagination' in query || 'cursor' in query)) {
-            outcome = listWorkspaceTasksByCursor(service, workspaceId, params.workspaceId, query);
+            outcome = await listWorkspaceTasksByCursor(protection?.postgres?.service ?? service, workspaceId, params.workspaceId, query);
           } else {
             for (const key of ['future', 'overdue']) {
               if (query[key] === 'true') query[key] = true;
@@ -119,12 +124,18 @@ export function createWorkspacePlannerRoutes(
             }
             const key = idempotencyKeySchema.safeParse(type === 'tasks.create' ? request.headers['idempotency-key'] : undefined);
             if (!key.success) return reply.code(400).send({ ok: false, error: { code: 'INVALID_INPUT', status: 400, message: 'Ongeldige Idempotency-Key' } });
-            const run = () => executePlannerCommand(service, workspaceId, actor, {
-              workspaceId: params.workspaceId, type, id: params.id, query, input: request.body,
-            }, key.data === undefined ? undefined : { key: key.data, actorKind: actor.kind });
-            outcome = protection && method !== 'GET'
-              ? protection.audit.execute({ actor, requestId: request.id, workspaceId, operation: type, targetId: params.id }, run)
-              : run();
+            const command = { workspaceId: params.workspaceId, type, id: params.id, query, input: request.body };
+            const receipt = key.data === undefined ? undefined : { key: key.data, actorKind: actor.kind };
+            const event = { actor, requestId: request.id, workspaceId, operation: type, targetId: params.id };
+            if (protection?.postgres) {
+              const postgres = protection.postgres;
+              outcome = method === 'GET'
+                ? await executePlannerCommand(postgres.service, workspaceId, actor, command, receipt)
+                : await postgres.execute(event, scoped => executePlannerCommand(scoped, workspaceId, actor, command, receipt));
+            } else {
+              const run = () => executePlannerCommand(service, workspaceId, actor, command, receipt);
+              outcome = protection && method !== 'GET' ? protection.audit.execute(event, run) : run();
+            }
           }
         } catch (error) {
           const unauthorized = typeof error === 'object' && error !== null && 'statusCode' in error && error.statusCode === 401;
