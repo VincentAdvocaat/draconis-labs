@@ -16,7 +16,7 @@ De Azure DevOps Git-repo onder Repos is **uitgeschakeld**. Clone en push altijd 
 ## Wat is geconfigureerd
 
 - GitHub repo: `VincentAdvocaat/draconis-labs` (public)
-- Gedeelde GitHub service connection `VincentAdvocaat` (vanuit RecipeLibrary)
+- Gedeelde GitHub App-serviceverbinding `VincentAdvocaat` (vanuit RecipeLibrary)
 - Pipeline `VincentAdvocaat.draconis-labs` gekoppeld aan GitHub `main`
 - Azure DevOps Git-repo uitgeschakeld
 - GitHub Boards-koppeling: eenmalig in ADO autoriseren indien nog niet gedaan
@@ -50,7 +50,7 @@ Azure DevOps koppelt commits en pull requests automatisch aan het work item.
 
 1. `./scripts/start-development.ps1 -Branch feature/<topic>`
 2. Werk in `.worktrees/feature/<topic>`
-3. `./scripts/new-pr.ps1` (opent PR naar `main`; CI draait op de PR)
+3. `./scripts/new-pr.ps1` opent de PR naar `main`. Controleer de Azure-run voor de PR.
 4. Merge na groene build (squash merge aanbevolen)
 5. `./scripts/stop-development.ps1 -Branch feature/<topic>`
 
@@ -76,6 +76,23 @@ publiceert en noteer de exacte naam en app-id voor branchbeveiliging.
 bouwde de merge-ref van [PR #65](https://github.com/VincentAdvocaat/draconis-labs/pull/65)
 succesvol met reason `manual`. De merge-SHA had geen Check Run of commitstatus.
 GitHub vereiste op `main` nog geen statuschecks bij de controle op 21 november 2026.
+
+Bij de opening van [PR #66](https://github.com/VincentAdvocaat/draconis-labs/pull/66)
+was pipeline #2 actief en stond terugmelding van buildstatus aan. De pipeline
+gebruikt een installatietoken, maar Azure Pipelines ontbrak onder
+[GitHub Apps voor deze repository](https://github.com/VincentAdvocaat/draconis-labs/settings/installations).
+Voor head `841d9e2b26a2e4617885fc2c92fe58a48a45706f` en merge-SHA
+`eb58b7fb00886d1d8b468f3ef80c1d71d1d48df5` was er geen Azure-run voor de PR of
+GitHub-check. De app is op het account geïnstalleerd. De GitHub-eigenaar kan
+`draconis-labs` aan de repositoryselectie van die installatie toevoegen en
+daarna een nieuwe PR-event gebruiken om de koppeling te toetsen.
+[Microsoft-documentatie over GitHub-triggers](https://learn.microsoft.com/en-us/azure/devops/pipelines/repos/github?view=azure-devops#troubleshoot-triggers)
+
+Maak de check pas verplicht nadat een automatisch gestarte run de exacte naam en
+afzender heeft gepubliceerd. Een verkeerd checkcontext blokkeert merges naar
+`main` doordat GitHub op een check wacht die nooit verschijnt. Verifieer na een
+goedgekeurde wijziging van de branchbeveiliging dat een PR met een check die nog
+loopt niet kan mergen en dat dezelfde kandidaat na succes wel aan die eis voldoet.
 
 ## Handige links
 
