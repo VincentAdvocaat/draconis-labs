@@ -12,6 +12,7 @@ function main() {
     allowPositionals: true,
     options: {
       id: { type: 'string' },
+      'principal-id': { type: 'string' },
       name: { type: 'string' },
       scope: { type: 'string', multiple: true },
       expires: { type: 'string' },
@@ -30,10 +31,13 @@ function main() {
       case 'revoke':
         if (!values.id) throw new Error('Geef --id op.');
         return store.revoke(values.id);
+      case 'revoke-principal':
+        if (!values['principal-id']) throw new Error('Geef --principal-id op.');
+        return store.revokePrincipal(values['principal-id']);
       case 'list':
         return store.list();
       default:
-        throw new Error('Gebruik create, rotate, revoke of list.');
+        throw new Error('Gebruik create, rotate, revoke, revoke-principal of list.');
     }
   } finally {
     db.close();

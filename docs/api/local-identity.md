@@ -89,6 +89,14 @@ expiry. Granting no overlap makes the previous token expire immediately.
 Revocation takes effect on the next request. The timestamp `lastUsedAt`
 records the last request authorized with that credential, in Unix milliseconds.
 
+For emergency revocation, use the `principalId` from `list`. This permanently
+revokes all credentials for that agent, including keys still valid during a
+rotation overlap. The server applies it on the next REST or MCP request.
+
+~~~powershell
+corepack pnpm --filter @draconis/api planner:agent revoke-principal --principal-id $principalId
+~~~
+
 ## Activity log
 
 The protected profile records dispatched Planner mutations and authenticated

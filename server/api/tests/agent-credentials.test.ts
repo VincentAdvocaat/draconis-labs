@@ -161,4 +161,23 @@ describe('local Planner agent credentials', () => {
       time = start;
     }
   });
+
+  it('revokes all overlapping credentials for one agent without restarting the API', async () => {
+    const first = store.create({ name: 'emergency-agent', scopes: ['tasks:read'] }, expiry);
+    const next = store.rotate(first.credential.id, expiry, 30);
+    const unaffected = store.create({ name: 'separate-agent', scopes: ['tasks:read'] }, expiry);
+    const read = (token: string) => app.inject({ url: base + '/tasks', headers: asBearer(token) });
+    for (const token of [first.token, next.token, unaffected.token]) {
+      expect((await read(token)).statusCode).toBe(200);
+    }
+
+    const { principalId } = first.credential;
+    expect(store.revokePrincipal(principalId)).toEqual({ principalId, revokedCredentials: 2 });
+    expect(store.revokePrincipal(principalId)).toEqual({ principalId, revokedCredentials: 0 });
+    expect(() => store.revokePrincipal(first.credential.id)).toThrow('Onbekende agent');
+    expect((await read(first.token)).statusCode).toBe(401);
+    expect((await read(next.token)).statusCode).toBe(401);
+    expect((await read(unaffected.token)).statusCode).toBe(200);
+    expect(() => store.rotate(next.credential.id, expiry, 30)).toThrow();
+  });
 });

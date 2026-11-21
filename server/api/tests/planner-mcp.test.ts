@@ -116,7 +116,9 @@ describe('Planner MCP stdio adapter', () => {
         input: { title: 'Forbidden synthetic task' }, idempotencyKey: 'mcp-denied',
       } });
       expect(denied).toMatchObject({ isError: true, structuredContent: { error: { code: 'FORBIDDEN', status: 403 } } });
-      credentials.revoke(credential.id);
+      expect(credentials.revokePrincipal(credential.principalId)).toEqual({
+        principalId: credential.principalId, revokedCredentials: 1,
+      });
       const revoked = await client.callTool({ name: 'list_tasks', arguments: {} });
       expect(revoked).toMatchObject({ isError: true, structuredContent: { error: { code: 'UNAUTHORIZED', status: 401 } } });
       await expect(client.readResource({ uri: plannerSchemaUri })).rejects.toThrow();

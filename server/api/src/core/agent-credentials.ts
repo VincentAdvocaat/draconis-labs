@@ -135,10 +135,20 @@ export function createAgentCredentials(db: Database.Database, clock = Date.now) 
     return { status: 200, name: credential.name } as const;
   });
 
+  const revokePrincipal = db.transaction((principalId: string) => {
+    const principal = db.prepare('SELECT id FROM local_agent_principals WHERE id = ?').get(principalId);
+    if (!principal) throw new Error('Onbekende agent.');
+    const result = db.prepare(
+      'UPDATE local_agent_credentials SET revoked_at = ? WHERE principal_id = ? AND revoked_at IS NULL',
+    ).run(clock(), principalId);
+    return { principalId, revokedCredentials: result.changes };
+  });
+
   return {
     create: create.immediate,
     rotate: rotate.immediate,
     authenticate: authenticate.immediate,
+    revokePrincipal: revokePrincipal.immediate,
     revoke(id: string) {
       const result = db.prepare('UPDATE local_agent_credentials SET revoked_at = COALESCE(revoked_at, ?) WHERE id = ?').run(clock(), id);
       if (!result.changes) throw new Error('Onbekende credential.');
