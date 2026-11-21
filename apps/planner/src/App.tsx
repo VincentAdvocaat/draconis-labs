@@ -337,6 +337,7 @@ export default function App({ client = plannerApi, readOnly = false, refreshVers
 function PlannerWorkspace({ client, readOnly, refreshVersion }: { client: PlannerClient; readOnly: boolean; refreshVersion: number }) {
   const activeClient = useRef(client);
   const readGeneration = useRef(0);
+  const currentRefresh = useRef<(() => Promise<void>) | null>(null);
   const [loadedVersion, setLoadedVersion] = useState(0);
   const writesPaused = readOnly || loadedVersion !== refreshVersion;
   const pendingUpdates = useRef(new Set<string>());
@@ -368,6 +369,7 @@ function PlannerWorkspace({ client, readOnly, refreshVersion }: { client: Planne
   );
 
   const refresh = useCallback(async () => {
+    if (currentRefresh.current !== refresh) return;
     const generation = ++readGeneration.current;
     try {
       setError(null);
@@ -375,7 +377,7 @@ function PlannerWorkspace({ client, readOnly, refreshVersion }: { client: Planne
         ? { ...taskFilter, timezone, page, pageSize: 50 }
         : undefined;
       const result = await client.list(query);
-      if (activeClient.current !== client || generation !== readGeneration.current) return;
+      if (activeClient.current !== client || currentRefresh.current !== refresh || generation !== readGeneration.current) return;
       setLoadedVersion(refreshVersion);
       if (isPaginatedTasks(result)) {
         setTasks(result.items);
@@ -385,11 +387,13 @@ function PlannerWorkspace({ client, readOnly, refreshVersion }: { client: Planne
         setTotalTasks(result.length);
       }
     } catch (cause) {
-      if (activeClient.current === client && generation === readGeneration.current) setError(cause instanceof Error ? cause.message : t.loadFailed);
+      if (activeClient.current === client && currentRefresh.current === refresh && generation === readGeneration.current) setError(cause instanceof Error ? cause.message : t.loadFailed);
     } finally {
-      if (activeClient.current === client && generation === readGeneration.current) setLoading(false);
+      if (activeClient.current === client && currentRefresh.current === refresh && generation === readGeneration.current) setLoading(false);
     }
   }, [client, page, serverFiltered, taskFilter, timezone, t.loadFailed, refreshVersion]);
+
+  currentRefresh.current = refresh;
 
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => {
@@ -460,11 +464,11 @@ function PlannerWorkspace({ client, readOnly, refreshVersion }: { client: Planne
       const updated = await client.update(id, { ...changes, version: expectedVersion ?? existing.version });
       if (activeClient.current !== client) return updated;
       if (changes.lane === 'done' && existing.lane !== 'done' && existing.recurrence) {
-        await refresh();
+        await currentRefresh.current?.();
         return updated;
       }
       if (changes.position !== undefined || changes.lane !== undefined) {
-        await refresh();
+        await currentRefresh.current?.();
         return updated;
       }
       setTasks((current) => current.map((task) => task.id === id && task.version <= updated.version ? updated : task));
