@@ -10,8 +10,14 @@ const paths = await packager({
   platform: 'win32', arch: 'x64', overwrite: true, asar: false,
 });
 if (process.argv.includes('--installer')) {
+  const packageId = process.env.PLANNER_PROBE_INSTALLER_ID;
+  if (packageId && !/^DraconisPlannerProbeAcceptance[A-Za-z0-9]+$/.test(packageId)) {
+    throw new Error('An isolated installer ID must start with DraconisPlannerProbeAcceptance.');
+  }
   await installer.createWindowsInstaller({
-    appDirectory: paths[0], outputDirectory: resolve('dist/installer'),
+    appDirectory: paths[0],
+    outputDirectory: resolve(process.env.PLANNER_PROBE_INSTALLER_DIR || 'dist/installer'),
+    ...(packageId ? { name: packageId } : {}),
     authors: 'Draconis Labs', exe: 'DraconisPlannerProbe.exe',
     setupExe: 'DraconisPlannerProbe-Setup.exe', noMsi: true, noDelta: true,
   });
