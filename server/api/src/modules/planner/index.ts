@@ -11,6 +11,7 @@ export const plannerModule: ApiModule = {
 };
 
 import { LOCAL_WORKSPACE_ID } from '@draconis/shared';
+import type { AuthorizePlanner } from '../../core/local-identity.js';
 import { createWorkspacePlannerRoutes } from './workspace-routes.js';
 
 export const plannerWorkspaceModule: ApiModule = {
@@ -18,3 +19,11 @@ export const plannerWorkspaceModule: ApiModule = {
   description: 'Explicit local workspace task contract',
   register: createWorkspacePlannerRoutes(plannerService, LOCAL_WORKSPACE_ID, identifyActor),
 };
+
+export function protectedPlannerWorkspaceModule(authorize: AuthorizePlanner): ApiModule {
+  return {
+    ...plannerWorkspaceModule,
+    description: 'Authenticated local workspace task contract',
+    register: createWorkspacePlannerRoutes(plannerService, LOCAL_WORKSPACE_ID, identifyActor, authorize),
+  };
+}

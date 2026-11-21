@@ -80,6 +80,8 @@ and `/api/planner` create a new task on each successful request.
 
 ## Contract checks
 
+For the local identity test profile, see [Planner with test tokens](local-identity.md).
+
 CI diffs the committed OpenAPI snapshot (`server/api/openapi/v1.snapshot.json`)
 against the generated spec from `buildApp()`. The test fails when the snapshot
 is missing or out of date. Breaking changes require a major version bump.

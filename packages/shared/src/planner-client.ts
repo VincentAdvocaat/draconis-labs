@@ -30,12 +30,19 @@ export const replyEnvelopeSchema = z.discriminatedUnion('ok', [
     message: z.string(), task: z.unknown().optional(),
   }) }),
 ]);
-export type PlannerTransport = (command: PlannerCommand) => Promise<PlannerReply>;
+const forbiddenEnvelopeSchema = z.object({
+  ok: z.literal(false),
+  error: z.object({ code: z.literal('FORBIDDEN'), status: z.literal(403), message: z.string() }),
+});
+const plannerHttpEnvelopeSchema = z.union([replyEnvelopeSchema, forbiddenEnvelopeSchema]);
+type PlannerForbidden = z.infer<typeof forbiddenEnvelopeSchema>['error'];
+type PlannerTransportReply = PlannerReply | z.infer<typeof forbiddenEnvelopeSchema>;
+export type PlannerTransport = (command: PlannerCommand) => Promise<PlannerTransportReply>;
 
 export class PlannerClientError extends Error {
-  readonly code: PlannerErrorCode;
+  readonly code: PlannerErrorCode | 'FORBIDDEN';
   readonly status: number;
-  constructor(error: PlannerError) {
+  constructor(error: PlannerError | PlannerForbidden) {
     super(error.message); this.name = 'PlannerClientError';
     this.code = error.code; this.status = error.status;
   }
@@ -95,11 +102,11 @@ export function createPlannerHttpTransport(baseUrl = '', fetcher: typeof fetch =
         method, ...(input === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }),
       });
       const raw: unknown = await response.json();
-      const decoded = replyEnvelopeSchema.safeParse(raw);
+      const decoded = plannerHttpEnvelopeSchema.safeParse(raw);
       if (!decoded.success || response.ok !== decoded.data.ok || (decoded.data.ok && !Object.hasOwn(raw as object, 'value')) || (!decoded.data.ok && response.status !== decoded.data.error.status)) {
         throw new Error('Invalid Planner response');
       }
-      return decoded.data as PlannerReply;
+      return decoded.data as PlannerTransportReply;
     } catch { return { ok: false, error: { code: 'UNAVAILABLE', status: 503, message: 'Planner is niet bereikbaar. Probeer opnieuw.' } }; }
   };
 }
