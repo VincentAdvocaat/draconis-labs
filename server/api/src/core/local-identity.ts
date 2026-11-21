@@ -42,8 +42,10 @@ const readBearer = (request: FastifyRequest) => /^Bearer ([^\s,]+)$/i.exec(reque
 
 export function allowScopedAgents(authorizeUser: AuthorizePlanner, credentials: AgentCredentials): AuthorizePlanner {
   return (request, workspaceId, operation) => {
+    const userAccess = authorizeUser(request, workspaceId, operation);
+    if (userAccess.ok || userAccess.error.status !== 401) return userAccess;
     const token = readBearer(request);
-    if (!token || !isAgentCredential(token)) return authorizeUser(request, workspaceId, operation);
+    if (!token || !isAgentCredential(token)) return userAccess;
     const access = credentials.authenticate(token, workspaceId, operation);
     if (access.status === 401) return unauthorized;
     if (access.status === 403) return forbidden;

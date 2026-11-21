@@ -13,14 +13,21 @@ const base = '/api/v1/workspaces/local';
 const start = Date.parse('2026-04-02T12:00:00Z');
 const expiry = '2026-04-02T13:00:00Z';
 const ownerToken = 'fake-owner-test-token';
+const prefixedSessions = [
+  { userId: 'fixture-owner', token: 'dla_' + 'a'.repeat(43) },
+  { userId: 'fixture-viewer', token: 'dla_' + 'b'.repeat(43) },
+  { userId: 'fixture-outsider', token: 'dla_' + 'c'.repeat(43) },
+];
 const identity = createLocalIdentity({
   ownerId: 'fixture-owner',
-  members: [],
+  members: [{ userId: 'fixture-viewer', role: 'viewer' }],
   sessions: [{
     userId: 'fixture-owner',
     tokenHash: createHash('sha256').update(ownerToken).digest('hex'),
     expiresAt: expiry,
-  }],
+  }, ...prefixedSessions.map(({ userId, token }) => ({
+    userId, tokenHash: createHash('sha256').update(token).digest('hex'), expiresAt: expiry,
+  }))],
 }, () => start);
 
 describe('local Planner agent credentials', () => {
@@ -79,6 +86,33 @@ describe('local Planner agent credentials', () => {
     expect(row).toEqual({ token_hash: createHash('sha256').update(token).digest('hex') });
     expect((await app.inject({ url: base + '/tasks', headers: asBearer('legacy-key') })).statusCode).toBe(401);
     expect((await app.inject({ url: base + '/tasks', headers: asBearer(ownerToken) })).statusCode).toBe(200);
+  });
+
+  it('preserves configured user sessions and permissions when their tokens have the agent prefix', async () => {
+    for (const { userId, token } of prefixedSessions) {
+      const headers = asBearer(token);
+      const read = await app.inject({ url: base + '/tasks', headers });
+      expect(read.statusCode).toBe(userId === 'fixture-outsider' ? 403 : 200);
+      if (read.statusCode === 403) {
+        expect(read.json()).toMatchObject({ ok: false, error: { code: 'FORBIDDEN', status: 403 } });
+      }
+      const created = await app.inject({
+        method: 'POST', url: base + '/tasks', headers, payload: { title: 'Prefixed user session fixture' },
+      });
+      if (userId === 'fixture-owner') {
+        expect(created.statusCode).toBe(201);
+        expect(created.json().value.createdBy).toBe(userId);
+        expect((await app.inject({
+          method: 'DELETE', url: base + '/tasks/' + created.json().value.id, headers,
+        })).statusCode).toBe(200);
+      } else {
+        expect(created.statusCode).toBe(403);
+        expect(created.json()).toMatchObject({ ok: false, error: { code: 'FORBIDDEN', status: 403 } });
+      }
+      const otherWorkspace = await app.inject({ url: '/api/v1/workspaces/other/tasks', headers });
+      expect(otherWorkspace.statusCode).toBe(403);
+      expect(otherWorkspace.json()).toMatchObject({ ok: false, error: { code: 'FORBIDDEN', status: 403 } });
+    }
   });
 
   it('rotates a key with bounded overlap and preserves actor identity for task creation retries', async () => {
