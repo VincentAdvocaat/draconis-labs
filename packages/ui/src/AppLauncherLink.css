@@ -1,0 +1,20 @@
+.dr-app-launcher {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  gap: .4rem;
+  min-height: 44px;
+  padding: .45rem .7rem;
+  border-radius: 7px;
+  color: #24503b;
+  background: #e4eee8;
+  font-weight: 650;
+  text-underline-offset: .15em;
+}
+
+.dr-app-launcher:hover { background: #d1e4d8; }
+
+.dr-app-launcher:focus-visible {
+  outline: 3px solid #2b6249;
+  outline-offset: 3px;
+}

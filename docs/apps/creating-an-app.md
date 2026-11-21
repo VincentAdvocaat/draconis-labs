@@ -9,4 +9,6 @@
 
 The [local app catalog](lokale-appcatalogus.md) reads these registrations on startup.
 
+Set the launcher origin as described in [local navigation](lokale-navigatie.md) if the app participates in the local launcher.
+
 The template intentionally has **no** Planner dependencies.

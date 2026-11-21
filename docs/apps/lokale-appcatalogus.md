@@ -61,3 +61,5 @@ corepack pnpm --filter @draconis/home test
 De tests lezen de registraties uit de checkout, draaien geïsoleerde
 loopbackservers en controleren filtering, het startadres, de status en het
 normale HTTP-pad.
+
+Stel de [gedeelde Apps-link](lokale-navigatie.md) in om vanuit Planner of CMS terug te keren.
