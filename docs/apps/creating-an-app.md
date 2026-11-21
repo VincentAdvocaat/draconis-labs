@@ -7,6 +7,8 @@
 5. Request review from the owner named in the manifest when opening a pull request for a registration change.
 6. Scaffold an API module via `server/api/templates/module/` if the app needs backend routes. The pnpm workspace includes `apps/*`.
 
-The manifests provide registration metadata for the Homescreen catalog when it lands.
+The [local app catalog](lokale-appcatalogus.md) reads these registrations on startup.
+
+Set the launcher origin as described in [local navigation](lokale-navigatie.md) if the app participates in the local launcher.
 
 The template intentionally has **no** Planner dependencies.

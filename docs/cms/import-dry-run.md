@@ -42,8 +42,32 @@ Het rapport vermeldt de SHA-256 van de bronmanifestbytes, een stabiel doel-ID pe
 
 Exitcode 0 geeft een volledig voorstel. Exitcode 1 geeft een JSON-rapport met foutcodes en paden, bijvoorbeeld bij een onbekend veld, dubbele route, ontbrekend bestand of verwijzing over een websitegrens. Exitcode 2 geeft een gebruiksfout. De proef controleert alleen de genoemde assetbestanden.
 
-De vervolgstap voor CMS07 en M6 is een afzonderlijke idempotente import met conflictafhandeling, renderervergelijking en rollback. Dit fixtureschema bevat gewone tekstpagina’s met optioneel één cover.
+## Import uitvoeren
+
+Gebruik het bestaande bronvoorbeeld hierboven. Kies een nog ongebruikte doelmap direct onder de tijdelijke systeemmap. De CLI accepteert alleen het vaste fictieve schema en twee fictieve websites.
 
 ```powershell
-corepack pnpm --filter @draconis/api exec vitest run tests/cms-import-dry-run.test.ts
+$draconisImportTarget = Join-Path (Resolve-Path ([IO.Path]::GetTempPath())) "draconis-cms-import-target-$([guid]::NewGuid())"
+corepack pnpm --filter @draconis/api exec tsx scripts/cms-import.ts apply --source $draconisImportFixture --target $draconisImportTarget
+corepack pnpm --filter @draconis/api exec tsx scripts/cms-import.ts apply --source $draconisImportFixture --target $draconisImportTarget
+```
+
+De eerste opdracht meldt `applied`. De tweede meldt `unchanged` en geeft dezelfde pagina-, revisie- en media-ID's terug. De import gebruikt de pagina-ID uit de dry-run en legt elk bronmedia-ID vast met de nieuwe asset-ID binnen dezelfde website. Bewaar `source-values.json` voor de oorspronkelijke veldversies en voor het verschil tussen afwezig en bewust leeg. De NL-doelpagina gebruikt een lege SEO-beschrijving als het bronveld ontbreekt, volgens het bestaande paginaschema. EN bewaart dat geval als `null`. Revisies starten op versie 1 in het doel.
+
+De CLI rapporteert een gewijzigde bronfingerprint als `source_changed`. Bewerkte of verdwenen concepten en gewijzigde media verschijnen als doelconflicten, met website en bron-ID. Een draaiend doel of een bestaande map zonder geldig importbewijs wordt afgewezen. Stop de proefserver voordat je dezelfde bron opnieuw toepast. Bij een fout tijdens de eerste import worden de twee nieuwe opslagmappen opgeruimd. De CLI maakt de import pas bruikbaar via `serve` zodra beide websites zijn geschreven en `import.json` is vastgelegd. Een harde processtop kan tijdelijke opslag achterlaten. Zo'n doelmap geldt als onvoltooid. Gebruik dan een nieuwe doelmap.
+
+```powershell
+corepack pnpm --filter @draconis/api exec tsx scripts/cms-import.ts serve --target $draconisImportTarget --port 3097
+```
+
+Deze proefserver bindt alleen aan `127.0.0.1`. Lees het websitegebonden token uit `local-access.json` voor de CMS-API. Het rapport bevat de ID's voor de NL- en EN-preview onder `/api/v1/cms/websites/<website>/documents/<pageId>`. Gebruik respectievelijk `/previews/<nlRevisionId>` en `/locales/en/previews/<enRevisionId>`. De import maakt concepten. Beeldrechten starten op `unknown` en de gewone publicatiecontrole blijft van toepassing. Een onvolledige EN-tekst blijft een concept totdat de redacteur aan de bestaande preview- en publicatiecriteria voldoet.
+
+De tests vergelijken de NL- en EN-HTML met fictieve bronverwachtingen en controleren routes, SEO, tekstescaping, alt-tekst en pixels na verwerking. Ze publiceren daarna expliciet via de bestaande snapshotroute. De NL- en EN-pagina's blijven binnen hun website en elke publicatie bevat haar eigen mediabytes.
+
+## Aansluiting van bestaande templates
+
+[Onderzoek en hergebruik](onderzoek.md) inventariseert de tekstbindings, talen en afzonderlijke collecties voor werk, reizen en Nu. De [gesaneerde contactfixture](contact-template-proef.md) bewijst 27 vaste bindings op één bevroren template. Voor een bestaande website zijn nog een bevestigde broncommit, de geselecteerde routes en templates, rollen, mediabronnen en expliciete veldmapping nodig. Het fictieve `text-page`-schema dekt gewone tekstpagina's met eventueel één cover. Een echte renderer- en routevergelijking, rechtencontrole en omschakelproef horen bij die geselecteerde site.
+
+```powershell
+corepack pnpm --filter @draconis/api exec vitest run tests/cms-import-dry-run.test.ts tests/cms-import-apply.test.ts
 ```
