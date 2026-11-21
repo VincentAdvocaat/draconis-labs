@@ -1,6 +1,7 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Connect, type Plugin } from 'vite';
 import { createLocalCatalog, loadManifests } from './server/catalog.js';
+import { bundleBudget } from './server/bundle-budget.js';
 import { catalogPath } from './src/catalog.js';
 
 const loopback = { host: '127.0.0.1', port: 5182, strictPort: true, cors: false } as const;
@@ -41,7 +42,7 @@ function localCatalog(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), localCatalog()],
+  plugins: [react(), localCatalog(), bundleBudget()],
   server: loopback,
   preview: loopback,
 });
