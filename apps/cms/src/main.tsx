@@ -292,6 +292,41 @@ function App() {
       const list = await request<SitePlan>('/site-plan'); if (current()) setOverview(list);
     });
   }
+  const pageActionsDisabled = busy || dirty || documentDirty || englishDirty || sharedDirty || contactDirty;
+  function setPageArchived(pageId: string, expectedVersion: number, archived: boolean) {
+    if (pageActionsDisabled) return;
+    void perform(async (current) => {
+      try {
+        await request<DocumentDto>(`/documents/${pageId}/archive`, {
+          method: 'PUT', body: JSON.stringify({ expectedVersion, archived }),
+        });
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 409 && current()) {
+          invalidateSiteChoice();
+          const list = await request<SitePlan>('/site-plan');
+          if (current()) setOverview(list);
+        }
+        throw err;
+      }
+      if (!current()) return;
+      invalidateSiteChoice();
+      setSelectedLocales([]);
+      if (selectedDocument?.pageId === pageId) {
+        setSelectedDocument(null);
+        setDocumentDraft(null);
+        setDocumentConflict(null);
+        setEnglish(null);
+        setEnglishDraft(null);
+        setEnglishLatest(null);
+        setEnglishConfirmedStructure('');
+        setPreview('');
+        resetRights();
+      }
+      setStatus(message(archived ? 'archived' : 'restored'));
+      const list = await request<SitePlan>('/site-plan');
+      if (current()) setOverview(list);
+    });
+  }
   function saveDocument() {
     if (busy || !selectedDocument || !documentDraft) return;
     void perform(async (current) => {
@@ -464,7 +499,14 @@ function App() {
     {page?.pagesEnabled && <section><h2>{dc.pages}</h2>
       <button disabled={busy} onClick={refreshOverview}>{dc.refresh}</button>
       {overview && <ul>{overview.pages.map((item) => <li key={item.pageId}>{item.title} · {item.file} · v{item.version}{' '}
-        <button disabled={busy || dirty || documentDirty || englishDirty} onClick={() => openDocument(item.pageId)}>{item.pageId === 'home' ? dc.openHome : dc.openPage}</button></li>)}</ul>}
+        <button disabled={pageActionsDisabled} onClick={() => openDocument(item.pageId)}>{item.pageId === 'home' ? dc.openHome : dc.openPage}</button>
+        {item.pageId !== 'home' && <button disabled={pageActionsDisabled} onClick={() => setPageArchived(item.pageId, item.version, true)}>{dc.archive}</button>}
+      </li>)}</ul>}
+      {!!overview?.archivedPages?.length && <details><summary>{dc.archivedPages}</summary>
+        <ul>{overview.archivedPages.map(item => <li key={item.pageId}>{item.title} · {item.file}{' '}
+          <button disabled={pageActionsDisabled} onClick={() => setPageArchived(item.pageId, item.version, false)}>{dc.restore}</button>
+        </li>)}</ul>
+      </details>}
       <fieldset disabled={busy}><legend>{dc.create}</legend>
         <label>{dc.newTitle}<input value={newPage.title} maxLength={200} onChange={(event) => setNewPage({ ...newPage, title: event.target.value })} /></label>
         <label>{dc.newSlug}<input value={newPage.slug} maxLength={80} onChange={(event) => setNewPage({ ...newPage, slug: event.target.value })} /></label>

@@ -66,14 +66,83 @@ async function plan(running: Running) {
   const response = await running.app.inject({ url: base + '/site-plan', headers });
   expect(response.statusCode).toBe(200); return response.json();
 }
-function publish(running: Running, choice: Awaited<ReturnType<typeof plan>>, key: string) {
+function publish(running: Running, choice: Awaited<ReturnType<typeof plan>>, key: string, expectedLocales = []) {
   return running.app.inject({ method: 'POST', url: base + '/releases', headers: { ...headers, 'idempotency-key': key },
     payload: { revisionId: choice.pages.find((page: { pageId: string }) => page.pageId === 'home').revisionId,
-      expectedActiveVersion: choice.activeVersion,
+      expectedActiveVersion: choice.activeVersion, expectedLocales,
       expectedPages: choice.pages.map(({ pageId, revisionId, version }: { pageId: string; revisionId: string; version: number }) => ({ pageId, revisionId, version })) } });
 }
 
 describe('CMS pages, blocks and complete site snapshots', () => {
+  it('archives and restores a translated page through explicit releases with the same retained media', async () => {
+    const running = await start();
+    const { app } = running;
+    let doc = await create(running, 'fictief');
+    doc = await save(running, doc, { ...text(doc), blocks: [...text(doc).blocks, imageBlock()] });
+    await approve(running);
+    const path = `${base}/documents/${doc.pageId}`;
+    const draft = running.documents!.locales.get('demo-cms', doc.pageId);
+    const enContent = { ...draft.content, title: 'Fictional page', slug: 'fictional', seoTitle: 'Fictional title',
+      blocks: draft.content.blocks.map(block => block.type === 'text' ? { ...block, body: 'Fictional page text.' }
+        : block.type === 'image' ? { ...block, altText: 'Fictional pixel' } : block) };
+    const putEnglish = (expectedVersion: number) => app.inject({ method: 'PUT', url: path + '/locales/en', headers: editor,
+      payload: { expectedVersion, expectedStructure: draft.structure, content: enContent } });
+    expect((await putEnglish(0)).statusCode).toBe(200);
+    const withTranslation = await plan(running);
+    const selectEnglish = (choice: typeof withTranslation) => choice.localeVariants.map(
+      ({ pageId, revisionId, version, structure }: { pageId: string; revisionId: string; version: number; structure: string }) =>
+        ({ pageId, revisionId, version, structure, locale: 'en' }));
+    const first = await publish(running, withTranslation, 'document-with-english', selectEnglish(withTranslation));
+    expect(first.statusCode, first.body).toBe(200);
+    const routes = ['/sites/demo-cms/fictief.html', '/sites/demo-cms/en/fictional.html'];
+    const html = await Promise.all(routes.map(async route => (await app.inject(route)).body));
+    expect(html[0]).toContain('Fictieve rode pixel');
+    expect(html[1]).toContain('Fictional pixel');
+    const savedRelease = join(running.root, 'releases', 'demo-cms', first.json().releaseId, 'en', 'fictional.html');
+    const initialBytes = readFileSync(savedRelease);
+
+    const change = (archived: boolean, expectedVersion: number, requestPath = path, auth = editor) =>
+      app.inject({ method: 'PUT', url: requestPath + '/archive', headers: auth,
+        payload: { archived, expectedVersion } });
+    expect((await change(true, doc.version, path, beta)).statusCode).toBe(404);
+    expect((await change(true, doc.version, base + '/documents/home')).statusCode).toBe(400);
+    const archived = await change(true, doc.version);
+    expect(archived.statusCode).toBe(200);
+    expect(archived.json()).toMatchObject({ archived: true, revisionId: doc.revisionId, version: doc.version + 1 });
+    expect((await change(false, doc.version)).statusCode).toBe(409);
+    expect((await change(true, doc.version + 1)).json().version).toBe(doc.version + 1);
+    expect((await putEnglish(1)).statusCode).toBe(409);
+    expect((await app.inject({ method: 'PUT', url: path + '/draft', headers: editor,
+      payload: { expectedVersion: doc.version + 1, content: doc.content } })).statusCode).toBe(409);
+    expect((await app.inject({ method: 'POST', url: base + '/documents', headers: editor,
+      payload: { title: 'Other page', slug: 'fictief' } })).statusCode).toBe(409);
+    for (const [index, route] of routes.entries()) expect((await app.inject(route)).body).toBe(html[index]);
+
+    const withoutPage = await plan(running);
+    expect(withoutPage.pages.map((page: {pageId: string}) => page.pageId)).toEqual(['home']);
+    expect(withoutPage.archivedPages).toMatchObject([{ pageId: doc.pageId, title: doc.content.title }]);
+    expect(withoutPage.localeVariants).toEqual([]);
+    expect(withoutPage.retainedLocales).toEqual([]);
+    expect((await publish(running, withoutPage, 'archived-stale-locale', selectEnglish(withTranslation))).statusCode).toBe(409);
+    expect((await publish(running, withoutPage, 'archive-translation')).statusCode).toBe(200);
+    for (const route of routes) expect((await app.inject(route)).statusCode).toBe(404);
+    expect(readFileSync(savedRelease)).toEqual(initialBytes);
+
+    const restored = await change(false, doc.version + 1);
+    expect(restored.json()).toMatchObject({ archived: false, revisionId: doc.revisionId, version: doc.version + 2, content: doc.content });
+    expect((await putEnglish(1)).statusCode).toBe(409);
+    for (const route of routes) expect((await app.inject(route)).statusCode).toBe(404);
+    const restoredPlan = await plan(running);
+    expect(restoredPlan.archivedPages).toEqual([]);
+    expect(restoredPlan.localeVariants[0]).toMatchObject({
+      revisionId: withTranslation.localeVariants[0].revisionId, version: withTranslation.localeVariants[0].version + 2,
+    });
+    expect((await publish(running, restoredPlan, 'restore-translation', selectEnglish(restoredPlan))).statusCode).toBe(200);
+    expect((await app.inject(routes[0])).body).toContain('Fictieve rode pixel');
+    expect((await app.inject(routes[1])).body).toContain('Fictional pixel');
+    expect(readFileSync(savedRelease)).toEqual(initialBytes);
+  }, 15_000);
+
   it('permits a slug change after a failed first publication without freezing an unpublished route', async () => {
     let fail = true;
     const running = await start({ hooks: { beforeBuild: async () => { if (fail) throw new Error('Simulated build failure'); } } });

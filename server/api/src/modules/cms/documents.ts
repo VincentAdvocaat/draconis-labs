@@ -42,13 +42,16 @@ const editableDocumentContentSchema = documentContentSchema.safeExtend({
   slug: z.string().trim().toLowerCase().pipe(z.union([documentSlugSchema, z.literal('en')])),
 });
 export const saveDocumentSchema = z.object({ expectedVersion: z.number().int().positive(), content: editableDocumentContentSchema }).strict();
+export const documentLifecycleSchema = z.object({
+  expectedVersion: z.number().int().positive(), archived: z.boolean(),
+}).strict();
 export type DocumentContent = z.infer<typeof documentContentSchema>;
-export interface DocumentDto { pageId: string; revisionId: string; version: number; content: DocumentContent; published: boolean; publishedFile: string | null }
+export interface DocumentDto { pageId: string; revisionId: string; version: number; content: DocumentContent; published: boolean; publishedFile: string | null; archived: boolean }
 export interface SnapshotPage { pageId: string; revisionId: string; version: number; file: string;
   content: Omit<DocumentContent, 'locale'> & { locale: 'nl' | 'en' }; mediaRevisionId: string | null }
 export interface SiteSnapshot { schemaVersion: 1; websiteId: string; pages: SnapshotPage[]; shared?: SharedNavigationDto;contact?:ContactPin }
 export interface RenderedSite { files: Array<{ path: string; bytes: Buffer }>; metadata: Record<string, unknown>; revalidate: () => void; activate?: (callback: () => import('./model.js').Attempt) => import('./model.js').Attempt }
-interface DocumentRow { id: string; revision_id: string; version: number; content: string; media_revision_id: string | null }
+interface DocumentRow { archived: number; id: string; revision_id: string; version: number; content: string; media_revision_id: string | null }
 
 export class CmsDocuments {
   readonly locales: CmsPageLocales;
@@ -79,23 +82,29 @@ export class CmsDocuments {
       for(const row of db.prepare('SELECT website_id FROM cms_home_identity').all() as Array<{website_id:string}>)
         db.prepare('INSERT OR IGNORE INTO cms_home_blocks VALUES(?,?,?)').run(row.website_id,randomUUID(),randomUUID());
     }).immediate();
+    db.transaction(() => {
+      const columns = db.pragma('table_info(cms_documents)') as Array<{ name: string }>;
+      if (!columns.some(column => column.name === 'archived'))
+        db.exec('ALTER TABLE cms_documents ADD COLUMN archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0,1))');
+      db.prepare('INSERT OR IGNORE INTO cms_migrations VALUES(9)').run();
+    }).immediate();
     this.locales = new CmsPageLocales(repository, (site, page) => this.get(site, page), media, portfolio);
     repository.setSiteSnapshots(this);
   }
 
   private rows(websiteId: string): DocumentRow[] {
-    return this.repository.db.prepare(`SELECT p.id,p.revision_id,p.version,r.content,r.media_revision_id
+    return this.repository.db.prepare(`SELECT p.id,p.archived,p.revision_id,p.version,r.content,r.media_revision_id
       FROM cms_documents p JOIN cms_document_revisions r ON r.id=p.revision_id
       WHERE p.website_id=? ORDER BY p.slug,p.id`).all(websiteId) as DocumentRow[];
   }
   get(websiteId: string, pageId: string): DocumentDto {
     this.repository.page(websiteId);
-    if(pageId==='home'){const home=this.repository.page(websiteId);return {pageId,revisionId:home.revisionId,version:home.pageVersion,content:this.homeContent(websiteId,home.revisionId),published:!!home.activeReleaseId,publishedFile:home.activeReleaseId?'index.html':null};}
+    if(pageId==='home'){const home=this.repository.page(websiteId);return {pageId,revisionId:home.revisionId,version:home.pageVersion,content:this.homeContent(websiteId,home.revisionId),archived:false,published:!!home.activeReleaseId,publishedFile:home.activeReleaseId?'index.html':null};}
     const row = this.rows(websiteId).find((item) => item.id === pageId);
     if (!row) throw new CmsError(404, 'Pagina niet gevonden');
     const published = this.activeSnapshot(websiteId)?.pages.find((page) => page.pageId === pageId && page.content.locale === 'nl');
     return { pageId, revisionId: row.revision_id, version: row.version, content: JSON.parse(row.content) as DocumentContent,
-      published: Boolean(published) || this.wasPublished(websiteId, pageId), publishedFile: published?.file ?? null };
+      archived: Boolean(row.archived), published: Boolean(published) || this.wasPublished(websiteId, pageId), publishedFile: published?.file ?? null };
   }
   private homeContent(websiteId:string,revisionId:string):DocumentContent{
     const values=this.repository.revision(websiteId,revisionId);
@@ -106,10 +115,17 @@ export class CmsDocuments {
   }
   plan(websiteId: string) {
     const home = this.repository.page(websiteId);
-    return { ...this.repository.active(websiteId), defaultLocale: 'nl' as const, ...(this.shared ? {shared: this.shared.get(websiteId)} : {}), ...(this.contact?{contactTemplate:this.contact.plan(websiteId)}:{}), localeVariants: this.locales.plan(websiteId), retainedLocales: this.retainedLocales(websiteId).map((page) => ({ pageId: page.pageId, locale: 'en', revisionId: page.revisionId, file: page.file, title: page.content.title })), pages: [
+    const documents = this.rows(websiteId).map((row) => {
+      const content = JSON.parse(row.content) as DocumentContent;
+      return { pageId: row.id, revisionId: row.revision_id, version: row.version, title: content.title,
+        file: `${content.slug}.html`, archived: Boolean(row.archived) };
+    });
+    const pages = documents.filter(page => !page.archived);
+    const archivedPages = documents.filter(page => page.archived);
+    const selectedIds = new Set(['home', ...pages.map(page => page.pageId)]);
+    return { ...this.repository.active(websiteId), defaultLocale: 'nl' as const, ...(this.shared ? {shared: this.shared.get(websiteId)} : {}), ...(this.contact?{contactTemplate:this.contact.plan(websiteId)}:{}), archivedPages, localeVariants: this.locales.plan(websiteId, selectedIds), retainedLocales: this.retainedLocales(websiteId, selectedIds).map((page) => ({ pageId: page.pageId, locale: 'en', revisionId: page.revisionId, file: page.file, title: page.content.title })), pages: [
       { pageId: 'home', revisionId: home.revisionId, version: home.pageVersion, title: home.values.title, file: 'index.html' },
-      ...this.rows(websiteId).map((row) => { const content = JSON.parse(row.content) as DocumentContent;
-        return { pageId: row.id, revisionId: row.revision_id, version: row.version, title: content.title, file: `${content.slug}.html` }; }),
+      ...pages,
     ] };
   }
   create(websiteId: string, input: z.infer<typeof createDocumentSchema>, actor: string): DocumentDto {
@@ -121,7 +137,7 @@ export class CmsDocuments {
       const content: DocumentContent = { schemaVersion: 1, locale: 'nl', ...input, seoTitle: input.title,
         seoDescription: '', blocks: [{ blockId: randomUUID(), type: 'text', heading: '', body: '' }] };
       const revision = this.insert(websiteId, pageId, null, content, null, [], actor);
-      this.repository.db.prepare('INSERT INTO cms_documents VALUES(?,?,?,?,1)').run(pageId, websiteId, input.slug, revision);
+      this.repository.db.prepare('INSERT INTO cms_documents(id,website_id,slug,revision_id,version) VALUES(?,?,?,?,1)').run(pageId, websiteId, input.slug, revision);
       return this.get(websiteId, pageId);
     }).immediate();
   }
@@ -168,6 +184,7 @@ export class CmsDocuments {
     if(pageId==='home')throw new CmsError(400,'Gebruik de bestaande home-conceptopslag');
     return this.repository.db.transaction(() => {
       const prior = this.get(websiteId, pageId);
+      if (prior.archived) throw new CmsError(409, 'Herstel de pagina voordat je het concept wijzigt');
       if (prior.version !== input.expectedVersion) throw new CmsError(409, 'Paginaconcept gewijzigd. Haal de nieuwste versie op.');
       if (prior.content.slug !== input.content.slug) {
         documentSlugSchema.parse(input.content.slug);
@@ -178,6 +195,19 @@ export class CmsDocuments {
       const result = this.repository.db.prepare(`UPDATE cms_documents SET slug=?,revision_id=?,version=version+1
         WHERE website_id=? AND id=? AND version=?`).run(input.content.slug, revision, websiteId, pageId, input.expectedVersion);
       if (!result.changes) throw new CmsError(409, 'Paginaconcept gewijzigd');
+      return this.get(websiteId, pageId);
+    }).immediate();
+  }
+  setArchived(websiteId: string, pageId: string, input: z.infer<typeof documentLifecycleSchema>): DocumentDto {
+    if (pageId === 'home') throw new CmsError(400, 'De homepagina kan niet worden gearchiveerd');
+    return this.repository.db.transaction(() => {
+      const current = this.get(websiteId, pageId);
+      if (current.version !== input.expectedVersion) throw new CmsError(409, 'Paginaconcept gewijzigd. Haal de nieuwste versie op.');
+      if (current.archived === input.archived) return current;
+      this.repository.db.prepare('UPDATE cms_documents SET archived=?,version=version+1 WHERE website_id=? AND id=?')
+        .run(Number(input.archived), websiteId, pageId);
+      this.repository.db.prepare("UPDATE cms_locale_heads SET version=version+1 WHERE website_id=? AND page_id=? AND locale='en'")
+        .run(websiteId, pageId);
       return this.get(websiteId, pageId);
     }).immediate();
   }
@@ -210,7 +240,9 @@ export class CmsDocuments {
       ...plan.pages.slice(1).map((page) => ({ ...page, ...this.revision(websiteId, page.pageId, page.revisionId) }))];
     const selected = input.expectedLocales ?? [];
     if (new Set(selected.map((item) => item.pageId)).size !== selected.length) throw new CmsError(409, 'Dubbele taalvariant');
+    const selectedIds = new Set(plan.pages.map(page => page.pageId));
     for (const choice of selected) {
+      if (!selectedIds.has(choice.pageId)) throw new CmsError(409, 'De geselecteerde taalvariant hoort bij een gearchiveerde of ontbrekende pagina');
       const current = this.locales.get(websiteId, choice.pageId);
       if (current.revisionId !== choice.revisionId || current.version !== choice.version || current.structure !== choice.structure)
         throw new CmsError(409, 'De geselecteerde EN-variant of blokstructuur is gewijzigd');
@@ -219,13 +251,13 @@ export class CmsDocuments {
     }
     // Previously explicit EN publications remain pinned when publishing NL alone.
     // Omitting a new draft never silently removes an already published route.
-    for (const retained of this.retainedLocales(websiteId)) if (!selected.some((item) => item.pageId === retained.pageId)) pages.push(retained);
+    for (const retained of this.retainedLocales(websiteId, selectedIds)) if (!selected.some((item) => item.pageId === retained.pageId)) pages.push(retained);
     const shared=this.shared?.capture(websiteId,input.expectedShared);
     const contact=this.contact?.capture(websiteId,input.expectedContact,shared);
     return JSON.stringify({schemaVersion:1,websiteId,pages,...(shared?{shared}:{}),...(contact?{contact}:{})} satisfies SiteSnapshot);
   }
-  private retainedLocales(websiteId: string): SnapshotPage[] {
-    return this.activeSnapshot(websiteId)?.pages.filter((page) => page.content.locale === 'en') ?? [];
+  private retainedLocales(websiteId: string, selectedIds: ReadonlySet<string>): SnapshotPage[] {
+    return this.activeSnapshot(websiteId)?.pages.filter(page => page.content.locale === 'en' && selectedIds.has(page.pageId)) ?? [];
   }
   private activeSnapshot(websiteId: string): SiteSnapshot | undefined {
     const active = this.repository.active(websiteId).activeReleaseId;

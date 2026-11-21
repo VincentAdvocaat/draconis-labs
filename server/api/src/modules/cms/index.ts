@@ -10,7 +10,7 @@ import { CmsService } from './service.js';
 import { MAX_BYTES } from '../../media-upload/processor.js';
 import { rightsInputSchema } from '../../media-upload/rights.js';
 import { localeSaveSchema } from './page-locales.js';
-import { createDocumentSchema, saveDocumentSchema } from './documents.js';
+import { createDocumentSchema, documentLifecycleSchema, saveDocumentSchema } from './documents.js';
 
 export interface LocalCredential {
   name: string;
@@ -114,6 +114,10 @@ export function cmsModule(service: CmsService, credentials: LocalCredential[]): 
           if (typeof request.body === 'object' && request.body !== null && !('expectedVersion' in request.body)) throw new CmsError(428, 'Verwachte paginaversie vereist');
           const { websiteId, pageId } = request.params as { websiteId: string; pageId: string };
           return documents.save(websiteId, pageId, saveDocumentSchema.parse(request.body), actor.name);
+        });
+        app.put('/websites/:websiteId/documents/:pageId/archive', async (request) => {
+          const { websiteId, pageId } = request.params as { websiteId: string; pageId: string };
+          return documents.setArchived(websiteId, pageId, documentLifecycleSchema.parse(request.body));
         });
         app.get('/websites/:websiteId/documents/:pageId/previews/:revisionId', async (request, reply) => {
           const { websiteId, pageId, revisionId } = request.params as { websiteId: string; pageId: string; revisionId: string };

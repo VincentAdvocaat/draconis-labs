@@ -5,8 +5,9 @@ export interface ImageBlock { blockId: string; type: 'image'; reference: Documen
 export interface PortfolioSelection { ref: {websiteId: string; collectionId: 'portfolio'; snapshotId: string}; checksum: string; localeContext: {defaultLocale: 'nl' | 'en'; locale: 'nl' | 'en'; fallbackLocale?: 'nl' | 'en'}; itemCount?: number }
 export interface PortfolioBlock extends PortfolioSelection { blockId: string; type: 'portfolio'; labels?: {heading: Partial<Record<'nl' | 'en', string | null>>; empty: Partial<Record<'nl' | 'en', string | null>>} }
 export interface DocumentContent { schemaVersion: 1; locale: 'nl'; title: string; slug: string; seoTitle: string; seoDescription: string; blocks: Array<TextBlock | ImageBlock | PortfolioBlock> }
-export interface DocumentDto { pageId: string; revisionId: string; version: number; content: DocumentContent; published: boolean; publishedFile: string | null }
-export interface SitePlan {contactTemplate?:import('./contact-template').ContactRecord; shared?: import('./shared-navigation').SharedNavigationDto; localeVariants?: import('./page-locales').LocaleChoice[]; retainedLocales?: Array<{pageId: string; title: string; file: string}>; activeReleaseId: string | null; activeVersion: number; pages: Array<{ pageId: string; revisionId: string; version: number; title: string; file: string }> }
+export interface DocumentDto { pageId: string; revisionId: string; version: number; content: DocumentContent; published: boolean; publishedFile: string | null; archived?: boolean }
+interface PlannedPage { pageId: string; revisionId: string; version: number; title: string; file: string }
+export interface SitePlan {contactTemplate?:import('./contact-template').ContactRecord; shared?: import('./shared-navigation').SharedNavigationDto; localeVariants?: import('./page-locales').LocaleChoice[]; retainedLocales?: Array<{pageId: string; title: string; file: string}>; activeReleaseId: string | null; activeVersion: number; pages: PlannedPage[]; archivedPages?: PlannedPage[] }
 
 export function DocumentEditor({ draft, onChange, busy, dirty, onSave, onPreview, availableImage, portfolioSelections = [], onLoadPortfolio, uiLocale = 'nl', publishedFile }: {
   uiLocale?: UiLocale; draft: DocumentContent; onChange: (value: DocumentContent) => void; busy: boolean; dirty: boolean;
