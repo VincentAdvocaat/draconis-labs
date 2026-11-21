@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { executePlannerCommand, type PlannerService } from '@draconis/planner-core';
 import type { Actor } from '../../core/auth.js';
 import type { AuthorizePlanner } from '../../core/local-identity.js';
+import { agentScopeFor } from '../../core/agent-credentials.js';
 import { createTaskSchema, workspaceUpdateTaskSchema, updatePreferencesSchema, historyQuerySchema, type PlannerReply } from '@draconis/shared';
 import { z } from 'zod';
 import { taskResponseSchema, paginatedTaskListSchema } from './schemas.js';
@@ -59,6 +60,7 @@ export function createWorkspacePlannerRoutes(service: PlannerService, workspaceI
     ] as const;
     for (const [method, url, type, result] of routes) {
       const pathParameters = url.includes(':id') ? ['workspaceId', 'id'] : ['workspaceId'];
+      const scope = agentScopeFor(type);
       app.route({ method, url,
         ...(authorize ? { onRequest: async (request: FastifyRequest, reply) => {
           const { workspaceId } = request.params as { workspaceId: string };
@@ -68,6 +70,7 @@ export function createWorkspacePlannerRoutes(service: PlannerService, workspaceI
         } } : {}),
         schema: {
         tags: ['planner'], summary: `Local workspace ${type}`,
+        ...(authorize ? { description: scope ? 'Agent scope: ' + scope : 'Requires a user session.' } : {}),
         security: authorize ? [{ bearerAuth: [] }] : [{ bearerAuth: [] }, {}],
         ...(type === 'tasks.create' ? {
           body: z.toJSONSchema(createTaskSchema, { target: 'draft-7' }),

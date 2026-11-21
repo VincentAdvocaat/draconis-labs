@@ -53,3 +53,38 @@ profile. Use a separate test database and a new terminal for the ordinary local
 API. The fixture IDs are stable across sessions and appear in `createdBy`. Test
 sessions cover authentication and workspace permissions. OIDC sign-in, Entra
 registration and multi-workspace storage have separate acceptance criteria.
+
+## Local agent credentials
+
+The test profile also accepts scoped agent credentials bound to the `local`
+workspace. Choose individual scopes from the table. A valid agent without
+the required scope receives `403`. Preference routes require a user session.
+
+| Scope | Planner operation |
+| --- | --- |
+| `tasks:read` | List tasks and completed history |
+| `tasks:create` | Create a task, including idempotent retries |
+| `tasks:update` | Update, complete or schedule a task |
+| `tasks:delete` | Delete a task |
+
+In a PowerShell terminal with the fixture's `DATABASE_PATH` and
+`DRACONIS_LOCAL_IDENTITY_FILE` set, run the operator command from the repository
+root after the API has created the database. Substitute the desired UTC
+expiration and the credential ID printed by `create`. The ID is separate
+from the Bearer token.
+
+~~~powershell
+$expiry = [DateTime]::UtcNow.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ssZ")
+corepack pnpm --filter @draconis/api planner:agent create --name fixture-reader --scope tasks:read --expires $expiry
+corepack pnpm --filter @draconis/api planner:agent list
+corepack pnpm --filter @draconis/api planner:agent rotate --id $credentialId --expires $expiry --overlap-seconds 30
+corepack pnpm --filter @draconis/api planner:agent revoke --id $credentialId
+~~~
+
+`create` and `rotate` print the new credential's token once. Send it as
+`Authorization: Bearer <agent-token>`. `list` and `revoke` show metadata
+only. Rotation keeps the same principal and scopes. The previous token
+remains valid for at most the chosen overlap or until its earlier existing
+expiry. Granting no overlap makes the previous token expire immediately.
+Revocation takes effect on the next request. The timestamp `lastUsedAt`
+records the last request authorized with that credential, in Unix milliseconds.

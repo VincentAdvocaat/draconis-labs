@@ -23,7 +23,7 @@ export async function registerOpenApi(app: FastifyInstance, protectedPlanner = f
             type: 'http',
             scheme: 'bearer',
             description: protectedPlanner
-              ? 'Local test session token. Workspace membership determines which Planner operations are allowed.'
+              ? 'Local test session or scoped Planner agent credential. The workspace role or agent scope determines which operations are allowed.'
               : 'Named API key (Bearer token) for agent identity. Planner keys have no per-operation scopes.',
           },
         },

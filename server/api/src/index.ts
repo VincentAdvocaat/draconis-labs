@@ -2,7 +2,8 @@ import cors from '@fastify/cors';
 import Fastify from 'fastify';
 import { readFileSync } from 'node:fs';
 import { ZodError } from 'zod';
-import { createLocalIdentity, localIdentityHost } from './core/local-identity.js';
+import { allowScopedAgents, createLocalIdentity, localIdentityHost } from './core/local-identity.js';
+import { createAgentCredentials } from './core/agent-credentials.js';
 
 const identityFile = process.env.DRACONIS_LOCAL_IDENTITY_FILE;
 if (identityFile !== undefined && !process.env.DATABASE_PATH) {
@@ -54,7 +55,12 @@ app.setErrorHandler((error, _request, reply) => {
   });
 });
 
-await registerPlatformApi(app, authorize);
+if (authorize) {
+  const { sqlite } = await import('./core/db.js');
+  await registerPlatformApi(app, allowScopedAgents(authorize, createAgentCredentials(sqlite)));
+} else {
+  await registerPlatformApi(app);
+}
 
 const port = Number(process.env.PORT ?? 3001);
 await app.listen({ port, host });
