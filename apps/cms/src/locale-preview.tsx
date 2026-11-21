@@ -32,16 +32,17 @@ export interface LocalePreviewInput {
   blocks: Array<{ blockId: string; heading?: string; body?: string }>;
 }
 
-export function ConfiguredLocalePreview({ document, result, uiLocale, disabled, fallback, onChange, onPreview }: {
+export function ConfiguredLocalePreview({ document, uiLocale, disabled, fallback, onPreview }: {
   document: DocumentDto;
-  result: LocalePreviewResult | null;
   uiLocale: UiLocale;
   disabled: boolean;
   fallback: boolean;
-  onChange: () => void;
-  onPreview: (input: LocalePreviewInput) => void;
+  onPreview: (input: LocalePreviewInput, onResult: (result: LocalePreviewResult) => void) => void;
 }) {
   const { copy: t } = createCmsTranslator(uiLocale);
+  // Input and diagnostics reset together whenever this editor is remounted.
+  const [result, setResult] = useState<LocalePreviewResult | null>(null);
+  const onChange = () => setResult(null);
   const [values, setValues] = useState<Partial<Record<Field, string>>>({});
   const [blocks, setBlocks] = useState<LocalePreviewInput['blocks']>(document.content.blocks.map(({ blockId }) => ({ blockId })));
   const diagnostic = (value?: Diagnostic) => value && <span>
@@ -81,7 +82,7 @@ export function ConfiguredLocalePreview({ document, result, uiLocale, disabled, 
           {diagnostic(data?.body)}
         </fieldset>;
       })}
-      <button onClick={() => onPreview({ expectedVersion: document.version, ...values, blocks })}>{t.localePreviewCheck}</button>
+      <button onClick={() => { setResult(null); onPreview({ expectedVersion: document.version, ...values, blocks }, setResult); }}>{t.localePreviewCheck}</button>
     </fieldset>
     {result && <>
       <p role="status">{result.directReady ? t.localePreviewReady : t.localePreviewNotReady} {!result.defaultReady && t.localePreviewIncompleteSource}</p>

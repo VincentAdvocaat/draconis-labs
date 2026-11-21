@@ -81,6 +81,7 @@ function editorHarness() {
       if (name === './i18n') return i18nExports;
       if (name === './page-locales') return englishExports;
       if (name === './documents') return documentExports;
+      if (name === './locale-preview') return { ConfiguredLocalePreview: () => null };
       throw new Error(`Unexpected component import ${name}`);
     },
   });
