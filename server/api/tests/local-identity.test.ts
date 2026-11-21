@@ -93,6 +93,56 @@ describe('protected Planner HTTP profile', () => {
     expect((await app.inject({ method: 'DELETE', url: taskPath, headers: bearer('owner-token') })).statusCode).toBe(200);
   });
 
+  it.each(['viewer-token', 'outside-token'])('rejects mutations without changing stored data (%s)', async token => {
+    const { sqlite } = await import('../src/core/db.js');
+    const idempotencyKey = randomUUID();
+    const ownerHeaders = bearer('owner-token');
+    const created = await app.inject({
+      method: 'POST', url: workspace + '/tasks', headers: ownerHeaders,
+      payload: { title: 'Permission fixture ' + randomUUID() },
+    });
+    expect(created.statusCode).toBe(201);
+    const task = created.json().value;
+    const taskPath = workspace + '/tasks/' + task.id;
+    const readStoredData = async () => {
+      const responses = await Promise.all(['/tasks', '/history', '/preferences'].map(route =>
+        app.inject({ url: workspace + route, headers: ownerHeaders })));
+      for (const response of responses) expect(response.statusCode).toBe(200);
+      return responses.map(response => response.json());
+    };
+
+    try {
+      const before = await readStoredData();
+      for (const request of [
+        { method: 'POST', url: workspace + '/tasks', payload: { title: 'Forbidden creation ' + randomUUID() } },
+        { method: 'PATCH', url: taskPath, payload: { title: 'Forbidden update', version: task.version } },
+        { method: 'DELETE', url: taskPath },
+        { method: 'PATCH', url: workspace + '/preferences', payload: { locale: before[2].value.locale === 'en' ? 'nl' : 'en' } },
+      ] as const) {
+        const response = await app.inject({
+          ...request, headers: { ...bearer(token), 'idempotency-key': idempotencyKey },
+        });
+        expect(response.statusCode, request.method + ' ' + request.url).toBe(403);
+        expect(response.json()).toMatchObject({ ok: false, error: { code: 'FORBIDDEN', status: 403 } });
+        expect(await readStoredData()).toEqual(before);
+        expect(sqlite.prepare('SELECT key FROM planner_command_receipts WHERE key = ?').get(idempotencyKey)).toBeUndefined();
+      }
+    } finally {
+      expect((await app.inject({ method: 'DELETE', url: taskPath, headers: ownerHeaders })).statusCode).toBe(200);
+    }
+  });
+
+  it.each(['/tasks', '/tasks?pagination=cursor&pageSize=1', '/history', '/preferences'])(
+    'rejects anonymous reads of %s', async route => {
+      const response = await app.inject({ url: workspace + route });
+      expect(response.statusCode).toBe(401);
+      expect(response.json()).toMatchObject({ ok: false, error: { code: 'UNAUTHORIZED', status: 401 } });
+      const head = await app.inject({ method: 'HEAD', url: workspace + route });
+      expect(head.statusCode).toBe(401);
+      expect(head.body).toBe('');
+    },
+  );
+
   it('rejects cross-workspace access across the REST operations before they can use local data', async () => {
     const headers = { ...bearer('owner-token'), 'idempotency-key': 'workspace-identity-regression' };
     const preferencesBefore = (await app.inject({ url: workspace + '/preferences', headers })).json();
