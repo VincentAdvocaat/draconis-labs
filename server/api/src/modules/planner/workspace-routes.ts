@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { executePlannerCommand, type PlannerService } from '@draconis/planner-core';
 import type { Actor } from '../../core/auth.js';
+import type { AuthorizePlanner } from '../../core/local-identity.js';
 import { createTaskSchema, workspaceUpdateTaskSchema, updatePreferencesSchema, historyQuerySchema, type PlannerReply } from '@draconis/shared';
 import { z } from 'zod';
 import { taskResponseSchema, paginatedTaskListSchema } from './schemas.js';
@@ -10,29 +11,30 @@ const taskRef = { $ref: 'PlannerWorkspaceTask#' };
 const errorRef = { $ref: 'PlannerWorkspaceError#' };
 const idempotencyKeyPattern = '^[A-Za-z0-9._~-]{1,128}$';
 const idempotencyKeySchema = z.string().regex(new RegExp(idempotencyKeyPattern)).optional();
-const errorSchema = {
+const errorSchema = (authorize?: AuthorizePlanner) => ({
   $id: 'PlannerWorkspaceError',
   type: 'object', required: ['ok', 'error'],
   properties: {
     ok: { const: false },
     error: { type: 'object', required: ['code', 'status', 'message'], properties: {
-      code: { type: 'string', enum: ['INVALID_INPUT', 'WORKSPACE_NOT_FOUND', 'TASK_NOT_FOUND', 'VERSION_CONFLICT', 'UNAUTHORIZED', 'UNAVAILABLE', 'INTERNAL_ERROR', 'IDEMPOTENCY_CONFLICT'] },
+      code: { type: 'string', enum: ['INVALID_INPUT', 'WORKSPACE_NOT_FOUND', 'TASK_NOT_FOUND', 'VERSION_CONFLICT', 'UNAUTHORIZED', 'UNAVAILABLE', 'INTERNAL_ERROR', 'IDEMPOTENCY_CONFLICT', ...(authorize ? ['FORBIDDEN'] : [])] },
       status: { type: 'integer' }, message: { type: 'string' }, task: taskRef,
     } },
   },
-};
+});
 const success = (value: object) => ({ type: 'object', required: ['ok', 'value'], properties: { ok: { const: true }, value } });
 const taskList = { oneOf: [{ type: 'array', items: taskRef }, { $ref: 'PlannerWorkspacePage#' }] };
 const workspaceTaskList = { anyOf: [{ $ref: 'PlannerWorkspaceCursorPage#' }, ...taskList.oneOf] };
 
-export function createWorkspacePlannerRoutes(service: PlannerService, workspaceId: string, identifyActor: (request: FastifyRequest) => Actor) {
+export function createWorkspacePlannerRoutes(service: PlannerService, workspaceId: string, identifyActor: (request: FastifyRequest) => Actor, authorize?: AuthorizePlanner) {
   return async (app: FastifyInstance) => {
     // Schemas document this transport. Shared Zod dispatch validates the raw input,
     // including trim transformations, without AJV changing its types first.
     app.setValidatorCompiler(() => data => ({ value: data }));
     app.addSchema({ $id: 'PlannerWorkspaceTask', ...taskResponseSchema });
     app.addSchema({ $id: 'PlannerWorkspacePage', ...paginatedTaskListSchema, properties: { ...paginatedTaskListSchema.properties, items: { type: 'array', items: taskRef } } });
-    app.addSchema(errorSchema);
+    app.addSchema(errorSchema(authorize));
+    if (authorize) app.decorateRequest('plannerActor', null);
     app.addSchema({
       $id: 'PlannerWorkspaceCursorPage', type: 'object', required: ['items', 'pageSize', 'nextCursor'],
       properties: {
@@ -57,9 +59,16 @@ export function createWorkspacePlannerRoutes(service: PlannerService, workspaceI
     ] as const;
     for (const [method, url, type, result] of routes) {
       const pathParameters = url.includes(':id') ? ['workspaceId', 'id'] : ['workspaceId'];
-      app.route({ method, url, schema: {
+      app.route({ method, url,
+        ...(authorize ? { onRequest: async (request: FastifyRequest, reply) => {
+          const { workspaceId } = request.params as { workspaceId: string };
+          const access = authorize(request, workspaceId, type);
+          if (!access.ok) return reply.code(access.error.status).send(access);
+          request.setDecorator('plannerActor', access.actor);
+        } } : {}),
+        schema: {
         tags: ['planner'], summary: `Local workspace ${type}`,
-        security: [{ bearerAuth: [] }, {}],
+        security: authorize ? [{ bearerAuth: [] }] : [{ bearerAuth: [] }, {}],
         ...(type === 'tasks.create' ? {
           body: z.toJSONSchema(createTaskSchema, { target: 'draft-7' }),
           headers: { type: 'object', properties: {
@@ -78,13 +87,13 @@ export function createWorkspacePlannerRoutes(service: PlannerService, workspaceI
           properties: Object.fromEntries(pathParameters.map(name => [name, { type: 'string' }])),
           required: pathParameters,
         },
-        response: { [method === 'POST' ? 201 : 200]: success(result), 400: errorRef, 401: errorRef, 404: errorRef, 409: errorRef, 500: errorRef, 503: errorRef },
+        response: { [method === 'POST' ? 201 : 200]: success(result), 400: errorRef, 401: errorRef, ...(authorize ? { 403: errorRef } : {}), 404: errorRef, 409: errorRef, 500: errorRef, 503: errorRef },
       }, handler: (request, reply) => {
         const params = request.params as { workspaceId: string; id?: string };
         const query = { ...request.query as Record<string, unknown> };
         let outcome: PlannerReply;
         try {
-          const actor = identifyActor(request);
+          const actor = authorize ? request.getDecorator<Actor>('plannerActor') : identifyActor(request);
           if (type === 'tasks.list' && ('pagination' in query || 'cursor' in query)) {
             outcome = listWorkspaceTasksByCursor(service, workspaceId, params.workspaceId, query);
           } else {
