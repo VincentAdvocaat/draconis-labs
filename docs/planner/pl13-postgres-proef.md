@@ -122,13 +122,38 @@ eventuele opvolgtaak en de mutatieresultaten worden binnen diezelfde
 transactie bijgewerkt. Het migratieslot is een PostgreSQL advisory lock op
 transactieniveau. [PostgreSQL-locks](https://www.postgresql.org/docs/17/explicit-locking.html)
 
+## Boekingen en capaciteitsraces
+
+De lokale PostgreSQL-proef levert een afzonderlijke boekingsadapter met
+dezelfde boekingsregels voor medewerkers en publieke reserveringen. Migratie 4
+bewaart de boekingsgegevens per werkruimte. De service vergrendelt dezelfde
+werkruimterij als de takenadapter vóór het lezen. Zij verwerkt afspraken,
+capaciteit, wijzigingen, publieke aanvragen en receipts binnen één
+PostgreSQL-transactie. Bij een afgewezen boeking wordt de tussentijdse
+werkruimtekopie niet opgeslagen. De lokale voorstelling leest de
+boekingsgegevens van één werkruimte als geheel. Voor grotere werkruimten
+moeten de opslagindeling en de doorvoercapaciteit apart worden gemeten.
+
+De suite hierboven zet twee onafhankelijke verbindingen aantoonbaar achter
+hetzelfde slot en laat een medewerker en een publieke aanvraag om de laatste
+plek concurreren. Ze controleert ook idempotentie, annuleren en vrijgeven van
+capaciteit en rollback bij een databasefout tijdens opslaan.
+
+De standaard-HTTP-routes en het publieke kanaal blijven op SQLite. Voor
+aansluiting van PostgreSQL zijn expliciete boekingsrechten en een algemene
+auditrapportage nodig. Boeking, afspraakgebeurtenis en idempotentiereceipt
+delen al één PostgreSQL-transactie. Voor een algemene auditregel dient de
+HTTP-ingang metadata van de geautoriseerde aanvraag aan diezelfde transactie
+door te geven. De SQLite-audittransactie uit #79 blijft bij SQLite-writes.
+
 ## Vervolgacceptatie
 
 AB#127 vraagt om Fastify met managed PostgreSQL. Dat vereist een toegewezen
 testserver, pool- en TLS-configuratie, Key Vault en goedgekeurde toegang.
 De lokale HTTP-proef dekt werkruimte-autorisatie en het foutcontract voor
-taken. Valideer deze op de toegewezen testserver en voeg de PostgreSQL-
-boekingsopslag en capaciteitsraces toe voor reserveren, blokkeren en verplaatsen.
+taken. Valideer dit op de toegewezen testserver. Sluit de PostgreSQL-boekingsadapter
+vervolgens aan op de geautoriseerde HTTP-ingangen en herhaal daar de
+capaciteitsraces voor reserveren, blokkeren en verplaatsen.
 
 AB#129 vraagt om een herstelproef op een aparte omgeving. Leg eerst RPO,
 RTO en de behandeltijd van writes sinds het gekozen herstelpunt vast. Meet en

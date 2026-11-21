@@ -69,6 +69,12 @@ const migrations = [
     );
     CREATE INDEX local_planner_activity_date ON local_planner_activity (occurred_at, id);
   ` },
+  { version: 4, sql: `
+    CREATE TABLE planner_booking_state (
+      workspace_id text COLLATE "C" PRIMARY KEY REFERENCES planner_workspaces(id),
+      state jsonb NOT NULL CHECK (jsonb_typeof(state) = 'object')
+    );
+  ` },
 ];
 
 export async function migratePlannerPostgres(pool: Pool) {
