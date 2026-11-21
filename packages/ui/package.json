@@ -8,7 +8,8 @@
     "./tokens.css": "./src/tokens.css",
     "./button.css": "./src/Button.css",
     "./modal.css": "./src/Modal.css",
-    "./topbar.css": "./src/Topbar.css"
+    "./topbar.css": "./src/Topbar.css",
+    "./app-launcher.css": "./src/AppLauncherLink.css"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

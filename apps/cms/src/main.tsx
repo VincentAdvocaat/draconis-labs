@@ -4,6 +4,8 @@ import {apiErrorMessage, createCmsTranslator, formatUiMessage, message, type UiM
 import { createRoot } from 'react-dom/client';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import { AppLauncherLink } from '@draconis/ui';
+import '@draconis/ui/app-launcher.css';
 import './style.css';
 import { EnglishEditor, type EnglishDto, type EnglishContent } from './page-locales';
 import { DocumentEditor } from './documents';
@@ -470,7 +472,9 @@ function App() {
   const publicUrl = selectedDocument ? selectedDocument.publishedFile ? `/sites/${website}/${selectedDocument.publishedFile}` : null
     : attempt?.publicUrl ?? (page?.activeReleaseId ? `/sites/${website}/index.html` : null);
   return <main lang={uiLocale}><label>{t.uiLanguage}<select value={uiLocale} onChange={(event) => setUiLocale(event.target.value as UiLocale)}><option value="nl" lang="nl">Nederlands</option><option value="en" lang="en">English</option></select></label>
-    <header><p className="eyebrow">{t.brand}</p><h1>{t.editPage}</h1><p>{t.introHelp}</p></header>
+    <header>
+      <AppLauncherLink href={import.meta.env.VITE_DRACONIS_HOME_URL} locale={uiLocale} />
+      <p className="eyebrow">{t.brand}</p><h1>{t.editPage}</h1><p>{t.introHelp}</p></header>
     <section aria-labelledby="access-title"><h2 id="access-title">{t.openWebsite}</h2>
       <form onSubmit={open}>
         <label>{t.website}<select value={website} disabled={busy} onChange={(event) => {

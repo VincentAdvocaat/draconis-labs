@@ -1,4 +1,4 @@
-import { Topbar, TopbarBrand } from '@draconis/ui';
+import { AppLauncherLink, Topbar, TopbarBrand } from '@draconis/ui';
 import { useState } from 'react';
 
 export function App() {
@@ -8,7 +8,7 @@ export function App() {
     <div className="app-shell">
       <Topbar
         brand={<TopbarBrand mark="D" title="{{AppName}}" subtitle="Draconis app" />}
-        actions={<span className="status-pill">{status}</span>}
+        actions={<><AppLauncherLink href={import.meta.env.VITE_DRACONIS_HOME_URL} locale="en" /><span className="status-pill">{status}</span></>}
       />
       <main>
         <h1>{{AppName}}</h1>
