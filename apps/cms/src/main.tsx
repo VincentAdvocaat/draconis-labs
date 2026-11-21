@@ -9,6 +9,7 @@ import '@draconis/ui/app-launcher.css';
 import './style.css';
 import { EnglishEditor, type EnglishDto, type EnglishContent } from './page-locales';
 import { DocumentEditor } from './documents';
+import { ConfiguredLocalePreview, type LocalePreviewInput, type LocalePreviewResult } from './locale-preview';
 import type { PortfolioSelection, DocumentContent, DocumentDto, SitePlan, DocumentImageReference } from './documents';
 
 interface ImageReference {
@@ -22,6 +23,7 @@ interface Page {
   pagesEnabled?: boolean;
   sharedEnabled?: boolean;
   contactEnabled?:boolean;
+  localePreview?: { locale: 'de'; fallbackLocale?: 'nl' } | null;
 }
 interface UploadStatus { assetId: string; fileVersion: number; state: string; error: string | null; rights: string; metadataVersion?: number }
 interface RightsMetadata { assetId: string; metadataVersion: number; rights: string }
@@ -348,6 +350,15 @@ function App() {
       }
     });
   }
+  function previewConfiguredLocale(document: DocumentDto, input: LocalePreviewInput, onResult: (result: LocalePreviewResult) => void) {
+    if (busy || documentDirty) return;
+    void perform(async current => {
+      const result = await request<LocalePreviewResult>(`/documents/${document.pageId}/locale-previews/de`, {
+        method: 'POST', body: JSON.stringify(input),
+      });
+      if (current()) onResult(result);
+    });
+  }
   function previewDocument() {
     if (busy || !selectedDocument || documentDirty) return;
     void perform(async (current) => {
@@ -550,6 +561,10 @@ function App() {
       {selectedDocument && !english && documentDraft && <DocumentEditor uiLocale={uiLocale} draft={documentDraft} onChange={changeDocument} busy={busy} dirty={documentDirty} publishedFile={selectedDocument.publishedFile}
         onSave={saveDocument} onPreview={previewDocument} availableImage={availableImage} portfolioSelections={portfolioSelections}
         onLoadPortfolio={() => { if (busy) return; void perform(async (current) => { const selections = await request<PortfolioSelection[]>('/portfolio-snapshots'); if (current()) setPortfolioSelections(selections); }); }} />}
+      {page.localePreview && selectedDocument && !english && selectedDocument.content.blocks.every(block => block.type === 'text') &&
+        <ConfiguredLocalePreview key={`${generation.current}:${selectedDocument.revisionId}`} document={selectedDocument} uiLocale={uiLocale}
+          disabled={busy || documentDirty} fallback={page.localePreview.fallbackLocale === 'nl'}
+          onPreview={(input, onResult) => previewConfiguredLocale(selectedDocument, input, onResult)} />}
       {documentConflict && <aside><p>{dc.conflict}</p><p>{documentConflict.content.title}</p>
         <button disabled={busy} onClick={() => { if (busy) return; setSelectedDocument(documentConflict); setDocumentDraft(documentConflict.content);
           setDocumentConflict(null); setPreview(''); resetRights(); invalidateSiteChoice(); }}>{dc.latest}</button></aside>}

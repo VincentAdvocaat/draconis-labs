@@ -10,6 +10,7 @@ import { CmsService } from './service.js';
 import { MAX_BYTES } from '../../media-upload/processor.js';
 import { rightsInputSchema } from '../../media-upload/rights.js';
 import { localeSaveSchema } from './page-locales.js';
+import { localePreviewInputSchema, type LocalePreviewConfigs } from './locale-preview.js';
 import { createDocumentSchema, documentLifecycleSchema, saveDocumentSchema } from './documents.js';
 
 export interface LocalCredential {
@@ -20,7 +21,7 @@ export interface LocalCredential {
 }
 const parameters = (request: FastifyRequest) => request.params as { websiteId: string; revisionId?: string; releaseId?: string };
 
-export function cmsModule(service: CmsService, credentials: LocalCredential[]): ApiModule {
+export function cmsModule(service: CmsService, credentials: LocalCredential[], localePreviews: LocalePreviewConfigs = {}): ApiModule {
   function authorize(request: FastifyRequest, publish = false): LocalCredential {
     const token = request.headers.authorization;
     if (!token?.startsWith('Bearer ') || token.length > 512) throw new CmsError(401, 'Geldig lokaal token vereist');
@@ -55,6 +56,7 @@ export function cmsModule(service: CmsService, credentials: LocalCredential[]): 
       });
       app.get('/websites/:websiteId/pages/home', async (request) => ({
         ...service.repository.page(parameters(request).websiteId), uploadEnabled: service.uploadEnabled, pagesEnabled: !!service.documents, sharedEnabled: !!service.documents?.shared, contactEnabled:!!service.documents?.contact,
+        localePreview: service.documents ? localePreviews[parameters(request).websiteId as keyof LocalePreviewConfigs] ?? null : null,
       }));
       if (service.documents) {
         const documents = service.documents;
@@ -86,6 +88,12 @@ export function cmsModule(service: CmsService, credentials: LocalCredential[]): 
         app.get('/websites/:websiteId/portfolio-snapshots', async (request) => {
           if (!documents.portfolio) throw new CmsError(503, 'Catalogus niet beschikbaar');
           return documents.portfolio.selections(parameters(request).websiteId);
+        });
+        app.post('/websites/:websiteId/documents/:pageId/locale-previews/de', { bodyLimit: 128_000 }, async (request) => {
+          const { websiteId, pageId } = request.params as { websiteId: string; pageId: string };
+          const config = localePreviews[websiteId as keyof LocalePreviewConfigs];
+          if (!config) throw new CmsError(404, 'Geen Duitse taalproef voor deze website');
+          return documents.previewAdditionalLocale(websiteId, pageId, config, localePreviewInputSchema.parse(request.body));
         });
         app.get('/websites/:websiteId/documents/:pageId/locales/en', async (request) => {
           const {websiteId, pageId} = request.params as {websiteId: string; pageId: string};
