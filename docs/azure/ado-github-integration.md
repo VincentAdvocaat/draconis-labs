@@ -86,7 +86,7 @@ Voor head `841d9e2b26a2e4617885fc2c92fe58a48a45706f` en merge-SHA
 GitHub-check. De app is op het account geïnstalleerd. De GitHub-eigenaar kan
 `draconis-labs` aan de repositoryselectie van die installatie toevoegen en
 daarna een nieuwe PR-event gebruiken om de koppeling te toetsen.
-[Microsoft-documentatie over GitHub-triggers](https://learn.microsoft.com/en-us/azure/devops/pipelines/repos/github?view=azure-devops#troubleshoot-triggers)
+[Microsoft-documentatie over GitHub-triggers](https://learn.microsoft.com/en-us/azure/devops/pipelines/repos/github?view=azure-devops#failing-triggers)
 
 Maak de check pas verplicht nadat een automatisch gestarte run de exacte naam en
 afzender heeft gepubliceerd. Een verkeerd checkcontext blokkeert merges naar
