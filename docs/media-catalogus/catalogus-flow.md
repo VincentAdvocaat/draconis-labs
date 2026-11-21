@@ -78,3 +78,11 @@ De onafhankelijke PR 14-review vond P2 in de formulierbinding. Expliciet Laden v
 De lokale Chrome-controle gebruikte uitsluitend een synthetische PNG en expliciet als test aangeduide rechtengegevens. Via de browser zijn upload, privévoorbeeld, rechtenvrijgave, concept opslaan en snapshotpublicatie doorlopen. Na procesherstart zijn het item gewijzigd en gearchiveerd; de eerdere snapshot bleef met oorspronkelijke titel/afbeelding renderen. De detailpagina en een viewport van 390 bij 844 zijn gecontroleerd; de tijdelijke viewport is daarna hersteld. Screenshotbewijs staat als lokaal chatartifact, zonder token of klantmateriaal.
 
 De module is nog een lokale proef met twee fictieve websites, één vaste categorie, NL-presentatie en alleen getypeerde jaarmetadata. Er is geen klantmigratie, productie-identiteit, uitgebreide categorie-editor, algemene metadata-schema-editor, centrale navigatieregistratie of deployment. Volgende integratie is een CMS-adapter die CatalogRef en checksum pint en dezelfde mediarechtenservice gebruikt. Dat vraagt geen nieuwe kopie van mediaopslag.
+
+## Omslagbeeld en extra foto’s
+
+Open een bewaard item en klik op **Beeldgalerij openen**. Voeg maximaal vier bestaande bestandsversies toe. Per extra foto kun je NL- en EN-alttekst, decoratief gebruik en een publieke credit invullen. Kies in **Omslagbeeld** een extra foto om die met de huidige cover te wisselen. Alttekst en credit verhuizen met hun foto. Sla de galerij op voordat je publiceert.
+
+Het raster gebruikt alleen de gepinde cover. De detailpagina toont ook de extra foto’s in bewaarde volgorde. Dezelfde bestandsversie kan eenmaal per item worden gekozen. Voor alle beelden controleert publicatie de versies, rechten en alttekst van de gekozen taal. Decoratieve foto’s vereisen bewust lege alttekst. Publicatie van een nieuwe momentopname verandert eerdere momentopnamen niet.
+
+Galerijpublicaties gebruiken snapshot-schema 4 met de bestaande cover plus afzonderlijke extra gebruiksverwijzingen en vastgelegde beeldvarianten. Bestaande schemas 1 tot en met 3 blijven leesbaar. De CMS-consumer bewaart en hercontroleert alle verwijzingen uit de snapshot en kopieert de cover voor zijn portfolioraster. De standalone detailpagina gebruikt de extra varianten.
