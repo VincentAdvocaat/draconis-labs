@@ -83,9 +83,9 @@ gebruikt een installatietoken, maar Azure Pipelines ontbrak onder
 [GitHub Apps voor deze repository](https://github.com/VincentAdvocaat/draconis-labs/settings/installations).
 Voor head `841d9e2b26a2e4617885fc2c92fe58a48a45706f` en merge-SHA
 `eb58b7fb00886d1d8b468f3ef80c1d71d1d48df5` was er geen Azure-run voor de PR of
-GitHub-check. De app is op het account geïnstalleerd. De GitHub-eigenaar kan
-`draconis-labs` aan de repositoryselectie van die installatie toevoegen en
-daarna een nieuwe PR-event gebruiken om de koppeling te toetsen.
+GitHub-check. Op 21 november 2026 is `draconis-labs` aan de bestaande
+repositoryselectie van Azure Pipelines toegevoegd. GitHub toont de app nu op
+de repository. Een nieuwe commit op PR #66 toetst de koppeling.
 [Microsoft-documentatie over GitHub-triggers](https://learn.microsoft.com/en-us/azure/devops/pipelines/repos/github?view=azure-devops#failing-triggers)
 
 Maak de check pas verplicht nadat een automatisch gestarte run de exacte naam en
