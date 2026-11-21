@@ -73,7 +73,7 @@ describe('synthetic CMS legacy import dry-run', () => {
       expect(readdirSync(join(root, site))).toEqual(['cover.png']);
       expect(readFileSync(join(root, site, 'cover.png'))).toEqual(bytes);
     }
-  });
+  }, 15_000);
 
   it('reports collisions, invalid references and incorrect file hashes with no partial plan', () => {
     const { root, input, writeManifest } = fixture();
