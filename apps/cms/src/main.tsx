@@ -9,6 +9,7 @@ import '@draconis/ui/app-launcher.css';
 import './style.css';
 import { EnglishEditor, type EnglishDto, type EnglishContent } from './page-locales';
 import { DocumentEditor } from './documents';
+import { ConfiguredLocalePreview, type LocalePreviewInput, type LocalePreviewResult } from './locale-preview';
 import type { PortfolioSelection, DocumentContent, DocumentDto, SitePlan, DocumentImageReference } from './documents';
 
 interface ImageReference {
@@ -22,6 +23,7 @@ interface Page {
   pagesEnabled?: boolean;
   sharedEnabled?: boolean;
   contactEnabled?:boolean;
+  localePreview?: { locale: 'de'; fallbackLocale?: 'nl' } | null;
 }
 interface UploadStatus { assetId: string; fileVersion: number; state: string; error: string | null; rights: string; metadataVersion?: number }
 interface RightsMetadata { assetId: string; metadataVersion: number; rights: string }
@@ -294,6 +296,41 @@ function App() {
       const list = await request<SitePlan>('/site-plan'); if (current()) setOverview(list);
     });
   }
+  const pageActionsDisabled = busy || dirty || documentDirty || englishDirty || sharedDirty || contactDirty;
+  function setPageArchived(pageId: string, expectedVersion: number, archived: boolean) {
+    if (pageActionsDisabled) return;
+    void perform(async (current) => {
+      try {
+        await request<DocumentDto>(`/documents/${pageId}/archive`, {
+          method: 'PUT', body: JSON.stringify({ expectedVersion, archived }),
+        });
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 409 && current()) {
+          invalidateSiteChoice();
+          const list = await request<SitePlan>('/site-plan');
+          if (current()) setOverview(list);
+        }
+        throw err;
+      }
+      if (!current()) return;
+      invalidateSiteChoice();
+      setSelectedLocales([]);
+      if (selectedDocument?.pageId === pageId) {
+        setSelectedDocument(null);
+        setDocumentDraft(null);
+        setDocumentConflict(null);
+        setEnglish(null);
+        setEnglishDraft(null);
+        setEnglishLatest(null);
+        setEnglishConfirmedStructure('');
+        setPreview('');
+        resetRights();
+      }
+      setStatus(message(archived ? 'archived' : 'restored'));
+      const list = await request<SitePlan>('/site-plan');
+      if (current()) setOverview(list);
+    });
+  }
   function saveDocument() {
     if (busy || !selectedDocument || !documentDraft) return;
     void perform(async (current) => {
@@ -311,6 +348,15 @@ function App() {
         }
         throw err;
       }
+    });
+  }
+  function previewConfiguredLocale(document: DocumentDto, input: LocalePreviewInput, onResult: (result: LocalePreviewResult) => void) {
+    if (busy || documentDirty) return;
+    void perform(async current => {
+      const result = await request<LocalePreviewResult>(`/documents/${document.pageId}/locale-previews/de`, {
+        method: 'POST', body: JSON.stringify(input),
+      });
+      if (current()) onResult(result);
     });
   }
   function previewDocument() {
@@ -468,7 +514,14 @@ function App() {
     {page?.pagesEnabled && <section><h2>{dc.pages}</h2>
       <button disabled={busy} onClick={refreshOverview}>{dc.refresh}</button>
       {overview && <ul>{overview.pages.map((item) => <li key={item.pageId}>{item.title} · {item.file} · v{item.version}{' '}
-        <button disabled={busy || dirty || documentDirty || englishDirty} onClick={() => openDocument(item.pageId)}>{item.pageId === 'home' ? dc.openHome : dc.openPage}</button></li>)}</ul>}
+        <button disabled={pageActionsDisabled} onClick={() => openDocument(item.pageId)}>{item.pageId === 'home' ? dc.openHome : dc.openPage}</button>
+        {item.pageId !== 'home' && <button disabled={pageActionsDisabled} onClick={() => setPageArchived(item.pageId, item.version, true)}>{dc.archive}</button>}
+      </li>)}</ul>}
+      {!!overview?.archivedPages?.length && <details><summary>{dc.archivedPages}</summary>
+        <ul>{overview.archivedPages.map(item => <li key={item.pageId}>{item.title} · {item.file}{' '}
+          <button disabled={pageActionsDisabled} onClick={() => setPageArchived(item.pageId, item.version, false)}>{dc.restore}</button>
+        </li>)}</ul>
+      </details>}
       <fieldset disabled={busy}><legend>{dc.create}</legend>
         <label>{dc.newTitle}<input value={newPage.title} maxLength={200} onChange={(event) => setNewPage({ ...newPage, title: event.target.value })} /></label>
         <label>{dc.newSlug}<input value={newPage.slug} maxLength={80} onChange={(event) => setNewPage({ ...newPage, slug: event.target.value })} /></label>
@@ -508,6 +561,10 @@ function App() {
       {selectedDocument && !english && documentDraft && <DocumentEditor uiLocale={uiLocale} draft={documentDraft} onChange={changeDocument} busy={busy} dirty={documentDirty} publishedFile={selectedDocument.publishedFile}
         onSave={saveDocument} onPreview={previewDocument} availableImage={availableImage} portfolioSelections={portfolioSelections}
         onLoadPortfolio={() => { if (busy) return; void perform(async (current) => { const selections = await request<PortfolioSelection[]>('/portfolio-snapshots'); if (current()) setPortfolioSelections(selections); }); }} />}
+      {page.localePreview && selectedDocument && !english && selectedDocument.content.blocks.every(block => block.type === 'text') &&
+        <ConfiguredLocalePreview key={`${generation.current}:${selectedDocument.revisionId}`} document={selectedDocument} uiLocale={uiLocale}
+          disabled={busy || documentDirty} fallback={page.localePreview.fallbackLocale === 'nl'}
+          onPreview={(input, onResult) => previewConfiguredLocale(selectedDocument, input, onResult)} />}
       {documentConflict && <aside><p>{dc.conflict}</p><p>{documentConflict.content.title}</p>
         <button disabled={busy} onClick={() => { if (busy) return; setSelectedDocument(documentConflict); setDocumentDraft(documentConflict.content);
           setDocumentConflict(null); setPreview(''); resetRights(); invalidateSiteChoice(); }}>{dc.latest}</button></aside>}

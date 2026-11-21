@@ -115,12 +115,13 @@ export class CatalogSnapshotConsumer {
     this.assertSnapshot(current, pin);
     this.assertSnapshot(pin.snapshot, pin);
     for (const item of pin.snapshot.items) {
-      this.rights.requireApproval(website, item.media.assetId);
+      const references = [item.resolvedMedia, ...(item.resolvedGallery ?? [])];
+      for (const photo of references) this.rights.requireApproval(website, photo.assetId);
       // A separate retained manifest for the consumer pins the existing immutable source revision.
       // This reuses a retained revision rather than selecting archived media anew.
       const manifest = this.media.resolveRelease(website, { releaseId: `consumer-${pin.pinId}-${item.itemId}`,
         revisionId: `catalog-${item.revisionId}`, locales: [pin.localeContext.locale] });
-      if (manifest.references.length !== 1 || JSON.stringify(manifest.references[0]) !== JSON.stringify(item.resolvedMedia))
+      if (JSON.stringify(manifest.references) !== JSON.stringify(references))
         throw new MediaContractError(409, 'Consumer media manifest differs from the pinned snapshot');
     }
   }

@@ -7,7 +7,7 @@ import { FIXTURE_WEBSITES } from '../media-fixture/fixture.js';
 import { assertFixtureRoot } from '../media-fixture/safety.js';
 import { checksum, MediaFixtureStore } from '../media-fixture/storage.js';
 import { MediaContractError } from '../media-fixture/contracts.js';
-import { itemInputSchema, localeVariantInputSchema, withdrawalSchema, type CatalogItem, type CatalogRef, type CatalogSnapshot } from './contracts.js';
+import { catalogMedia, galleryInputSchema, itemInputSchema, localeVariantInputSchema, withdrawalSchema, type CatalogItem, type CatalogRef, type CatalogSnapshot } from './contracts.js';
 import { MediaRightsService } from '../media-upload/rights.js';
 import { CatalogLocales } from './locales.js';
 import { MediaLibrary } from './library.js';
@@ -121,15 +121,44 @@ export class CatalogService {
         priorMedia.usage === fields.media.usage;
       const credit = publicPhotoCredit === undefined && sameUse ? previous?.publicPhotoCredit : publicPhotoCredit;
       const item = this.locales.writeRevision(website, previous,
-        { ...fields, itemId: id, revisionId, version: expectedVersion + 1, ...(credit ? { publicPhotoCredit: credit } : {}) });
+        { ...fields, itemId: id, revisionId, version: expectedVersion + 1, ...(credit ? { publicPhotoCredit: credit } : {}),
+          ...(previous?.gallery?.length ? { gallery: previous.gallery } : {}) });
       this.commitRevision(website, item);
       return item;
     })();
   }
+  saveGallery(website: string, id: string, input: unknown) {
+    this.authorize(website);
+    const data = galleryInputSchema.parse(input);
+    return this.db.transaction(() => {
+      const source = this.currentItem(website, id);
+      if (source.version !== data.expectedVersion) throw new MediaContractError(409, 'Item version conflict');
+      const cover = data.gallery.find(photo => photo.usage === data.coverUsage);
+      if (data.coverUsage && !cover) throw new MediaContractError(400, 'Choose a cover from the selected gallery');
+      const updated = { ...source, revisionId: randomUUID(), version: source.version + 1, gallery: data.gallery };
+      if (cover) {
+        const { publicPhotoCredit, ...reference } = cover;
+        updated.media = { ...reference, usage: source.media.usage };
+        updated.publicPhotoCredit = publicPhotoCredit;
+        const { nl, en } = source.media.altText;
+        updated.gallery = data.gallery.map(photo => photo.usage === cover.usage ? {
+          ...source.media, usage: cover.usage,
+          altText: { ...(nl === undefined ? {} : { nl }), ...(en === undefined ? {} : { en }) },
+          publicPhotoCredit: source.publicPhotoCredit,
+        } : photo);
+      }
+      const item = this.locales.writeRevision(website, source, updated);
+      this.commitRevision(website, item);
+      return item;
+    }).immediate();
+  }
   private commitRevision(website: string, item: CatalogItem) {
     // Caller owns the outer transaction, including locale slugs, refs and revision writes.
+    const references = catalogMedia(item);
+    if (new Set(references.map(ref => `${ref.assetId}/${ref.fileVersion}`)).size !== references.length)
+      throw new MediaContractError(409, 'Choose a file version only once per item');
     this.media.saveReferences(website, { module: 'catalogus', ownerId: item.itemId,
-      revisionId: `catalog-${item.revisionId}`, expectedVersion: 0, references: [item.media] });
+      revisionId: `catalog-${item.revisionId}`, expectedVersion: 0, references });
     this.db.prepare('INSERT INTO catalog_revisions VALUES(?,?,?,?)').run(website, item.revisionId, item.itemId, JSON.stringify(item));
     const position = this.order.positionForItem(website, item.itemId);
     this.db.prepare(`INSERT INTO catalog_items(website,id,slug,version,revision,archived,position) VALUES(?,?,?,?,?,0,?) ON CONFLICT(website,id)
@@ -184,13 +213,19 @@ export class CatalogService {
       const snapshotId = randomUUID();
       const items = collection.items.map(item => {
         const localized = this.locales.publicationItem(website, item, localeContext);
-        this.rights.requireApproval(website, item.media.assetId);
+        for (const photo of catalogMedia(item)) {
+          if (photo.decorative && photo.altText[localeContext.locale] !== '')
+            throw new MediaContractError(409, `Decorative images need explicitly empty alt for ${localeContext.locale}`);
+          this.rights.requireApproval(website, photo.assetId);
+        }
         const media = this.media.resolveRelease(website, { releaseId: `catalog-${snapshotId}-${item.itemId}`,
           revisionId: `catalog-${item.revisionId}`, locales: [localeContext.locale] });
-        return { ...localized, resolvedMedia: media.references[0] };
+        const [resolvedMedia, ...resolvedGallery] = media.references;
+        return { ...localized, resolvedMedia, ...(resolvedGallery.length ? { resolvedGallery } : {}) };
       });
       const categories = this.categories.publication(website, items.map(item => item.categoryId), localeContext);
-      const payload = { schemaVersion: 3 as const, websiteId: website, collectionId: 'portfolio' as const, snapshotId, localeContext, categories, items };
+      const schemaVersion: CatalogSnapshot['schemaVersion'] = items.some(item => item.resolvedGallery) ? 4 : 3;
+      const payload = { schemaVersion, websiteId: website, collectionId: 'portfolio' as const, snapshotId, localeContext, categories, items };
       const snapshot: CatalogSnapshot = { ...payload, checksum: checksum(Buffer.from(JSON.stringify(payload))) };
       this.db.prepare('INSERT INTO catalog_snapshots(website,id,json) VALUES(?,?,?)').run(website, snapshotId, JSON.stringify(snapshot));
       this.db.prepare('INSERT INTO catalog_snapshot_audit VALUES(?,?,1,?,?,?)')
@@ -233,9 +268,11 @@ export class CatalogService {
       return { snapshotId: id, status: 'withdrawn', version };
     })();
   }
-  variant(ref: CatalogRef, itemId: string, variantIndex: number) {
+  variant(ref: CatalogRef, itemId: string, variantIndex: number, galleryIndex?: number) {
     const item = this.resolveSnapshot(ref).items.find(i => i.itemId === itemId);
-    const variant = Number.isSafeInteger(variantIndex) && variantIndex >= 0 ? item?.resolvedMedia.variants[variantIndex] : undefined;
+    const photo = galleryIndex === undefined ? item?.resolvedMedia :
+      Number.isSafeInteger(galleryIndex) && galleryIndex >= 0 ? item?.resolvedGallery?.[galleryIndex] : undefined;
+    const variant = Number.isSafeInteger(variantIndex) && variantIndex >= 0 ? photo?.variants[variantIndex] : undefined;
     if (!variant) throw new MediaContractError(404, 'Snapshot image not found');
     return this.readVariant(variant);
   }
