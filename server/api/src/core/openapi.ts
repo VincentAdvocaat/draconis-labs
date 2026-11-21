@@ -2,7 +2,7 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import type { FastifyInstance } from 'fastify';
 
-export async function registerOpenApi(app: FastifyInstance) {
+export async function registerOpenApi(app: FastifyInstance, protectedPlanner = false) {
   await app.register(swagger, {
     openapi: {
       openapi: '3.1.0',
@@ -22,7 +22,9 @@ export async function registerOpenApi(app: FastifyInstance) {
           bearerAuth: {
             type: 'http',
             scheme: 'bearer',
-            description: 'Named API key (Bearer token) for agent identity. Planner keys have no per-operation scopes.',
+            description: protectedPlanner
+              ? 'Local test session token. Workspace membership determines which Planner operations are allowed.'
+              : 'Named API key (Bearer token) for agent identity. Planner keys have no per-operation scopes.',
           },
         },
       },

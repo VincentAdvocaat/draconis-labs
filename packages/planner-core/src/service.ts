@@ -1,42 +1,15 @@
 import type { CreateTaskInput, Task, TaskListQuery, UpdateTaskInput, UserPreferences } from '@draconis/shared';
-import { addRecurrence } from '@draconis/shared';
 import { newTask } from './new-task.js';
 import type { HistoryQuery, PlannerEnvironment, PlannerStorage, TaskCreationReceiptKey, TaskCursorQuery } from './storage.js';
+import { lanePositionChanges, nextRecurringTask, taskUpdate, TaskCreationConflictError } from './task-mutation.js';
 
-export class TaskConflictError extends Error {
-  readonly task: Task;
-
-  constructor(task: Task) {
-    super('Deze taak is elders gewijzigd. Vernieuw en probeer opnieuw.');
-    this.task = task;
-    Object.assign(this, { statusCode: 409 });
-  }
-}
-
-export class TaskCreationConflictError extends Error {
-  constructor() {
-    super('Deze opdrachtsleutel is al voor andere invoer gebruikt.');
-  }
-}
+export { TaskConflictError, TaskCreationConflictError } from './task-mutation.js';
 
 export function createPlannerService(storage: PlannerStorage, environment: PlannerEnvironment) {
   function find(id: string) {
     const task = storage.find(id);
     if (!task) throw Object.assign(new Error('Taak niet gevonden'), { statusCode: 404 });
     return task;
-  }
-  function rebalance(lane: Task['lane'], now: string, updatedId: string) {
-    const tasks = storage.lane(lane);
-    if (tasks.some((task, index) => index > 0 && task.position - tasks[index - 1].position < 1)) {
-      tasks.forEach((task, index) => {
-        const position = (index + 1) * 1000;
-        if (task.position === position) return;
-        storage.update(task.id, {
-          position, updatedAt: now,
-          ...(task.id === updatedId ? {} : { version: task.version + 1 }),
-        });
-      });
-    }
   }
   return {
     list: (query: TaskListQuery) => storage.list(query),
@@ -63,26 +36,16 @@ export function createPlannerService(storage: PlannerStorage, environment: Plann
     update(id: string, input: UpdateTaskInput): Task {
       return storage.transaction(() => {
         const existing = find(id);
-        if (input.version !== undefined && input.version !== existing.version) throw new TaskConflictError(existing);
-        const now = environment.now();
-        const movingToDone = input.lane === 'done' && existing.lane !== 'done';
-        const completedAt = movingToDone ? now
-          : input.lane && input.lane !== 'done' ? null : existing.completedAt;
-        const { version: _version, ...changes } = input;
-        storage.update(id, { ...changes, updatedAt: now, completedAt, version: existing.version + 1 });
-        if (input.position !== undefined || input.lane !== undefined) rebalance(input.lane ?? existing.lane, now, id);
-        if (movingToDone) {
-          const completed = find(id);
-          const dueDate = completed.dueDate ?? completed.plannedDate;
-          if (completed.recurrence && dueDate) {
-            const nextDueDate = addRecurrence(dueDate, completed.recurrence);
-            storage.insert({
-              ...completed, id: environment.id(), lane: 'todo', plannedDate: nextDueDate, dueDate: nextDueDate,
-              recurrenceParentId: completed.recurrenceParentId ?? completed.id,
-              position: storage.maxTodoPosition() + 1000, version: 1,
-              createdAt: now, updatedAt: now, completedAt: null,
-            });
+        const { changes, movingToDone, reorderLane } = taskUpdate(existing, input, () => environment.now());
+        storage.update(id, changes);
+        if (reorderLane) {
+          for (const { id: changedId, ...change } of lanePositionChanges(storage.lane(reorderLane), changes.updatedAt, id)) {
+            storage.update(changedId, change);
           }
+        }
+        if (movingToDone) {
+          const successor = nextRecurringTask(find(id), () => environment.id(), changes.updatedAt, storage.maxTodoPosition());
+          if (successor) storage.insert(successor);
         }
         return find(id);
       });

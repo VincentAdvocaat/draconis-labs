@@ -1,7 +1,18 @@
 import cors from '@fastify/cors';
 import Fastify from 'fastify';
+import { readFileSync } from 'node:fs';
 import { ZodError } from 'zod';
-import { registerPlatformApi } from './core/index.js';
+import { createLocalIdentity, localIdentityHost } from './core/local-identity.js';
+
+const identityFile = process.env.DRACONIS_LOCAL_IDENTITY_FILE;
+if (identityFile !== undefined && !process.env.DATABASE_PATH) {
+  throw new Error('Geef DATABASE_PATH op voor de aparte lokale testdatabase.');
+}
+const authorize = identityFile === undefined
+  ? undefined
+  : createLocalIdentity(JSON.parse(readFileSync(identityFile, 'utf8')));
+const host = authorize ? localIdentityHost(process.env.HOST) : process.env.HOST ?? '0.0.0.0';
+const { registerPlatformApi } = await import('./core/index.js');
 
 const app = Fastify({ logger: true });
 
@@ -43,8 +54,7 @@ app.setErrorHandler((error, _request, reply) => {
   });
 });
 
-await registerPlatformApi(app);
+await registerPlatformApi(app, authorize);
 
 const port = Number(process.env.PORT ?? 3001);
-const host = process.env.HOST ?? '0.0.0.0';
 await app.listen({ port, host });

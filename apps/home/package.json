@@ -8,8 +8,9 @@
     "preview": "vite preview",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint src server tests vite.config.ts",
-    "test": "vitest run"
+    "lint": "oxlint src server tests browser vite.config.ts playwright.config.ts",
+    "test": "vitest run --exclude browser/**",
+    "test:browser": "vite build && playwright test"
   },
   "dependencies": {
     "@draconis/shared": "workspace:*",
@@ -18,6 +19,8 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.65.1",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

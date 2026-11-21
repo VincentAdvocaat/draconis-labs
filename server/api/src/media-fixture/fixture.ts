@@ -12,7 +12,7 @@ export const FIXTURE_WEBSITES = ['fixture-alpha', 'fixture-beta'];
 /** A fixed 1x1 PNG. This is a safe test derivative, not an upload processor. */
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==', 'base64');
 
-export function createMediaFixture() {
+export function createMediaFixture({ seed = true } = {}) {
   const root = mkdtempSync(join(realpathSync(tmpdir()), 'draconis-media-fixture-'));
   const token = randomUUID();
   writeFileSync(join(root, '.media-fixture'), token, { flag: 'wx' });
@@ -22,7 +22,7 @@ export function createMediaFixture() {
   try {
     const asset = db.prepare('INSERT INTO assets(website,id,rights) VALUES(?,?,?)');
     const file = db.prepare('INSERT INTO files VALUES(?,?,?,?,?)');
-    for (const website of FIXTURE_WEBSITES) {
+    for (const website of seed ? FIXTURE_WEBSITES : []) {
       for (const [id, state, rights] of [
         ['photo', 'ready', 'cleared'], ['pending', 'processing', 'cleared'],
         ['unlicensed', 'ready', 'unknown'], ['blocked', 'ready', 'blocked'],

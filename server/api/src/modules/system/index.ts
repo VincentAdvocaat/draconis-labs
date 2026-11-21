@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { ApiModule } from '../../core/module.js';
-import { moduleCatalog } from '../../core/registry.js';
+import type { moduleCatalog } from '../../core/registry.js';
 
 async function registerSystemRoutes(app: FastifyInstance) {
   app.get(
@@ -34,7 +34,7 @@ async function registerSystemRoutes(app: FastifyInstance) {
     async () => ({
       apiVersion: 'v1',
       service: 'draconis-api',
-      modules: moduleCatalog(),
+      modules: app.getDecorator<ReturnType<typeof moduleCatalog>>('moduleCatalog'),
     }),
   );
 }
