@@ -3,6 +3,7 @@ import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { LOCAL_WORKSPACE_ID, type PlannerCommand } from '@draconis/shared';
 import type { Actor } from './auth.js';
+import { isAgentCredential, type AgentCredentials } from './agent-credentials.js';
 
 const userId = z.string().regex(/^[a-zA-Z0-9._~-]{1,100}$/);
 const configSchema = z.strictObject({
@@ -33,7 +34,33 @@ export type AuthorizePlanner = (
 ) => { ok: true; actor: Actor } | {
   ok: false;
   error: { code: 'UNAUTHORIZED'; status: 401; message: string } | { code: 'FORBIDDEN'; status: 403; message: string };
+  actor?: Actor;
 };
+
+const unauthorized = { ok: false, error: { code: 'UNAUTHORIZED', status: 401, message: 'Ongeldige aanmelding' } } as const;
+const forbidden = { ok: false, error: { code: 'FORBIDDEN', status: 403, message: 'Geen toegang tot deze werkruimte of handeling.' } } as const;
+const readBearer = (request: FastifyRequest) => /^Bearer ([^\s,]+)$/i.exec(request.headers.authorization ?? '')?.[1];
+
+export function allowScopedAgents(authorizeUser: AuthorizePlanner, credentials: AgentCredentials): AuthorizePlanner {
+  const authorizeAgent = authorizeScopedAgent(credentials);
+  return (request, workspaceId, operation) => {
+    const userAccess = authorizeUser(request, workspaceId, operation);
+    if (userAccess.ok || userAccess.error.status !== 401) return userAccess;
+    return authorizeAgent(request, workspaceId, operation);
+  };
+}
+
+export function authorizeScopedAgent(credentials: AgentCredentials): AuthorizePlanner {
+  return (request, workspaceId, operation) => {
+    const token = readBearer(request);
+    if (!token || !isAgentCredential(token)) return unauthorized;
+    const access = credentials.authenticate(token, workspaceId, operation);
+    if (access.status === 401) return unauthorized;
+    const actor = { kind: 'agent', name: access.name } as const;
+    if (access.status === 403) return { ...forbidden, actor };
+    return { ok: true, actor };
+  };
+}
 
 export function createLocalIdentity(input: unknown, now = Date.now): AuthorizePlanner {
   const parsed = configSchema.safeParse(input);
@@ -48,18 +75,19 @@ export function createLocalIdentity(input: unknown, now = Date.now): AuthorizePl
   if (sessionsByHash.size !== sessions.length) throw new Error('Dubbele lokale testsessie.');
 
   return (request, workspaceId, operation) => {
-    const bearer = /^Bearer ([^\s,]+)$/i.exec(request.headers.authorization ?? '')?.[1];
+    const bearer = readBearer(request);
     const hash = bearer && createHash('sha256').update(bearer).digest('hex');
     const session = hash ? sessionsByHash.get(hash) : undefined;
     if (!session || Date.parse(session.expiresAt) <= now()) {
-      return { ok: false, error: { code: 'UNAUTHORIZED', status: 401, message: 'Ongeldige aanmelding' } };
+      return unauthorized;
     }
 
     const role = roles.get(session.userId);
+    const actor = { kind: 'user', name: session.userId } as const;
     if (workspaceId !== LOCAL_WORKSPACE_ID || !role || !permissions[operation]?.includes(role)) {
-      return { ok: false, error: { code: 'FORBIDDEN', status: 403, message: 'Geen toegang tot deze werkruimte of handeling.' } };
+      return { ...forbidden, actor };
     }
-    return { ok: true, actor: { kind: 'user', name: session.userId } };
+    return { ok: true, actor };
   };
 }
 
