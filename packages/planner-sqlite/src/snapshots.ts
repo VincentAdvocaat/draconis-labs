@@ -1,4 +1,4 @@
-import type { Task } from '@draconis/shared';
+import { createTaskSchema, uuidParamSchema, type Task } from '@draconis/shared';
 import type Database from 'better-sqlite3';
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
@@ -75,7 +75,17 @@ export function createPlannerSnapshotTools(DatabaseClass: typeof Database) {
         let result: Task;
         try {
           result = JSON.parse(row.result) as Task;
-          if (!result || typeof result.id !== 'string' || typeof result.title !== 'string' || result.version !== 1) throw new Error();
+          if (!result || typeof result !== 'object' || Array.isArray(result)) throw new Error();
+          uuidParamSchema.parse({ id: result.id });
+          if (result.recurrenceParentId !== null) uuidParamSchema.parse({ id: result.recurrenceParentId });
+          if (!['todo', 'doing', 'done'].includes(result.lane) || typeof result.createdBy !== 'string'
+            || !Number.isFinite(result.position) || result.version !== 1) throw new Error();
+          for (const value of [result.createdAt, result.updatedAt]) {
+            if (typeof value !== 'string' || !Number.isFinite(Date.parse(value))) throw new Error();
+          }
+          if (result.completedAt !== null && (typeof result.completedAt !== 'string' || !Number.isFinite(Date.parse(result.completedAt)))) throw new Error();
+          // A receipt describes the original result, even when its task has since been deleted.
+          createTaskSchema.required().parse({ ...result, description: result.description === null ? '' : result.description });
         } catch {
           throw new PlannerSnapshotError('INVALID_RECEIPT', 'Ongeldig opgeslagen resultaat van taakcreatie.');
         }

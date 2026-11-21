@@ -234,3 +234,47 @@ it.each(['legacy', 'current'])('dry-runs and imports the %s SQLite snapshot with
   expect(await planner.list({ q: updated.title })).toEqual([updated]);
   expect(readFileSync(file)).toEqual(bytes);
 });
+
+
+it('rejects malformed historical receipt tasks and replays a valid receipt after task deletion', async () => {
+  const file = join(directory, 'historical-receipt.sqlite');
+  const db = new Database(file);
+  const input = { title: 'Verwijderde fictieve taak' };
+  const key = { workspaceId: 'local', actor: actor.name, key: 'deleted-command' };
+  let created: Task;
+  try {
+    initializePlannerSqlite(db);
+    const planner = createPlannerService(createSqlitePlannerStorage(db), environment);
+    created = planner.create(input, actor, key);
+    planner.remove(created.id);
+    db.pragma('wal_checkpoint(TRUNCATE)');
+    db.pragma('journal_mode = DELETE');
+    const invalidResults = [
+      { id: 'not-a-uuid', title: 'x', version: 1 },
+      { ...created, id: 'not-a-uuid' },
+      ...Object.keys(created).map(field => Object.fromEntries(Object.entries(created).filter(([key]) => key !== field))),
+      { ...created, lane: 'invalid' }, { ...created, position: '1000' },
+      { ...created, labels: [42] }, { ...created, recurrence: { frequency: 'invalid' } },
+      { ...created, recurrenceParentId: 'not-a-uuid' },
+      { ...created, createdAt: 'invalid' }, { ...created, updatedAt: 'invalid' }, { ...created, completedAt: 'invalid' },
+    ];
+    for (const result of invalidResults) {
+      db.prepare('UPDATE planner_command_receipts SET result = ?').run(JSON.stringify(result));
+      const report = snapshotTools.dryRun(file);
+      await expect(importPlannerPostgresSnapshot(pools[0], {
+        workspaceId: 'historical-receipt', snapshotPath: file, sourceId: 'historical-receipt', expectedSha256: report.sha256, dryRun: true,
+      })).rejects.toMatchObject({ code: 'INVALID_RECEIPT' });
+    }
+    db.prepare('UPDATE planner_command_receipts SET result = ?').run(JSON.stringify(created));
+  } finally {
+    db.close();
+  }
+  const workspaceId = 'historical-receipt';
+  await createPlannerPostgresWorkspace(pools[0], workspaceId);
+  const report = snapshotTools.dryRun(file);
+  await importPlannerPostgresSnapshot(pools[0], { workspaceId, snapshotPath: file, sourceId: workspaceId, expectedSha256: report.sha256, dryRun: false });
+  const planner = service(pools[0], workspaceId);
+  expect(await planner.list({})).toEqual([]);
+  expect(await planner.create(input, actor, { ...key, workspaceId })).toEqual(created);
+  expect(await planner.list({})).toEqual([]);
+});
