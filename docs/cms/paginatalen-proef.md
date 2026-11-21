@@ -32,3 +32,19 @@ De normale browserproef op 3022 heeft een NL-tekstpagina opgeslagen, haar EN-var
 De onafhankelijke review en gerichte herreview zijn gesloten op codecommit `f95389882d7b69d246f66070dec1d37c81123c56`. Eén gevonden P2-regressie is hersteld: een reeds gepubliceerde NL-slug `en` mag ongewijzigd blijven bij tekstbewerking. Nieuwe pagina's en hernoemingen naar deze gereserveerde slug blijven geweigerd. De extra upgradefixture test opslag vóór migratie 4, heropenen, tekstsave en herpublicatie op `/en.html`. De zestien relevante tests slagen bij implementatie en herreview; het API-totaal is daarmee 124. Er zijn geen noodzakelijke bevindingen meer open.
 
 Start vanuit de worktree met `./scripts/start-cms-fixture.ps1 -Port 3022 -NoOpen`. Alleen fictieve lokale gegevens. Geen merge, deployment, klantimport of brede editorrefactor. De [acceptatiematrix](acceptatiematrix.md) houdt volledige CMS-i18n, shared publieke labels, andere bloktypen en productiecriteria open.
+
+## Extra taal in de privépreview
+
+Zet bij een bestaande lokale fictieve CMS-proef de volgende eigenschap in `server/api/data/cms-fixture/local-config.json`. Herstart daarna de proef. Gebruik alleen de websitesleutel van de gewenste fixture. Laat `fallbackLocale` weg om uitsluitend rechtstreeks ingevulde Duitse tekst te tonen.
+
+```json
+"localePreviews": {
+  "demo-cms": { "locale": "de", "fallbackLocale": "nl" }
+}
+```
+
+Open een opgeslagen pagina met gewone tekstblokken. **Duitse privépreview** toont titel, slug, SEO-velden en tekst per blok. Leegmaken na invoer geeft bewust lege tekst. Met **Markeer als ontbrekend** kan de preview Nederlandse terugvaltekst tonen, als die website daarvoor is geconfigureerd. De status geeft aan welke Duitse velden rechtstreeks moeten worden ingevuld en welke verplichte Nederlandse bronvelden leeg zijn. Terugvaltekst in de HTML krijgt `lang="nl"`.
+
+De API geeft de instelling terug via `GET /api/v1/cms/websites/<website>/pages/home`. Stuur voorlopige tekst, blok-ID’s en `expectedVersion` naar `POST /api/v1/cms/websites/<website>/documents/<pageId>/locale-previews/de`. Het antwoord bevat de HTML en diagnose. Een verouderde paginaversie krijgt 409. Het websitegebonden token blijft vereist.
+
+Deze proef bewaart de Duitse invoer in het geopende formulier. Een volgende stap voor Duitse publicatie moet revisieopslag, slugs, navigatieteksten, beeld-alt en de releasekeuze vastleggen. De Nederlandse en Engelse routes volgen de bestaande publicatiecontracten.

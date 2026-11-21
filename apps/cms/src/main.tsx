@@ -7,6 +7,7 @@ import type { FormEvent } from 'react';
 import './style.css';
 import { EnglishEditor, type EnglishDto, type EnglishContent } from './page-locales';
 import { DocumentEditor } from './documents';
+import { ConfiguredLocalePreview, type LocalePreviewInput, type LocalePreviewResult } from './locale-preview';
 import type { PortfolioSelection, DocumentContent, DocumentDto, SitePlan, DocumentImageReference } from './documents';
 
 interface ImageReference {
@@ -20,6 +21,7 @@ interface Page {
   pagesEnabled?: boolean;
   sharedEnabled?: boolean;
   contactEnabled?:boolean;
+  localePreview?: { locale: 'de'; fallbackLocale?: 'nl' } | null;
 }
 interface UploadStatus { assetId: string; fileVersion: number; state: string; error: string | null; rights: string; metadataVersion?: number }
 interface RightsMetadata { assetId: string; metadataVersion: number; rights: string }
@@ -41,6 +43,7 @@ function App() {
   const [error, setError] = useState<UiMessage | null>(null);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState('');
+  const [localePreview, setLocalePreview] = useState<{ revisionId: string; result: LocalePreviewResult } | null>(null);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [draftConflict, setDraftConflict] = useState<Page | null>(null);
   const [pendingChoice, setPendingChoice] = useState<PublishChoice | null>(null);
@@ -96,7 +99,7 @@ function App() {
   function reset() {
     generation.current++;
     setContact(null);setContactDraft(null);setContactLatest(null);setContactPreview('');
-    setPage(null); setPreview(''); setAttempt(null); setDraftConflict(null);
+    setPage(null); setPreview(''); setLocalePreview(null); setAttempt(null); setDraftConflict(null);
     setPendingChoice(null); setPublicationConflict(false); setError(null); setBusy(false);
     setFile(null); setUploadJobId(''); setUploadStatus(null);
     setShared(null); setSharedDraft(null); setSharedLatest(null); setSharedChosen(false); setPortfolioSelections([]); setEnglishLatest(null); setEnglishConfirmedStructure(''); setEnglish(null); setEnglishDraft(null); setSelectedLocales([]); setOverview(null); setSelectedDocument(null); setDocumentDraft(null); setDocumentConflict(null); invalidateSiteChoice();
@@ -311,6 +314,16 @@ function App() {
       }
     });
   }
+  function previewConfiguredLocale(document: DocumentDto, input: LocalePreviewInput) {
+    if (busy || documentDirty) return;
+    setLocalePreview(null);
+    void perform(async current => {
+      const result = await request<LocalePreviewResult>(`/documents/${document.pageId}/locale-previews/de`, {
+        method: 'POST', body: JSON.stringify(input),
+      });
+      if (current()) setLocalePreview({ revisionId: document.revisionId, result });
+    });
+  }
   function previewDocument() {
     if (busy || !selectedDocument || documentDirty) return;
     void perform(async (current) => {
@@ -443,7 +456,7 @@ function App() {
           reset(); setWebsite(event.target.value);
         }}><option value="demo-cms">{t.trialSite}</option><option value="demo-other">{t.otherSite}</option></select></label>
         <label>{t.testToken}<input type="password" autoComplete="off" value={token} onChange={(event) => {
-          generation.current++; setBusy(false); setPreview(''); setError(null); setToken(event.target.value);
+          generation.current++; setBusy(false); setPreview(''); setLocalePreview(null); setError(null); setToken(event.target.value);
           setStatus(message('tokenChanged'));
         }} /></label>
         <button disabled={busy || !token}>{t.openPage}</button>
@@ -504,6 +517,11 @@ function App() {
       {selectedDocument && !english && documentDraft && <DocumentEditor uiLocale={uiLocale} draft={documentDraft} onChange={changeDocument} busy={busy} dirty={documentDirty} publishedFile={selectedDocument.publishedFile}
         onSave={saveDocument} onPreview={previewDocument} availableImage={availableImage} portfolioSelections={portfolioSelections}
         onLoadPortfolio={() => { if (busy) return; void perform(async (current) => { const selections = await request<PortfolioSelection[]>('/portfolio-snapshots'); if (current()) setPortfolioSelections(selections); }); }} />}
+      {page.localePreview && selectedDocument && !english && selectedDocument.content.blocks.every(block => block.type === 'text') &&
+        <ConfiguredLocalePreview key={selectedDocument.revisionId} document={selectedDocument} uiLocale={uiLocale}
+          disabled={busy || documentDirty} fallback={page.localePreview.fallbackLocale === 'nl'}
+          result={localePreview?.revisionId === selectedDocument.revisionId ? localePreview.result : null}
+          onChange={() => setLocalePreview(null)} onPreview={input => previewConfiguredLocale(selectedDocument, input)} />}
       {documentConflict && <aside><p>{dc.conflict}</p><p>{documentConflict.content.title}</p>
         <button disabled={busy} onClick={() => { if (busy) return; setSelectedDocument(documentConflict); setDocumentDraft(documentConflict.content);
           setDocumentConflict(null); setPreview(''); resetRights(); invalidateSiteChoice(); }}>{dc.latest}</button></aside>}

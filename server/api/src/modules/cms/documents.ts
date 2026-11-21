@@ -14,6 +14,7 @@ import type { CmsUploads } from './upload.js';
 import { documentSlugSchema } from './slugs.js';
 export { documentSlugSchema } from './slugs.js';
 import { CmsPageLocales } from './page-locales.js';
+import { createLocalePreview, type LocalePreviewConfig } from './locale-preview.js';
 const textBlock = z.object({ blockId: z.string().uuid(), type: z.literal('text'),
   heading: z.string().max(200), body: z.string().max(10_000) }).strict();
 const imageBlock = z.object({ blockId: z.string().uuid(), type: z.literal('image'),
@@ -264,14 +265,27 @@ export class CmsDocuments {
     if (!row) throw new CmsError(404, 'Website-snapshot niet gevonden');
     return JSON.parse(row.snapshot) as SiteSnapshot;
   }
-  private render(content: SnapshotPage['content'], images: Map<string, { src: string; alt: string }>, navigation = '', portfolio = new Map<string, string>()): string {
-    const blocks = content.blocks.map((block) => block.type === 'text'
-      ? `<section>${block.heading ? `<h2>${encode(block.heading)}</h2>` : ''}<p>${encode(block.body).replace(/\n/g, '<br>')}</p></section>`
-      : block.type === 'portfolio' ? portfolio.get(block.blockId) ?? '' : `<figure><img src="${encode(images.get(block.reference.usage)!.src)}" alt="${encode(images.get(block.reference.usage)!.alt)}" width="160" height="160">` +
-        (block.caption ? `<figcaption>${encode(block.caption)}</figcaption>` : '') + '</figure>').join('');
+  private render(content: Omit<DocumentContent, 'locale'> & { locale: 'nl' | 'en' | 'de' }, images: Map<string, { src: string; alt: string }>,
+    navigation = '', portfolio = new Map<string, string>(), preview?: ReturnType<typeof createLocalePreview>['diagnostics']): string {
+    const lang = (fallback?: boolean) => fallback ? ' lang="nl"' : '';
+    const blocks = content.blocks.map(block => {
+      if (block.type === 'text') {
+        const notes = preview?.blocks.find(item => item.blockId === block.blockId);
+        const heading = block.heading ? `<h2${lang(notes?.heading.fallback)}>${encode(block.heading)}</h2>` : '';
+        return `<section>${heading}<p${lang(notes?.body.fallback)}>${encode(block.body).replace(/\n/g, '<br>')}</p></section>`;
+      }
+      if (block.type === 'portfolio') return portfolio.get(block.blockId) ?? '';
+      const image = images.get(block.reference.usage)!;
+      return `<figure><img src="${encode(image.src)}" alt="${encode(image.alt)}" width="160" height="160">` +
+        (block.caption ? `<figcaption>${encode(block.caption)}</figcaption>` : '') + '</figure>';
+    }).join('');
     return `<!doctype html><html lang="${content.locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
-      `<title>${encode(content.seoTitle)}</title><meta name="description" content="${encode(content.seoDescription)}"></head><body>` +
-      navigation + `<main><h1>${encode(content.title)}</h1>${blocks}</main></body></html>`;
+      `<title${lang(preview?.fields.seoTitle.fallback)}>${encode(content.seoTitle)}</title><meta name="description"${lang(preview?.fields.seoDescription.fallback)} content="${encode(content.seoDescription)}"></head><body>` +
+      navigation + `<main><h1${lang(preview?.fields.title.fallback)}>${encode(content.title)}</h1>${blocks}</main></body></html>`;
+  }
+  previewAdditionalLocale(websiteId: string, pageId: string, config: LocalePreviewConfig, input: Parameters<typeof createLocalePreview>[2]) {
+    const preview = createLocalePreview(this.get(websiteId, pageId), config, input);
+    return { ...preview.diagnostics, html: this.render(preview.content, new Map(), '', undefined, preview.diagnostics) };
   }
   preview(websiteId: string, pageId: string, revisionId: string): string {
     const { content } = this.revision(websiteId, pageId, revisionId);

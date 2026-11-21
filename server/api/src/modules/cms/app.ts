@@ -16,6 +16,7 @@ import { CmsUploads } from './upload.js';
 import { UploadError } from '../../media-upload/processor.js';
 import { CmsPortfolio } from './portfolio.js';
 import { CmsDocuments } from './documents.js';
+import { localePreviewConfigSchema, type LocalePreviewConfigs } from './locale-preview.js';
 
 const credentialSchema = z.array(z.object({
   name: z.string().min(1).max(80),
@@ -34,6 +35,7 @@ export interface CmsAppOptions {
   mediaRoot?: string;
   enableUploads?: boolean;
   enablePages?: boolean;
+  localePreviews?: LocalePreviewConfigs;
   enablePortfolio?: boolean;
   enableSharedNavigation?: boolean;
   enableContactTemplate?:boolean;
@@ -63,6 +65,7 @@ function lockRuntime(root: string): () => void {
 
 export async function buildCmsApp(options: CmsAppOptions) {
   const credentials = credentialSchema.parse(options.credentials);
+  const localePreviews = localePreviewConfigSchema.parse(options.localePreviews ?? {});
   if (new Set(credentials.map((c) => c.tokenHash)).size !== credentials.length) throw new Error('Tokenhashes moeten uniek zijn');
   const root = resolve(options.runtimeRoot);
   const unlock = lockRuntime(root);
@@ -104,7 +107,7 @@ export async function buildCmsApp(options: CmsAppOptions) {
         : status >= 500 ? 'Interne serverfout' : (error as Error).message,
         ...(error instanceof UploadError && error.assetId ? { assetId: error.assetId, fileVersion: 1 } : {}) });
     });
-    const mod = cmsModule(service, credentials);
+    const mod = cmsModule(service, credentials, localePreviews);
     await app.register(mod.register, { prefix: `/api/v1${mod.prefix}` });
     app.get('/sites/:websiteId/en/:filename', async (request, reply) => {
       const {websiteId, filename} = request.params as {websiteId: string; filename: string};
