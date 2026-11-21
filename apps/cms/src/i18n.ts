@@ -2,6 +2,9 @@ export type UiLocale = 'nl' | 'en';
 // Fixed app copy follows the existing typed NL/EN approach; editorial records are separate.
 const nl = {
   pages: 'Pagina’s', refresh: 'Paginaoverzicht ophalen', openHome: 'Home bewerken', openPage: 'Pagina openen',
+  archive: 'Archiveren', restore: 'Herstellen', archivedPages: 'Gearchiveerde pagina’s',
+  archived: 'Pagina gearchiveerd. Ze verdwijnt bij de volgende publicatie.',
+  restored: 'Pagina hersteld. Kies de gewenste talen bij de volgende publicatie.',
   newTitle: 'Titel nieuwe pagina', newSlug: 'Slug nieuwe pagina', create: 'Nieuwe pagina aanmaken',
   title: 'Paginatitel', slug: 'Slug', seoTitle: 'SEO-titel', seoDescription: 'SEO-beschrijving',
   slugRenameHelp: 'Bij de volgende publicatie vervangt de nieuwe slug het huidige adres. Het oude adres vervalt.',
@@ -18,6 +21,9 @@ const nl = {
 type Copy = { [K in keyof typeof nl]: string };
 const en: Copy = {
   pages: 'Pages', refresh: 'Load page overview', openHome: 'Edit home', openPage: 'Open page',
+  archive: 'Archive', restore: 'Restore', archivedPages: 'Archived pages',
+  archived: 'Page archived. It will disappear with the next publication.',
+  restored: 'Page restored. Choose which languages to include in the next publication.',
   newTitle: 'New page title', newSlug: 'New page slug', create: 'Create page', title: 'Page title', slug: 'Slug',
   slugRenameHelp: 'The next publication replaces the current address with the new slug. The old address then stops working.',
   seoTitle: 'SEO title', seoDescription: 'SEO description', text: 'Text block', image: 'Image block', heading: 'Block heading',
@@ -33,6 +39,21 @@ const documentMessages: Record<UiLocale, Copy> = { nl, en };
 
 
 const uiNl = {
+  localePreviewGerman: 'Duitse privépreview',
+  localePreviewGermanFields: 'Duitse velden',
+  localePreviewFallbackOn: 'Ontbrekende tekst kan de Nederlandse bron tonen.',
+  localePreviewFallbackOff: 'Deze website toont geen terugvaltekst.',
+  localePreviewTemporary: 'De Duitse invoer blijft in dit tabblad.',
+  localePreviewClear: 'Markeer als ontbrekend',
+  localePreviewFallbackUsed: 'Nederlandse terugvaltekst',
+  localePreviewMissing: 'Ontbreekt in het Duits',
+  localePreviewEmpty: 'Bewust leeg',
+  localePreviewDirect: 'Duitse tekst',
+  localePreviewRequired: 'Directe Duitse tekst vereist',
+  localePreviewIncompleteSource: 'Nederlandse bron onvolledig',
+  localePreviewCheck: 'Preview en diagnose ophalen',
+  localePreviewReady: 'Alle vereiste Duitse velden zijn ingevuld.',
+  localePreviewNotReady: 'Vereiste Duitse velden ontbreken.',
   saveContactShared:"Gedeelde templatevelden opslaan",
   contactTemplate: "Contacttemplateproef",
   openContact: "Contacttemplate openen",
@@ -228,6 +249,21 @@ const uiNl = {
   "items": "items"
 } as const;
 const uiEn: {[K in keyof typeof uiNl]: string} = {
+  localePreviewGerman: 'Private German preview',
+  localePreviewGermanFields: 'German fields',
+  localePreviewFallbackOn: 'Missing text can show the Dutch source.',
+  localePreviewFallbackOff: 'This website has no fallback text.',
+  localePreviewTemporary: 'German input stays in this tab.',
+  localePreviewClear: 'Mark as missing',
+  localePreviewFallbackUsed: 'Dutch fallback text',
+  localePreviewMissing: 'Missing in German',
+  localePreviewEmpty: 'Intentionally empty',
+  localePreviewDirect: 'German text',
+  localePreviewRequired: 'Direct German text required',
+  localePreviewIncompleteSource: 'Dutch source incomplete',
+  localePreviewCheck: 'Preview and check fields',
+  localePreviewReady: 'All required German fields are complete.',
+  localePreviewNotReady: 'Required German fields are missing.',
   saveContactShared:"Save shared template fields",
   contactTemplate: "Contact template fixture",
   openContact: "Open contact template",

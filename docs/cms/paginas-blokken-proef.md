@@ -27,3 +27,13 @@ De API- en componenttests dekken onder meer migratie van bestaande home en media
 De browserproef heeft een nieuwe pagina aangemaakt, twee tekstblokken verplaatst, een echte lokale PNG geüpload, rechten expliciet vrijgegeven en de hele site gepubliceerd. Daarna is een nieuwer paginaconcept opgeslagen en het serverproces via het normale script herstart. De home bleef behouden; het nieuwe concept en de oudere gepubliceerde pagina bleven afzonderlijk bestaan. De publieke pagina toont de gekozen volgorde, SEO-titel en geschoonde afbeelding. Bewijsscreenshots staan uitsluitend in de genegeerde lokale fixturemap.
 
 Deze stap biedt nog geen volledige talenredactie, verwijderflow, redirectbeheer, portfolio/catalogusblok of productie-import. Er zijn maximaal 32 nieuwe pagina's per fixturewebsite. De runtime blijft lokaal en gebruikt fictieve inhoud.
+
+## Pagina archiveren en herstellen
+
+Open het paginaoverzicht met een lokaal redacteurstoken. Kies **Archiveren** bij een gewone pagina. Het overzicht zet haar onder **Gearchiveerde pagina’s**. Kies **Herstellen** om dezelfde pagina met haar bestaande tekst, slugs, vertalingen en mediaverwijzingen terug te zetten in de selectie. Home blijft altijd in de selectie. De opgeslagen pagina's, inclusief het archief, delen de bestaande limiet van 32.
+
+De API gebruikt `PUT /api/v1/cms/websites/<website>/documents/<pageId>/archive` met `expectedVersion` en `archived`. Een verouderde versie krijgt 409. Gearchiveerde pagina's blijven opvraagbaar met het websitegebonden token. Sla wijzigingen pas op nadat de pagina is hersteld.
+
+Archivering wijzigt de actieve publicatie pas wanneer een nieuwe momentopname wordt geactiveerd. Die momentopname laat de NL-route en eventuele EN-route weg. Eerdere publicaties bewaren hun routes en bestanden. Bij herstel kun je de opgeslagen EN-variant opnieuw expliciet publiceren. Een al gestarte publicatie gebruikt de eerder vastgelegde selectie.
+
+De additieve CMS-migratie voegt archiefstatus toe. Offline herstel accepteert bestaande schema-8-back-ups. Bij de eerste start wordt de herstelde kopie gemigreerd. Een schema-9-back-up bewaart ook de archiefstatus.

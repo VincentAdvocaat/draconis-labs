@@ -94,7 +94,7 @@ it('retains real CMS version pins and export bytes through failed upload, offlin
   } finally { uploads.close(); rights.close(); catalog.close(); await running.app.close(); }
   const before = [rows(join(source.root, 'cms.db')), rows(join(source.mediaRoot, 'media.sqlite'))];
   const backup = target('backup'); await backupRecoveryFixture(source.root, backup);
-  const manifest = json(join(backup, 'backup.json')); expect(manifest).toMatchObject({ cmsSchema: 8, catalogSchema: 5, uploadSchema: 1 });
+  const manifest = json(join(backup, 'backup.json')); expect(manifest).toMatchObject({ cmsSchema: 9, catalogSchema: 5, uploadSchema: 1 });
   const restored = await restoreRecoveryFixture(backup, target('recovery')); roots.push(restored.mediaRoot);
   expect([rows(join(restored.root, 'cms.db')), rows(join(restored.mediaRoot, 'media.sqlite'))]).toEqual(before);
   for (const file of manifest.files) {

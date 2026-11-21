@@ -7,7 +7,7 @@ import { catalogPublishSchema } from './contracts.js';
 
 export async function buildCatalogApp(root: string, token: string) {
   const app = await buildUploadApp(root, token, {
-    isPublicRead: path => path === '/catalogus' || path === '/catalogus/instance' || /^\/portfolio\/[^/]+\/[a-f0-9-]{36}(?:\/items\/[a-z0-9-]+|\/media\/[a-f0-9-]{36}\/\d+)?$/.test(path),
+    isPublicRead: path => path === '/catalogus' || path === '/catalogus/instance' || /^\/portfolio\/[^/]+\/[a-f0-9-]{36}(?:\/items\/[a-z0-9-]+|\/media\/[a-f0-9-]{36}\/\d+(?:\/\d+)?)?$/.test(path),
     allowedBrowserOrigin: () => {
       const address = app.server.address();
       return address && typeof address !== 'string' ? `http://127.0.0.1:${address.port}` : undefined;
@@ -36,6 +36,8 @@ export async function buildCatalogApp(root: string, token: string) {
   app.get<{ Params: { site: string }; Querystring: Record<string, string> }>('/catalogus/api/:site/library', async request => catalog.library(request.params.site, request.query));
   app.get<{ Params: { site: string; asset: string } }>('/catalogus/api/:site/library/:asset', async request => catalog.libraryDetail(request.params.site, request.params.asset));
   app.post<{ Params: { site: string } }>('/catalogus/api/:site/items', async request => catalog.save(request.params.site, request.body));
+  app.put<{ Params: { site: string; id: string } }>('/catalogus/api/:site/items/:id/gallery', async request =>
+    catalog.saveGallery(request.params.site, request.params.id, request.body));
   app.put<{ Params: { site: string; asset: string } }>('/catalogus/api/:site/rights/:asset', async request => catalog.setRights(request.params.site, request.params.asset, request.body));
   app.delete<{ Params: { site: string; id: string } }>('/catalogus/api/:site/items/:id', async request => {
     catalog.archive(request.params.site, request.params.id, version.parse(request.body).expectedVersion);
@@ -71,6 +73,11 @@ export async function buildCatalogApp(root: string, token: string) {
   });
   app.get<{ Params: { site: string; snapshot: string; item: string; variant: string } }>('/portfolio/:site/:snapshot/media/:item/:variant', async (request, reply) => {
     const image = catalog.variant({ websiteId: request.params.site, collectionId: 'portfolio', snapshotId: request.params.snapshot }, request.params.item, Number(request.params.variant));
+    return reply.type(image.mime).send(image.bytes);
+  });
+  app.get<{ Params: { site: string; snapshot: string; item: string; gallery: string; variant: string } }>('/portfolio/:site/:snapshot/media/:item/:gallery/:variant', async (request, reply) => {
+    const { site, snapshot, item, variant, gallery } = request.params;
+    const image = catalog.variant({ websiteId: site, collectionId: 'portfolio', snapshotId: snapshot }, item, Number(variant), Number(gallery));
     return reply.type(image.mime).send(image.bytes);
   });
   app.addHook('onClose', async () => catalog.close());

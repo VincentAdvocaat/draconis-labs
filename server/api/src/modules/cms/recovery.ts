@@ -14,7 +14,7 @@ const digest = (bytes: string | Buffer) => createHash('sha256').update(bytes).di
 const markerSchema = z.object({ version: z.literal(1), synthetic: z.literal(true), id: z.uuid(), mediaRoot: z.string() }).strict();
 const entrySchema = z.object({ path: z.string(), bytes: z.number().int().nonnegative(), sha256: z.string().regex(/^[a-f0-9]{64}$/) }).strict();
 const manifestSchema = z.object({ format: z.literal('cms-synthetic-backup'), version: z.literal(1), complete: z.literal(true),
-  sourceId: z.uuid(), consistency: z.literal('offline-single-owner'), cmsSchema: z.literal(8), catalogSchema: recoveryCatalogSchema,
+  sourceId: z.uuid(), consistency: z.literal('offline-single-owner'), cmsSchema: z.union([z.literal(8), z.literal(9)]), catalogSchema: recoveryCatalogSchema,
   uploadSchema: recoveryUploadSchema.default(0),
   files: z.array(entrySchema).min(2).max(20000) }).strict();
 type Manifest = z.infer<typeof manifestSchema>;
@@ -158,14 +158,20 @@ export async function createRecoveryFixture(target: string) {
     removeOwned(root, 'draconis-cms-recovery-'); throw error;
   }
 }
-function checkDatabase(path: string, kind: 'cms' | 'media') {
+function checkDatabase(path: string, kind: 'cms' | 'media'): 8 | 9 | undefined {
   const db = new Database(path, { readonly: true, fileMustExist: true });
   try {
     if (db.pragma('integrity_check', { simple: true }) !== 'ok' || (db.pragma('foreign_key_check') as unknown[]).length) throw new Error('Database integrity failed');
     if (kind === 'cms') {
       const versions = db.prepare('SELECT version FROM cms_migrations ORDER BY version').all();
-      if (JSON.stringify(versions) !== JSON.stringify(Array.from({ length: 8 }, (_, i) => ({ version: i + 1 })))) throw new Error('Unsupported CMS schema');
+      const cmsSchema = versions.length;
+      if ((cmsSchema !== 8 && cmsSchema !== 9) ||
+          JSON.stringify(versions) !== JSON.stringify(Array.from({ length: cmsSchema }, (_, i) => ({ version: i + 1 }))))
+        throw new Error('Unsupported CMS schema');
+      const columns = db.pragma('table_info(cms_documents)') as Array<{ name: string }>;
+      if (columns.some(column => column.name === 'archived') !== (cmsSchema === 9)) throw new Error('Invalid document archive schema');
       if (db.prepare("SELECT 1 FROM cms_attempts WHERE status='building'").get()) throw new Error('Finish or reconcile in-flight builds before backup');
+      return cmsSchema;
     } else {
       checkRecoveryCatalog(db);
       if (db.prepare("SELECT 1 FROM upload_jobs WHERE state='processing'").get()) throw new Error('Finish or reconcile uploads before backup');
@@ -173,7 +179,8 @@ function checkDatabase(path: string, kind: 'cms' | 'media') {
   } finally { db.close(); }
 }
 function validatePayload(root: string) {
-  checkDatabase(join(root, 'cms/cms.db'), 'cms'); checkDatabase(join(root, 'media/media.sqlite'), 'media');
+  const cmsSchema = checkDatabase(join(root, 'cms/cms.db'), 'cms')!;
+  checkDatabase(join(root, 'media/media.sqlite'), 'media');
   const cms = new Database(join(root, 'cms/cms.db'), { readonly: true });
   const media = new Database(join(root, 'media/media.sqlite'), { readonly: true });
   try {
@@ -199,7 +206,7 @@ function validatePayload(root: string) {
         if (bytes.length !== variant.bytes || digest(bytes) !== variant.checksum) throw new Error('Retained media hash mismatch');
       }
     }
-    return { catalogSchema, uploadSchema };
+    return { cmsSchema, catalogSchema, uploadSchema };
   } finally { cms.close(); media.close(); }
 }
 export async function backupRecoveryFixture(sourceRoot: string, target: string, hooks: RecoveryHooks = {}) {
@@ -237,10 +244,10 @@ export async function backupRecoveryFixture(sourceRoot: string, target: string, 
       if (JSON.stringify(list(directory!)) !== JSON.stringify(expected)) throw new Error('Source file inventory changed');
     }
     for (const file of before) if (digest(regular(file.input)) !== file.sha256) throw new Error('Source files changed during backup');
-    const { catalogSchema, uploadSchema } = validatePayload(output);
+    const { cmsSchema, catalogSchema, uploadSchema } = validatePayload(output);
     const files = list(output).map(path => { safePath(path); const bytes = regular(join(output, path)); return { path, bytes: bytes.length, sha256: digest(bytes) }; });
     const manifest: Manifest = { format: 'cms-synthetic-backup', version: 1, complete: true, sourceId: marker.id,
-      consistency: 'offline-single-owner', cmsSchema: 8, catalogSchema, uploadSchema, files };
+      consistency: 'offline-single-owner', cmsSchema, catalogSchema, uploadSchema, files };
     // Written last. A crash or failed copy without this marker is never restorable.
     write(join(output, 'backup.json'), JSON.stringify(manifest, null, 2));
     return { root: output, files: files.length };
@@ -260,6 +267,7 @@ export async function restoreRecoveryFixture(packageRoot: string, target: string
   if (JSON.stringify(list(backup)) !== JSON.stringify([...paths, 'backup.json'].sort())) throw new Error('Backup inventory mismatch');
   for (const file of manifest.files) { const bytes = regular(join(backup, file.path)); if (bytes.length !== file.bytes || digest(bytes) !== file.sha256) throw new Error('Backup hash mismatch'); }
   const payloadSchema = validatePayload(backup);
+  if (payloadSchema.cmsSchema !== manifest.cmsSchema) throw new Error('Manifest/CMS database schema mismatch');
   if (payloadSchema.catalogSchema !== manifest.catalogSchema) throw new Error('Manifest/catalog database schema mismatch');
   if (payloadSchema.uploadSchema !== manifest.uploadSchema) throw new Error('Manifest/upload database schema mismatch');
   let mediaRoot: string | undefined, created = false;

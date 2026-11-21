@@ -94,18 +94,21 @@ function verifyReplay(root: string, receipt: Receipt) {
     try {
       const media = new Database(join(receipt.mediaRoot, 'media.sqlite'), { readonly: true, fileMustExist: true });
       try {
-        const nlHead = cms.prepare('SELECT revision_id FROM cms_documents WHERE website_id=? AND id=?');
-        const enHead = cms.prepare("SELECT revision_id FROM cms_locale_heads WHERE website_id=? AND page_id=? AND locale='en'");
+        const nlHead = cms.prepare('SELECT revision_id,version FROM cms_documents WHERE website_id=? AND id=?');
+        const enHead = cms.prepare("SELECT revision_id,version FROM cms_locale_heads WHERE website_id=? AND page_id=? AND locale='en'");
         const originalAsset = media.prepare(`SELECT f.variants FROM assets a JOIN files f ON f.website=a.website AND f.asset=a.id
           JOIN upload_jobs j ON j.website=a.website AND j.asset=a.id AND j.file_version=f.version
           WHERE a.website=? AND a.id=? AND a.metadata_version=1 AND a.archived=0 AND a.rights='unknown'
           AND f.version=1 AND f.state='ready' AND j.state='ready' AND j.source_checksum=?`);
-        const revision = (row: unknown) => (row as { revision_id: string } | undefined)?.revision_id ?? null;
+        const originalHead = (row: unknown, revisionId: string | null) => {
+          const head = row as { revision_id: string; version: number } | undefined;
+          return revisionId === null ? head === undefined : head?.revision_id === revisionId && head.version === 1;
+        };
         const issues = [];
         for (const site of receipt.websites) {
           for (const page of site.pages) {
-            if (revision(nlHead.get(site.targetWebsiteId, page.pageId)) !== page.nlRevisionId ||
-                revision(enHead.get(site.targetWebsiteId, page.pageId)) !== page.enRevisionId)
+            if (!originalHead(nlHead.get(site.targetWebsiteId, page.pageId), page.nlRevisionId) ||
+                !originalHead(enHead.get(site.targetWebsiteId, page.pageId), page.enRevisionId))
               issues.push({ code: 'target_page_changed', path: [site.targetWebsiteId, 'pages', page.sourcePageId], message: 'Imported draft changed or is missing' });
           }
           for (const asset of site.assets) {
