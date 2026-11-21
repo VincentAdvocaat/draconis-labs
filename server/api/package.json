@@ -16,6 +16,7 @@
     "planner:channel": "tsx scripts/create-public-channel.ts",
     "start:public": "node --import tsx dist/public.js",
     "smoke:public": "node scripts/smoke-public.mjs",
+    "smoke:planner-postgres": "node scripts/smoke-planner-postgres.mjs",
     "demo:local": "node scripts/demo-local.mjs"
   },
   "dependencies": {
@@ -30,11 +31,14 @@
     "zod": "^4.4.3",
     "@draconis/planner-core": "workspace:*",
     "@draconis/planner-sqlite": "workspace:*",
+    "@draconis/planner-postgres": "workspace:*",
+    "pg": "^8.16.3",
     "tsx": "^4.23.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.13.3",
+    "@types/pg": "^8.15.6",
     "oxlint": "^1.73.0",
     "tsx": "^4.23.0",
     "typescript": "~6.0.3",

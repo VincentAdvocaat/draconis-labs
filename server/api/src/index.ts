@@ -5,6 +5,10 @@ import { ZodError } from 'zod';
 import { createLocalIdentity, localIdentityHost } from './core/local-identity.js';
 
 const identityFile = process.env.DRACONIS_LOCAL_IDENTITY_FILE;
+const postgresUrl = process.env.DRACONIS_PLANNER_POSTGRES_URL;
+if (postgresUrl !== undefined && identityFile === undefined) {
+  throw new Error('De lokale PostgreSQL-proef vereist DRACONIS_LOCAL_IDENTITY_FILE.');
+}
 if (identityFile !== undefined && !process.env.DATABASE_PATH) {
   throw new Error('Geef DATABASE_PATH op voor de aparte lokale testdatabase.');
 }
@@ -54,7 +58,14 @@ app.setErrorHandler((error, _request, reply) => {
   });
 });
 
-await registerPlatformApi(app, authorize);
-
-const port = Number(process.env.PORT ?? 3001);
-await app.listen({ port, host });
+try {
+  const planner = postgresUrl === undefined
+    ? undefined
+    : await (await import('./modules/planner/postgres.js')).registerLocalPostgresPlanner(app, postgresUrl);
+  await registerPlatformApi(app, authorize, planner);
+  const port = Number(process.env.PORT ?? 3001);
+  await app.listen({ port, host });
+} catch (error) {
+  await app.close();
+  throw error;
+}

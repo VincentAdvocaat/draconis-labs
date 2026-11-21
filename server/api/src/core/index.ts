@@ -1,3 +1,4 @@
+import type { PlannerCommandService } from '@draconis/planner-core';
 import { registerApiModules } from './compose.js';
 import { registerOpenApi } from './openapi.js';
 import { plannerModule, plannerWorkspaceModule, protectedPlannerWorkspaceModule } from '../modules/planner/index.js';
@@ -8,9 +9,10 @@ import type { AuthorizePlanner } from './local-identity.js';
 
 export const apiModules: ApiModule[] = [plannerModule, systemModule, plannerWorkspaceModule, bookingModule];
 
-export async function registerPlatformApi(app: Parameters<typeof registerApiModules>[0], authorize?: AuthorizePlanner) {
+export async function registerPlatformApi(app: Parameters<typeof registerApiModules>[0], authorize?: AuthorizePlanner, planner?: PlannerCommandService) {
+  if (planner && !authorize) throw new Error('Planner-opslag voor de beveiligde route vereist autorisatie.');
   await registerOpenApi(app, authorize !== undefined);
-  await registerApiModules(app, authorize ? [systemModule, protectedPlannerWorkspaceModule(authorize)] : apiModules);
+  await registerApiModules(app, authorize ? [systemModule, protectedPlannerWorkspaceModule(authorize, planner)] : apiModules);
 }
 
 export async function buildApp(authorize?: AuthorizePlanner) {

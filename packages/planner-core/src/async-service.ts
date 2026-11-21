@@ -62,3 +62,5 @@ export function createAsyncPlannerService(storage: AsyncPlannerStorage, environm
     },
   };
 }
+
+export type AsyncPlannerService = ReturnType<typeof createAsyncPlannerService>;

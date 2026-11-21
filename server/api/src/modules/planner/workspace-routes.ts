@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { executePlannerCommand, type PlannerService } from '@draconis/planner-core';
+import { executePlannerCommand, type PlannerCommandService } from '@draconis/planner-core';
 import type { Actor } from '../../core/auth.js';
 import type { AuthorizePlanner } from '../../core/local-identity.js';
 import { createTaskSchema, workspaceUpdateTaskSchema, updatePreferencesSchema, historyQuerySchema, type PlannerReply } from '@draconis/shared';
@@ -26,7 +26,7 @@ const success = (value: object) => ({ type: 'object', required: ['ok', 'value'],
 const taskList = { oneOf: [{ type: 'array', items: taskRef }, { $ref: 'PlannerWorkspacePage#' }] };
 const workspaceTaskList = { anyOf: [{ $ref: 'PlannerWorkspaceCursorPage#' }, ...taskList.oneOf] };
 
-export function createWorkspacePlannerRoutes(service: PlannerService, workspaceId: string, identifyActor: (request: FastifyRequest) => Actor, authorize?: AuthorizePlanner) {
+export function createWorkspacePlannerRoutes(service: PlannerCommandService, workspaceId: string, identifyActor: (request: FastifyRequest) => Actor, authorize?: AuthorizePlanner) {
   return async (app: FastifyInstance) => {
     // Schemas document this transport. Shared Zod dispatch validates the raw input,
     // including trim transformations, without AJV changing its types first.
@@ -88,14 +88,14 @@ export function createWorkspacePlannerRoutes(service: PlannerService, workspaceI
           required: pathParameters,
         },
         response: { [method === 'POST' ? 201 : 200]: success(result), 400: errorRef, 401: errorRef, ...(authorize ? { 403: errorRef } : {}), 404: errorRef, 409: errorRef, 500: errorRef, 503: errorRef },
-      }, handler: (request, reply) => {
+      }, handler: async (request, reply) => {
         const params = request.params as { workspaceId: string; id?: string };
         const query = { ...request.query as Record<string, unknown> };
         let outcome: PlannerReply;
         try {
           const actor = authorize ? request.getDecorator<Actor>('plannerActor') : identifyActor(request);
           if (type === 'tasks.list' && ('pagination' in query || 'cursor' in query)) {
-            outcome = listWorkspaceTasksByCursor(service, workspaceId, params.workspaceId, query);
+            outcome = await listWorkspaceTasksByCursor(service, workspaceId, params.workspaceId, query);
           } else {
             for (const key of ['future', 'overdue']) {
               if (query[key] === 'true') query[key] = true;
@@ -103,7 +103,7 @@ export function createWorkspacePlannerRoutes(service: PlannerService, workspaceI
             }
             const key = idempotencyKeySchema.safeParse(type === 'tasks.create' ? request.headers['idempotency-key'] : undefined);
             if (!key.success) return reply.code(400).send({ ok: false, error: { code: 'INVALID_INPUT', status: 400, message: 'Ongeldige Idempotency-Key' } });
-            outcome = executePlannerCommand(service, workspaceId, actor, {
+            outcome = await executePlannerCommand(service, workspaceId, actor, {
               workspaceId: params.workspaceId, type, id: params.id, query, input: request.body,
             }, key.data === undefined ? undefined : { key: key.data, actorKind: actor.kind });
           }
