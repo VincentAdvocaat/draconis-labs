@@ -3,6 +3,8 @@ trigger:
     include:
       - main
 pr:
+  autoCancel: true
+  drafts: false
   branches:
     include:
       - main
