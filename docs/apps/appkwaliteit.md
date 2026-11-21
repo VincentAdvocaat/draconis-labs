@@ -27,8 +27,25 @@ appdoelen starten daarna op door het OS toegewezen loopbackpoorten.
 
 De browserproef draait op loopback met fictieve data. Voor bredere
 acceptatie staan Firefox, Safari, fysieke apparaten, visuele baselines,
-handmatige assistive-technologie en veldmetingen nog open. Loadtests,
-percentieldashboards en een CI-run van de separate browserproef vragen
-verdere aansluiting op de CI- en observability-werkstroom. Lokale
+handmatige assistive-technologie en veldmetingen nog open. Loadtests en
+percentieldashboards vragen aansluiting op de observability-werkstroom. Lokale
 werkruimtetests en de bundlecontrole draaien al via de bestaande
 [workspaceverificatie](../../scripts/verify-local-integration.ps1).
+
+## Browserproef in de werkruimteverificatie
+
+Voer het verificatiescript met de browserproef uit vanuit de repository:
+
+```powershell
+./scripts/verify-local-integration.ps1 -HomeBrowser
+```
+
+De browserproef gebruikt de build uit dezelfde run. Playwright installeert
+alleen de headless Chromium-variant. Op de Linux-agent van Azure Pipelines
+installeert Playwright ook de vereiste systeembibliotheken.
+
+Voor een handmatige Azure-run kan een pipelinebeheerder
+`DRACONIS_HOME_BROWSER_TESTS` als aanpasbare, niet-geheime pipelinevariabele
+met standaardwaarde `0` toevoegen. Kies `1` bij het starten van de run.
+De standaardrun krijgt daardoor geen browserinstallatie of browserproef.
+[Queue-time variabelen in Azure Pipelines](https://learn.microsoft.com/azure/devops/pipelines/process/variables#allow-at-queue-time)
