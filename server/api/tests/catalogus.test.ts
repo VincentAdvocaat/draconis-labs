@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import sharp from 'sharp';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import Database from 'better-sqlite3';
@@ -5,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createMediaFixture } from '../src/media-fixture/fixture.js';
 import { MediaFixtureStore } from '../src/media-fixture/storage.js';
 import { CatalogService } from '../src/catalogus/service.js';
+import { CatalogSnapshotConsumer } from '../src/catalogus/consumer.js';
+import { checkRecoveryCatalog } from '../src/modules/cms/recovery-catalog.js';
 import { buildCatalogApp } from '../src/catalogus/app.js';
 import type { CatalogItem, CatalogSnapshot, ItemInput } from '../src/catalogus/contracts.js';
 import { LocalUploadService } from '../src/media-upload/service.js';
@@ -21,6 +25,102 @@ describe('persisted catalog and portfolio module', () => {
   let service: CatalogService;
   beforeEach(() => { fixture = createMediaFixture(); service = new CatalogService(fixture.root); service.setRights(site, 'photo', decision); });
   afterEach(() => { service.close(); fixture.cleanup(); });
+
+  it('pins a chosen cover and multiple images with per-use locale text, rights and retained references', async () => {
+    const token = 'gallery-functional-test-fixture-key';
+    const app = await buildCatalogApp(fixture.root, token);
+    const consumer = new CatalogSnapshotConsumer(fixture.root);
+    const upload = new LocalUploadService(fixture.root);
+    try {
+      const create = async (background: string, website = site) => upload.upload(website,
+        await sharp({ create: { width: 8, height: 8, channels: 4, background } }).png().toBuffer(),
+        'fixture-pixel.png', 'image/png');
+      const green = await create('#00ff00');
+      const blue = await create('#0000ff');
+      const foreign = await create('#00ff00', 'fixture-beta');
+      const item = service.save(site, { ...input, publicPhotoCredit: 'Eerste foto' });
+      const path = '/catalogus/api/' + site + '/items/' + item.itemId + '/gallery';
+      const headers = { authorization: 'Bearer ' + token };
+      const old = service.publish(site, 1);
+      const root = (snapshot: CatalogSnapshot) => '/portfolio/' + site + '/' + snapshot.snapshotId;
+      const oldHtml = (await app.inject(root(old))).body;
+      const beforeBytes = (await app.inject(root(old)+'/media/'+item.itemId+'/0')).rawPayload;
+      const gallery = [{
+        assetId: green.assetId, fileVersion: 1, usage: 'gallery-' + randomUUID(),
+        decorative: false, altText: { nl: 'Groen & kleur', en: 'Green & colour' }, publicPhotoCredit: 'Groen <credit>',
+      }, {
+        assetId: blue.assetId, fileVersion: 1, usage: 'gallery-' + randomUUID(),
+        decorative: true, altText: { nl: '', en: '' },
+      }];
+      const put = (payload: unknown) => app.inject({ method: 'PUT', url: path, payload, headers });
+      expect((await app.inject({ method: 'PUT', url: path, payload: { expectedVersion: 1, gallery } })).statusCode).toBe(401);
+      expect((await put({ expectedVersion: 1, gallery: [{ ...gallery[0], assetId: foreign.assetId }] })).statusCode).toBe(404);
+      expect((await put({ expectedVersion: 1, gallery: [{ ...gallery[0], assetId: item.media.assetId }] })).statusCode).toBe(409);
+      expect((await put({ expectedVersion: 1, gallery, coverUsage: 'gallery-' + randomUUID() })).statusCode).toBe(400);
+      const save = await put({ expectedVersion: 1, gallery });
+      expect(save.statusCode, save.body).toBe(200);
+      expect((await put({ expectedVersion: 1, gallery: [] })).statusCode).toBe(409);
+      expect(() => service.publish(site, service.list(site).version)).toThrow();
+      service.setRights(site, green.assetId, decision);
+      service.setRights(site, blue.assetId, decision);
+      const dutch = service.publish(site, service.list(site).version);
+      expect(dutch.schemaVersion).toBe(4);
+      expect(dutch.items[0].resolvedGallery?.map(photo => photo.assetId)).toEqual([green.assetId, blue.assetId]);
+
+      const promoted = await put({ expectedVersion: 2, gallery, coverUsage: gallery[0].usage });
+      expect(promoted.statusCode, promoted.body).toBe(200);
+      expect(promoted.json()).toMatchObject({ media: { assetId: green.assetId, altText: gallery[0].altText },
+        publicPhotoCredit: 'Groen <credit>', gallery: [
+          { assetId: item.media.assetId, publicPhotoCredit: 'Eerste foto' }, { assetId: blue.assetId },
+        ] });
+      const en = service.saveLocaleVariant(site, item.itemId, 'en', { expectedVersion: 3,
+        title: 'Portfolio fixture', slug: 'portfolio-fixture', description: '', alt: 'Green cover' });
+      expect(() => service.publish(site, service.list(site).version, { locale: 'en' })).toThrow('Invalid alt');
+      const afterAlt = promoted.json().gallery;
+      afterAlt[0].altText.en = 'Original cover';
+      expect((await put({ expectedVersion: en.version, gallery: afterAlt })).statusCode).toBe(200);
+      const english = service.publish(site, service.list(site).version, { locale: 'en' });
+
+      const grid = await app.inject(root(english));
+      const detail = await app.inject(root(english)+'/items/portfolio-fixture');
+      expect(grid.statusCode).toBe(200);
+      expect(grid.body).toContain('alt="Green cover"');
+      expect(grid.body).toContain('Photo by Groen &lt;credit&gt;');
+      expect(grid.body).not.toContain('Original cover');
+      expect(detail.body).toContain('alt="Original cover"');
+      expect(detail.body).toContain('Photo by Eerste foto');
+      expect(detail.body).toContain('alt="" loading="lazy"');
+      const renderCover = (await app.inject(root(english)+'/media/'+item.itemId+'/0')).rawPayload;
+      const renderFirst = (await app.inject(root(english)+'/media/'+item.itemId+'/0/0')).rawPayload;
+      const renderSecond = (await app.inject(root(english)+'/media/'+item.itemId+'/1/0')).rawPayload;
+      expect(renderFirst).toEqual(beforeBytes);
+      expect(renderCover).not.toEqual(renderSecond);
+      expect((await app.inject(root(old))).body).toBe(oldHtml);
+      expect((await app.inject(root(old)+'/media/'+item.itemId+'/0/0')).statusCode).toBe(404);
+      expect((await app.inject(root(english)+'/media/'+item.itemId+'/2/0')).statusCode).toBe(404);
+
+      const pin = consumer.preparePin(site, { ref: { websiteId: site, collectionId: 'portfolio', snapshotId: english.snapshotId }, checksum: english.checksum, localeContext: english.localeContext,
+        owner: { module: 'cms', ownerId: 'example-page', revisionId: 'example-revision', siteId: 'demo-cms', kind: 'draft', slot: 'portfolio' } });
+      const copy = consumer.materialize(site, pin.pinId);
+      expect(copy.files.every(file => file.assetId === green.assetId)).toBe(true);
+      expect(fixture.store.usages(site, blue.assetId)).toContainEqual(expect.objectContaining({
+        kind: 'release', owner: 'consumer-'+pin.pinId+'-'+item.itemId,
+      }));
+      expect(() => fixture.store.purge(site, blue.assetId, 2, true)).toThrow('retained');
+      const reader = new Database(join(fixture.root, 'media.sqlite'), { readonly: true });
+      try { expect(checkRecoveryCatalog(reader)).toBe(5); }
+      finally { reader.close(); }
+      service.setRights(site, blue.assetId, { ...decision, status: 'blocked', expectedVersion: 2 });
+      expect(() => consumer.materialize(site, pin.pinId)).toThrow();
+      expect((await app.inject(root(english)+'/items/portfolio-fixture')).statusCode).toBe(200);
+      service.withdraw(site, english.snapshotId, { expectedVersion: 1, employee: 'Fixture user', reason: 'Withdraw fictional snapshot', confirmed: true });
+      expect((await app.inject(root(english)+'/media/'+item.itemId+'/1/0')).statusCode).toBe(404);
+    } finally {
+      upload.close();
+      consumer.close();
+      await app.close();
+    }
+  }, 25_000);
 
   it('publishes only the explicitly entered, escaped credit from each immutable snapshot in NL and EN', async () => {
     const token = 'public-credit-functional-test-bearer-key';

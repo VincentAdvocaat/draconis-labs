@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import vm from 'node:vm';
 import { describe, expect, it } from 'vitest';
 import { adminHtml } from '../src/catalogus/html.js';
@@ -16,6 +17,7 @@ class Element {
   children: Element[] = [];
   onclick?: () => Promise<void>;
   onchange?: () => void;
+  oninput?: () => void;
   constructor(text = '', value = '') { this.textContent = text; this.value = value; }
   append(child: Element) { this.children.push(child); if (this.children.length === 1) this.value = child.value; }
   add(child: Element) { this.append(child); }
@@ -44,7 +46,7 @@ function browserHarness(withOrder = false) {
     title: null, slug: null, description: null, alt: null,
   };
   const response = (json: unknown, ok = true) => ({ ok, json: async () => JSON.parse(JSON.stringify(json)) });
-  const context = vm.createContext({ document: { getElementById: el, createElement: () => new Element(), querySelectorAll: () => [...elements.values()] }, Option: Element,
+  const context = vm.createContext({ document: { getElementById: el, createElement: () => new Element(), querySelectorAll: () => [...elements.values()] }, Option: Element, crypto: { randomUUID },
     fetch: async (path: string, options: { method?: string; body?: string } = {}) => {
       if (path.endsWith('/order')) {
         const body = JSON.parse(options.body!) as { expectedVersion: number; itemIds: string[] }; sent.push(body);
@@ -83,6 +85,13 @@ function browserHarness(withOrder = false) {
           diagnostics: { title: diagnostic(english.title, stored.title), slug: diagnostic(english.slug, stored.slug),
             description: diagnostic(english.description, stored.description), alt: diagnostic(english.alt, stored.media.altText.nl) } });
       }
+      if (path.endsWith('/gallery') && options.method === 'PUT') {
+        const body = JSON.parse(options.body!) as { expectedVersion: number };
+        sent.push(body);
+        if (body.expectedVersion !== stored.version) return response({ message: 'Item version conflict' }, false);
+        stored = { ...stored, version: stored.version + 1 };
+        return response(stored);
+      }
       if (path.endsWith('/assets')) return response(assets);
       if (path.endsWith('/snapshots')) return response(snapshots);
       if (path.endsWith('/withdraw')) {
@@ -119,6 +128,33 @@ function browserHarness(withOrder = false) {
 }
 
 describe('actual admin script optimistic form binding', () => {
+
+  it('selects a gallery image by stable asset/version and explicitly chooses it as cover', async () => {
+    const browser = browserHarness();
+    await browser.selectVersionOne();
+    await browser.el('loadGallery').onclick!();
+    expect(browser.el('galleryEditor').hidden).toBe(false);
+    expect(Element.focused).toBe(browser.el('galleryAsset'));
+    browser.el('galleryAsset').value = 'photo/2';
+    await browser.el('addGalleryPhoto').onclick!();
+    const row = browser.el('galleryPhotos').children[0];
+    const nl = row.children[1].children[0];
+    const en = row.children[2].children[0];
+    nl.value = 'Proefbeeld v2';
+    nl.oninput!();
+    en.value = 'Fixture image v2';
+    en.oninput!();
+    const cover = browser.el('galleryCover');
+    cover.value = cover.children[1].value;
+    await browser.el('saveGallery').onclick!();
+    expect(browser.sent).toEqual([{ expectedVersion: 1, coverUsage: cover.value,
+      gallery: [{ assetId: 'photo', fileVersion: 2, usage: cover.value, decorative: false,
+        altText: { nl: 'Proefbeeld v2', en: 'Fixture image v2' } }],
+    }]);
+    expect(browser.el('galleryEditor').hidden).toBe(true);
+    expect(Element.focused).toBe(browser.el('loadGallery'));
+  });
+
   it('saves an explicit public credit, preserves it during rights refresh and clears it when choosing another file', async () => {
     const browser = browserHarness();
     await browser.selectVersionOne();
