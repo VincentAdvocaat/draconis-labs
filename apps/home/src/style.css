@@ -1,0 +1,96 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #f1f4ef;
+  color: var(--ink);
+  font: 1rem/1.5 var(--font-sans);
+}
+
+.home .dr-topbar { position: static; }
+
+.catalog {
+  width: min(68rem, calc(100% - 2rem));
+  margin-inline: auto;
+  padding-block: clamp(2rem, 7vw, 5rem);
+}
+
+.catalog-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #bccbc1;
+}
+
+.catalog-heading h1 {
+  margin: 0;
+  font: 500 clamp(3rem, 8vw, 5rem)/1 var(--font-display);
+}
+
+.catalog-heading p { margin: .75rem 0 0; }
+.catalog-message { min-block-size: 1.5em; color: #47574d; }
+.catalog :focus-visible { outline: 3px solid #2b6249; outline-offset: 4px; }
+
+.app-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 1rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-card {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  min-width: 0;
+  padding: clamp(1rem, 4vw, 1.75rem);
+  border: 1px solid #bccbc1;
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+}
+
+.app-card h2 { margin: .85rem 0 .25rem; font: 1.75rem/1.15 var(--font-display); }
+.app-card p { margin: 0 0 1.25rem; }
+.app-card dl {
+  width: 100%;
+  display: grid;
+  gap: .5rem;
+  margin: auto 0 1.25rem;
+  font-size: .875rem;
+}
+
+.app-card dl div { overflow-wrap: anywhere; }
+.app-card dt { font-weight: 650; }
+.app-card dd { margin: 0; color: #47574d; }
+
+.app-status {
+  padding: .2rem .65rem;
+  border-radius: var(--radius-sm);
+  font-size: .875rem;
+  font-weight: 650;
+}
+
+.reachable { color: #24503b; background: #e4eee8; }
+.unreachable { color: #68351f; background: #f6ebdf; }
+
+.refresh, .app-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  min-height: 44px;
+  padding: .5rem .9rem;
+  border: 1px solid #557361;
+  border-radius: var(--radius-md);
+  font-weight: 650;
+}
+
+.refresh { background: var(--paper); color: #2b5140; }
+.refresh:hover:not([aria-disabled="true"]) { background: #e4eee8; }
+.refresh[aria-disabled="true"] { cursor: wait; }
+.app-link { background: #254e3a; color: white; text-underline-offset: .2em; }
+.app-link:hover { background: #173d2b; }
