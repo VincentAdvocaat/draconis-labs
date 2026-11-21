@@ -37,3 +37,15 @@ export interface PlannerEnvironment {
   now(): string;
   id(): string;
 }
+
+type AsyncOperations<Keys extends Exclude<keyof PlannerStorage, 'transaction'>> = {
+  [Key in Keys]: (...args: Parameters<PlannerStorage[Key]>) => Promise<ReturnType<PlannerStorage[Key]>>;
+};
+
+type PlannerReadOperation = 'list' | 'listByCursor' | 'history' | 'loadPreferences';
+export type AsyncPlannerTransaction = AsyncOperations<Exclude<keyof PlannerStorage, 'transaction' | 'list' | 'listByCursor' | 'history'>>;
+
+export interface AsyncPlannerStorage extends AsyncOperations<PlannerReadOperation> {
+  /** Hold the workspace write lock and a single connection until the operation resolves. */
+  transaction<T>(operation: (transaction: AsyncPlannerTransaction) => Promise<T>): Promise<T>;
+}

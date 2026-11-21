@@ -17,6 +17,14 @@ describe('application template', () => {
     });
   });
 
+  it('includes a TypeScript project for the documented build command', () => {
+    const config = JSON.parse(readFileSync(join(templateRoot, 'tsconfig.json'), 'utf8'));
+    expect(config).toMatchObject({
+      compilerOptions: { noEmit: true, types: ['vite/client'] },
+      include: ['src', 'vite.config.ts'],
+    });
+  });
+
   it('does not reference planner package', () => {
     const pkg = readFileSync(join(templateRoot, 'package.json'), 'utf8');
     expect(pkg).not.toContain('@draconis/planner');

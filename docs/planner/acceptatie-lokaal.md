@@ -37,10 +37,9 @@ bestaande unsigned Squirrel-proef voor, met eigen synthetisch profiel en
 expliciete scheiding van een echte installatietest op een schone machine.
 Die voorbereiding kan met de aanwezige Node/Electron-toolchain.
 
-Een lokale PostgreSQL-proef is nu geen direct uitvoerbare volgende stap:
-`psql`, `postgres` en `initdb` zijn niet op PATH gevonden. De Docker-CLI is
-aanwezig, maar de lokale Docker Desktop Linux-engine was bij controle niet
-bereikbaar. Er is geen engine gestart, image gedownload of nieuwe toolchain
-geïnstalleerd. Het beschikbaar maken daarvan is een afzonderlijke vervolgstap.
+De lokale PostgreSQL-proef draait inmiddels in Docker. De proef dekt taken,
+voorkeuren en idempotente taakcreatie, met de twee SQLite-fixtures als bron.
+De open criteria voor Fastify, boekingsdata en managed herstel staan bij de
+[PostgreSQL-proef](pl13-postgres-proef.md).
 
 Cloudhosting, identity, signing en Outlook blijven afzonderlijke beslissingen.
