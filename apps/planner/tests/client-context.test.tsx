@@ -370,6 +370,27 @@ describe('client identity owns all open Planner UI', () => {
     expect(client.update).toHaveBeenLastCalledWith(task.id, { lane: 'doing', version: task.version });
   });
 
+  it('keeps writes enabled when a lane update finishes after reconnect refresh', async () => {
+    const { client, task } = fixture('Task A');
+    const pending = deferred<Task>();
+    const moved = { ...task, lane: 'doing' as const, version: 2 };
+    client.update = vi.fn(() => pending.promise);
+    await act(async () => root.render(<App client={client} refreshVersion={1} />));
+    await act(async () => {
+      document.querySelector('.task-card')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true }));
+    });
+    expect(client.update).toHaveBeenCalledOnce();
+
+    client.list = vi.fn(async () => [moved]);
+    await act(async () => root.render(<App client={client} refreshVersion={2} />));
+    expect(document.querySelector<HTMLButtonElement>('.quick-add button')?.disabled).toBe(false);
+    await act(async () => pending.resolve(moved));
+    expect(document.querySelector<HTMLButtonElement>('.quick-add button')?.disabled).toBe(false);
+    await editInput(document.querySelector<HTMLInputElement>('.quick-add input')!, 'After reconnect');
+    await click(document.querySelector('.quick-add button')!);
+    expect(client.create).toHaveBeenCalledOnce();
+  });
+
   it('keeps a separate card update after a concurrent editor save fails', async () => {
     const { client, task } = fixture('Task A');
     const other = fixture('Task B').task;

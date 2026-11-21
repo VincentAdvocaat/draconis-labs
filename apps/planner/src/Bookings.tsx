@@ -6,7 +6,7 @@ const emptyContact: ContactInput = { name: '', email: '', phone: '' };
 const statusLabel = { planned: 'Gepland', cancelled: 'Geannuleerd', completed: 'Uitgevoerd' };
 function windowLabel(a: Appointment) { return `${a.window.date} · ${a.zoneName} · ${a.window.label} ${a.window.startTime}–${a.window.endTime}`; }
 
-export function Bookings({ client, section }: { client: BookingClient; section: 'contacts' | 'appointments' }) {
+export function Bookings({ client, section, readOnly = false, refreshVersion = 0 }: { client: BookingClient; section: 'contacts' | 'appointments'; readOnly?: boolean; refreshVersion?: number }) {
   const [date, setDate] = useState(() => bookingToday(new Date().toISOString(), LOCAL_BOOKING_POLICY.timezone));
   const [zoneId, setZoneId] = useState(DEFAULT_ZONE_ID), [zones, setZones] = useState<Zone[]>([]);
   const [query, setQuery] = useState(''), [archived, setArchived] = useState(false);
@@ -16,6 +16,8 @@ export function Bookings({ client, section }: { client: BookingClient; section: 
   const [moving, setMoving] = useState<Appointment | null>(null), [error, setError] = useState(''), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false);
   const [uncertain, setUncertain] = useState(false), [loadedContext, setLoadedContext] = useState('');
   const sequence = useRef(0), alive = useRef(true);
+  const [loadedVersion, setLoadedVersion] = useState(0);
+  const writesPaused = readOnly || loadedVersion !== refreshVersion;
   const invalidate = useCallback(() => { sequence.current++; }, []);
   const pending = useRef<{ key: string; execute: (key: string) => Promise<unknown> } | null>(null);
   const mainRef = useRef<HTMLElement>(null), returnFocus = useRef<HTMLElement | null>(null);
@@ -39,10 +41,11 @@ export function Bookings({ client, section }: { client: BookingClient; section: 
         client.contacts.list(section === 'contacts' ? { q: query, archived } : { archived: true }), client.availability(date, zoneId), client.appointments.list(date, zoneId), selected ? client.contacts.card(selected) : Promise.resolve(null), client.zones.list(),
       ]);
       if (!alive.current || generation !== sequence.current) return;
-      setContacts(people); setAvailability(slots); setAppointments(visits); setCard(customer); setZones(areas); setLoadedContext(date+'|'+zoneId);
+      setContacts(people); setAvailability(slots); setAppointments(visits); setCard(customer); setZones(areas); setLoadedContext(date+'|'+zoneId); setLoadedVersion(refreshVersion);
+      if (!pending.current) setError('');
     } catch (e) { if (alive.current && generation === sequence.current) setError(e instanceof Error ? e.message : String(e)); }
     finally { if (alive.current && generation === sequence.current) setLoading(false); }
-  }, [client, date, zoneId, query, archived, selected, section]);
+  }, [client, date, zoneId, query, archived, selected, section, refreshVersion]);
   const latestReload = useRef(reload);
   useEffect(() => { latestReload.current = reload; }, [reload]);
   useEffect(() => { void reload(); return invalidate; }, [reload, invalidate]);
@@ -50,7 +53,7 @@ export function Bookings({ client, section }: { client: BookingClient; section: 
   useEffect(() => { setDraft(cardId ? { name: cardName!, email: cardEmail ?? '', phone: cardPhone ?? '' } : emptyContact); }, [cardId, cardVersion, cardName, cardEmail, cardPhone]);
 
   async function executePending() {
-    const command = pending.current; if (!command) return;
+    const command = pending.current; if (!command || writesPaused) return;
     returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setBusy(true); setError('');
     try {
@@ -67,10 +70,10 @@ export function Bookings({ client, section }: { client: BookingClient; section: 
     } finally { if (alive.current) setBusy(false); }
   }
   function command(execute: (key: string) => Promise<unknown>) {
-    if (busy || pending.current) return;
+    if (busy || pending.current || writesPaused) return;
     pending.current = { key: crypto.randomUUID(), execute }; void executePending();
   }
-  const disabled = busy || uncertain;
+  const disabled = busy || uncertain || writesPaused;
   const slots = loadedContext === date+'|'+zoneId ? availability : [], visits = loadedContext === date+'|'+zoneId ? appointments : [];
   const selectedZone = zones.find(zone => zone.id === zoneId);
   function arrivalAt() {
@@ -83,7 +86,7 @@ export function Bookings({ client, section }: { client: BookingClient; section: 
     <p className="booking-mode">Werkruimte {client.workspaceId} · Lokale opslag · {LOCAL_BOOKING_POLICY.timezone}</p>
     <div aria-live="polite">{loading && <p>Gegevens laden…</p>}</div>
     {error && <p role="alert" tabIndex={-1}>{error}</p>}
-    {uncertain ? <p>De uitkomst is nog onbekend. <button disabled={busy} onClick={() => void executePending()}>Dezelfde handeling opnieuw proberen</button></p> : <button disabled={busy} onClick={() => { setError(''); void reload(); }}>Verversen</button>}
+    {uncertain ? <p>De uitkomst is nog onbekend. <button disabled={busy || writesPaused} onClick={() => void executePending()}>Dezelfde handeling opnieuw proberen</button></p> : <button disabled={busy} onClick={() => { setError(''); void reload(); }}>Verversen</button>}
     {section === 'contacts' ? <div className="booking-columns">
       <section aria-label="Relaties zoeken">
         <h1 tabIndex={-1}>Relaties</h1>
