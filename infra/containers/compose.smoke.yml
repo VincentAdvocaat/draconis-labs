@@ -1,0 +1,22 @@
+services:
+  draconis-api:
+    build:
+      context: ../..
+      dockerfile: infra/containers/Dockerfile
+      target: api
+    tmpfs:
+      - /data:uid=1000,gid=1000,mode=0700
+    environment:
+      DRACONIS_API_KEYS: smoke-agent:fictitious-local-smoke-key
+
+  draconis-planner:
+    build:
+      context: ../..
+      dockerfile: infra/containers/Dockerfile
+      target: planner
+    environment:
+      API_UPSTREAM: http://draconis-api:3001
+    ports:
+      - "127.0.0.1::8080"
+    depends_on:
+      - draconis-api
