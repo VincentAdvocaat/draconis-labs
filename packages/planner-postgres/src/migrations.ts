@@ -54,6 +54,12 @@ const migrations = [
       PRIMARY KEY (workspace_id, source_id, source_sha256, import_version)
     );
   ` },
+  { version: 3, sql: `
+    CREATE TABLE planner_booking_state (
+      workspace_id text COLLATE "C" PRIMARY KEY REFERENCES planner_workspaces(id),
+      state jsonb NOT NULL CHECK (jsonb_typeof(state) = 'object')
+    );
+  ` },
 ];
 
 export async function migratePlannerPostgres(pool: Pool) {
