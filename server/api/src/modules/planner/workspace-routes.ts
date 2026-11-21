@@ -3,6 +3,7 @@ import { executePlannerCommand, type PlannerService } from '@draconis/planner-co
 import type { Actor } from '../../core/auth.js';
 import type { AuthorizePlanner } from '../../core/local-identity.js';
 import { agentScopeFor } from '../../core/agent-credentials.js';
+import type { PlannerAudit } from '../../core/planner-audit.js';
 import { createTaskSchema, workspaceUpdateTaskSchema, updatePreferencesSchema, historyQuerySchema, type PlannerReply } from '@draconis/shared';
 import { z } from 'zod';
 import { taskResponseSchema, paginatedTaskListSchema } from './schemas.js';
@@ -27,7 +28,13 @@ const success = (value: object) => ({ type: 'object', required: ['ok', 'value'],
 const taskList = { oneOf: [{ type: 'array', items: taskRef }, { $ref: 'PlannerWorkspacePage#' }] };
 const workspaceTaskList = { anyOf: [{ $ref: 'PlannerWorkspaceCursorPage#' }, ...taskList.oneOf] };
 
-export function createWorkspacePlannerRoutes(service: PlannerService, workspaceId: string, identifyActor: (request: FastifyRequest) => Actor, authorize?: AuthorizePlanner) {
+export function createWorkspacePlannerRoutes(
+  service: PlannerService,
+  workspaceId: string,
+  identifyActor: (request: FastifyRequest) => Actor,
+  protection?: { authorize: AuthorizePlanner; audit: PlannerAudit },
+) {
+  const authorize = protection?.authorize;
   return async (app: FastifyInstance) => {
     // Schemas document this transport. Shared Zod dispatch validates the raw input,
     // including trim transformations, without AJV changing its types first.
@@ -63,9 +70,15 @@ export function createWorkspacePlannerRoutes(service: PlannerService, workspaceI
       const scope = agentScopeFor(type);
       app.route({ method, url,
         ...(authorize ? { onRequest: async (request: FastifyRequest, reply) => {
-          const { workspaceId } = request.params as { workspaceId: string };
+          const { workspaceId, id } = request.params as { workspaceId: string; id?: string };
+          reply.header('X-Request-Id', request.id);
           const access = authorize(request, workspaceId, type);
-          if (!access.ok) return reply.code(access.error.status).send(access);
+          if (!access.ok) {
+            if (access.error.status === 403 && access.actor) {
+              protection?.audit.denied({ actor: access.actor, requestId: request.id, workspaceId, operation: type, targetId: id });
+            }
+            return reply.code(access.error.status).send({ ok: false, error: access.error });
+          }
           request.setDecorator('plannerActor', access.actor);
         } } : {}),
         schema: {
@@ -106,14 +119,19 @@ export function createWorkspacePlannerRoutes(service: PlannerService, workspaceI
             }
             const key = idempotencyKeySchema.safeParse(type === 'tasks.create' ? request.headers['idempotency-key'] : undefined);
             if (!key.success) return reply.code(400).send({ ok: false, error: { code: 'INVALID_INPUT', status: 400, message: 'Ongeldige Idempotency-Key' } });
-            outcome = executePlannerCommand(service, workspaceId, actor, {
+            const run = () => executePlannerCommand(service, workspaceId, actor, {
               workspaceId: params.workspaceId, type, id: params.id, query, input: request.body,
             }, key.data === undefined ? undefined : { key: key.data, actorKind: actor.kind });
+            outcome = protection && method !== 'GET'
+              ? protection.audit.execute({ actor, requestId: request.id, workspaceId, operation: type, targetId: params.id }, run)
+              : run();
           }
         } catch (error) {
           const unauthorized = typeof error === 'object' && error !== null && 'statusCode' in error && error.statusCode === 401;
+          const busy = protection && error instanceof Error && 'code' in error && typeof error.code === 'string' && error.code.startsWith('SQLITE_BUSY');
           outcome = { ok: false, error: unauthorized
             ? { code: 'UNAUTHORIZED', status: 401, message: 'Ongeldige aanmelding' }
+            : busy ? { code: 'UNAVAILABLE', status: 503, message: 'Planner is tijdelijk bezet. Probeer opnieuw.' }
             : { code: 'INTERNAL_ERROR', status: 500, message: 'Planner kan de opdracht niet uitvoeren.' } };
         }
         return reply.code(outcome.ok ? method === 'POST' ? 201 : 200 : outcome.error.status).send(outcome);

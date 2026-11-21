@@ -129,7 +129,7 @@ export function createAgentCredentials(db: Database.Database, clock = Date.now) 
     const requiredScope = agentScopeFor(operation);
     const { scopes } = describeCredential(credential);
     if (workspaceId !== credential.workspaceId || !requiredScope || !scopes.includes(requiredScope)) {
-      return { status: 403 } as const;
+      return { status: 403, name: credential.name } as const;
     }
     use.run(now, credential.id);
     return { status: 200, name: credential.name } as const;

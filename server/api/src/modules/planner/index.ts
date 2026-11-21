@@ -12,6 +12,8 @@ export const plannerModule: ApiModule = {
 
 import { LOCAL_WORKSPACE_ID } from '@draconis/shared';
 import type { AuthorizePlanner } from '../../core/local-identity.js';
+import { sqlite } from '../../core/db.js';
+import { createPlannerAudit } from '../../core/planner-audit.js';
 import { createWorkspacePlannerRoutes } from './workspace-routes.js';
 
 export const plannerWorkspaceModule: ApiModule = {
@@ -24,6 +26,8 @@ export function protectedPlannerWorkspaceModule(authorize: AuthorizePlanner): Ap
   return {
     ...plannerWorkspaceModule,
     description: 'Authenticated local workspace task contract',
-    register: createWorkspacePlannerRoutes(plannerService, LOCAL_WORKSPACE_ID, identifyActor, authorize),
+    register: createWorkspacePlannerRoutes(plannerService, LOCAL_WORKSPACE_ID, identifyActor, {
+      authorize, audit: createPlannerAudit(sqlite),
+    }),
   };
 }

@@ -34,6 +34,7 @@ export type AuthorizePlanner = (
 ) => { ok: true; actor: Actor } | {
   ok: false;
   error: { code: 'UNAUTHORIZED'; status: 401; message: string } | { code: 'FORBIDDEN'; status: 403; message: string };
+  actor?: Actor;
 };
 
 const unauthorized = { ok: false, error: { code: 'UNAUTHORIZED', status: 401, message: 'Ongeldige aanmelding' } } as const;
@@ -48,8 +49,9 @@ export function allowScopedAgents(authorizeUser: AuthorizePlanner, credentials: 
     if (!token || !isAgentCredential(token)) return userAccess;
     const access = credentials.authenticate(token, workspaceId, operation);
     if (access.status === 401) return unauthorized;
-    if (access.status === 403) return forbidden;
-    return { ok: true, actor: { kind: 'agent', name: access.name } };
+    const actor = { kind: 'agent', name: access.name } as const;
+    if (access.status === 403) return { ...forbidden, actor };
+    return { ok: true, actor };
   };
 }
 
@@ -74,10 +76,11 @@ export function createLocalIdentity(input: unknown, now = Date.now): AuthorizePl
     }
 
     const role = roles.get(session.userId);
+    const actor = { kind: 'user', name: session.userId } as const;
     if (workspaceId !== LOCAL_WORKSPACE_ID || !role || !permissions[operation]?.includes(role)) {
-      return forbidden;
+      return { ...forbidden, actor };
     }
-    return { ok: true, actor: { kind: 'user', name: session.userId } };
+    return { ok: true, actor };
   };
 }
 

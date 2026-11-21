@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { registerApiModules } from './compose.js';
 import { registerOpenApi } from './openapi.js';
 import { plannerModule, plannerWorkspaceModule, protectedPlannerWorkspaceModule } from '../modules/planner/index.js';
@@ -15,7 +16,7 @@ export async function registerPlatformApi(app: Parameters<typeof registerApiModu
 
 export async function buildApp(authorize?: AuthorizePlanner) {
   const Fastify = (await import('fastify')).default;
-  const app = Fastify({ logger: false });
+  const app = Fastify({ logger: false, ...(authorize ? { genReqId: () => randomUUID() } : {}) });
   await registerPlatformApi(app, authorize);
   await app.ready();
   return app;

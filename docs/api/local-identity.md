@@ -88,3 +88,23 @@ remains valid for at most the chosen overlap or until its earlier existing
 expiry. Granting no overlap makes the previous token expire immediately.
 Revocation takes effect on the next request. The timestamp `lastUsedAt`
 records the last request authorized with that credential, in Unix milliseconds.
+
+## Activity log
+
+The protected profile records dispatched Planner mutations and authenticated
+authorization denials in its fixture database. Each entry includes the
+UTC timestamp, user or agent, operation, workspace, task ID when available,
+HTTP status, and the server's request ID. The request ID is also returned in
+the `X-Request-Id` response header. Successful mutations and their activity
+entries commit together.
+
+Use the same database environment variables as the credential command.
+The operator command opens the fixture database read-only.
+
+~~~powershell
+corepack pnpm --filter @draconis/api planner:audit --kind agent --actor fixture-reader --from 2026-11-01 --through 2026-11-30 --limit 50
+~~~
+
+The date filters include both UTC calendar dates. Omitting the filters shows the
+most recent events across users and agents. The log stores no credential
+values, task descriptions, request bodies or idempotency keys.

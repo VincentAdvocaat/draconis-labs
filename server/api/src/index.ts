@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import cors from '@fastify/cors';
 import Fastify from 'fastify';
 import { readFileSync } from 'node:fs';
@@ -15,7 +16,7 @@ const authorize = identityFile === undefined
 const host = authorize ? localIdentityHost(process.env.HOST) : process.env.HOST ?? '0.0.0.0';
 const { registerPlatformApi } = await import('./core/index.js');
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: true, ...(authorize ? { genReqId: () => randomUUID() } : {}) });
 
 await app.register(cors, {
   origin: process.env.CORS_ORIGIN?.split(',') ?? true,
