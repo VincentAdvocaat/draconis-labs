@@ -42,11 +42,18 @@ const forbidden = { ok: false, error: { code: 'FORBIDDEN', status: 403, message:
 const readBearer = (request: FastifyRequest) => /^Bearer ([^\s,]+)$/i.exec(request.headers.authorization ?? '')?.[1];
 
 export function allowScopedAgents(authorizeUser: AuthorizePlanner, credentials: AgentCredentials): AuthorizePlanner {
+  const authorizeAgent = authorizeScopedAgent(credentials);
   return (request, workspaceId, operation) => {
     const userAccess = authorizeUser(request, workspaceId, operation);
     if (userAccess.ok || userAccess.error.status !== 401) return userAccess;
+    return authorizeAgent(request, workspaceId, operation);
+  };
+}
+
+export function authorizeScopedAgent(credentials: AgentCredentials): AuthorizePlanner {
+  return (request, workspaceId, operation) => {
     const token = readBearer(request);
-    if (!token || !isAgentCredential(token)) return userAccess;
+    if (!token || !isAgentCredential(token)) return unauthorized;
     const access = credentials.authenticate(token, workspaceId, operation);
     if (access.status === 401) return unauthorized;
     const actor = { kind: 'agent', name: access.name } as const;

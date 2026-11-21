@@ -21,20 +21,22 @@
     "demo:local": "node scripts/demo-local.mjs"
   },
   "dependencies": {
+    "@draconis/planner-core": "workspace:*",
+    "@draconis/planner-sqlite": "workspace:*",
     "@draconis/shared": "workspace:*",
     "@fastify/cors": "^11.3.0",
     "@fastify/swagger": "^9.7.0",
     "@fastify/swagger-ui": "^5.2.5",
+    "@modelcontextprotocol/server": "2.4.0",
     "better-sqlite3": "^12.11.1",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.10.0",
     "sharp": "0.35.5",
-    "zod": "^4.4.3",
-    "@draconis/planner-core": "workspace:*",
-    "@draconis/planner-sqlite": "workspace:*",
-    "tsx": "^4.23.0"
+    "tsx": "^4.23.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "2.4.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.13.3",
     "oxlint": "^1.73.0",

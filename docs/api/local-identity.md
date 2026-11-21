@@ -108,3 +108,27 @@ corepack pnpm --filter @draconis/api planner:audit --kind agent --actor fixture-
 The date filters include both UTC calendar dates. Omitting the filters shows the
 most recent events across users and agents. The log stores no credential
 values, task descriptions, request bodies or idempotency keys.
+
+## Planner MCP over stdio
+
+Configure the MCP host to launch `node --import tsx src/mcp.ts` from
+`server/api`. Pass the same `DATABASE_PATH` and
+`DRACONIS_LOCAL_IDENTITY_FILE` as the protected local API, and set
+`DRACONIS_MCP_AGENT_TOKEN` to a fixture agent credential. The adapter uses the
+versioned REST handlers in its process without opening a port. Each call is
+checked against the current credentials in the fixture database.
+
+| Tool | REST action | Agent scope |
+| --- | --- | --- |
+| `list_tasks` | List tasks, 50 per page by default | `tasks:read` |
+| `create_task` | Create a task with a caller-provided idempotency key | `tasks:create` |
+| `update_task` | Patch a task with its current version | `tasks:update` |
+| `complete_task` | Patch the task's lane to done | `tasks:update` |
+| `schedule_task` | Set or clear the task's planned date | `tasks:update` |
+
+The resource `draconis://planner/schema/v1` returns the protected OpenAPI
+document to an agent with `tasks:read`. Tool outcomes use the REST response
+envelope. A REST failure is marked as an MCP tool error. The audit log
+records `mcp` as the client for calls from this process.
+
+Transport and tool discovery use the [official TypeScript MCP SDK](https://github.com/modelcontextprotocol/typescript-sdk).

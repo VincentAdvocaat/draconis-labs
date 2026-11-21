@@ -11,7 +11,7 @@ import { listWorkspaceTasksByCursor, workspaceTaskListQuerySchema } from './task
 
 const taskRef = { $ref: 'PlannerWorkspaceTask#' };
 const errorRef = { $ref: 'PlannerWorkspaceError#' };
-const idempotencyKeyPattern = '^[A-Za-z0-9._~-]{1,128}$';
+export const idempotencyKeyPattern = '^[A-Za-z0-9._~-]{1,128}$';
 const idempotencyKeySchema = z.string().regex(new RegExp(idempotencyKeyPattern)).optional();
 const errorSchema = (authorize?: AuthorizePlanner) => ({
   $id: 'PlannerWorkspaceError',

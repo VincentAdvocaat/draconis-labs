@@ -10,11 +10,12 @@ type Event = {
   operation: PlannerCommand['type'];
   targetId?: string;
 };
+export type AuditClient = 'rest' | 'mcp';
 type Activity = {
   occurredAt: string;
   actorKind: Actor['kind'];
   actor: string;
-  client: 'rest';
+  client: AuditClient;
   requestId: string;
   workspaceId: string | null;
   operation: PlannerCommand['type'];
@@ -31,7 +32,7 @@ const filters = z.strictObject({
   limit: z.number().int().min(1).max(200).default(50),
 }).refine(filter => !filter.from || !filter.through || filter.from <= filter.through, 'Ongeldig datumbereik.');
 
-export function createPlannerAudit(db: Database.Database, clock = Date.now) {
+export function createPlannerAudit(db: Database.Database, client: AuditClient = 'rest', clock = Date.now) {
   db.exec([
     'CREATE TABLE IF NOT EXISTS local_planner_activity (',
     '  id INTEGER PRIMARY KEY, occurred_at TEXT NOT NULL, actor_kind TEXT NOT NULL,',
@@ -52,7 +53,7 @@ export function createPlannerAudit(db: Database.Database, clock = Date.now) {
       new Date(clock()).toISOString(),
       event.actor.kind,
       event.actor.name,
-      'rest',
+      client,
       event.requestId,
       event.workspaceId === LOCAL_WORKSPACE_ID ? event.workspaceId : null,
       event.operation,
