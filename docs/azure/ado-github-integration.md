@@ -58,12 +58,24 @@ Azure DevOps koppelt commits en pull requests automatisch aan het work item.
 
 ## CI/CD
 
-De pipeline leest `azure-pipelines.yml` uit GitHub (branch `main`):
+Pipeline [#2](https://dev.azure.com/vadvocaat/Draconis-labs/_build?definitionId=2)
+leest `azure-pipelines.yml` uit GitHub. De YAML configureert CI bij pushes naar
+`main` en PR-validatie voor pull requests naar `main`. De pipeline installeert
+Node 22, cachet de pnpm-store en draait `scripts/verify-local-integration.ps1`
+voor frozen install, build, lint, typecheck, tests en startupsmokes.
 
-- CI bij pushes naar `main`
-- PR-validatie bij pull requests naar `main`
+### Automatische PR-validatie controleren
 
-Stappen: `pnpm install`, `typecheck`, `lint`, `build`.
+Open een normale pull request vanuit dezelfde repository naar `main`. Noteer de
+head-SHA, de `refs/pull/<nummer>/merge`-SHA en de Azure-run. Controleer in Azure
+dat de reason `pullRequest` is en de run de merge-SHA van deze PR heeft gebouwd.
+Controleer in GitHub ook of de Azure Pipelines-app bij die PR een Check Run
+publiceert en noteer de exacte naam en app-id voor branchbeveiliging.
+
+[Run #156](https://dev.azure.com/vadvocaat/Draconis-labs/_build/results?buildId=156)
+bouwde de merge-ref van [PR #65](https://github.com/VincentAdvocaat/draconis-labs/pull/65)
+succesvol met reason `manual`. De merge-SHA had geen Check Run of commitstatus.
+GitHub vereiste op `main` nog geen statuschecks bij de controle op 21 november 2026.
 
 ## Handige links
 
