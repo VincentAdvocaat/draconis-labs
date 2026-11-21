@@ -40,12 +40,13 @@ interface Issue { code: IssueCode; path: Array<string | number>; message: string
 type Website = z.infer<typeof siteSchema>;
 type LocalizedPage = z.infer<typeof localizedPage>;
 type Page = z.infer<typeof pageSchema>;
-interface WebsitePlan {
+type LocalePlan = { route: string; contentValues: LocalizedPage['contentValues'] };
+export interface WebsitePlan {
   sourceWebsiteId: Website['websiteId'];
   targetWebsiteId: (typeof targets)[Website['websiteId']];
   assets: Array<{ assetId: string; fileVersion: 1; filename: string; sha256: string; rights: 'unknown' }>;
   pages: Array<{
-    sourcePageId: string; pageId: string; locales: Partial<Record<'nl' | 'en', { route: string; contentValues: LocalizedPage['contentValues'] }>>;
+    sourcePageId: string; pageId: string; locales: { nl: LocalePlan; en?: LocalePlan };
     cover?: { assetId: string; fileVersion: 1; decorative: boolean; altText: NonNullable<Page['cover']>['altText'] };
   }>;
 }
@@ -54,6 +55,12 @@ function fileBytes(path: string, maxBytes: number) {
   const stat = lstatSync(path);
   if (!stat.isFile() || stat.size > maxBytes) throw new Error('Expected a regular file within the fixture size limit');
   return readFileSync(path);
+}
+
+export function readLegacyAsset(root: string, site: Website['websiteId'], filename: string) {
+  const assetRoot = join(root, site);
+  if (!lstatSync(assetRoot).isDirectory()) throw new Error('Expected a regular website media directory');
+  return fileBytes(join(assetRoot, assetFile.parse(filename)), 10 * 1024 * 1024);
 }
 
 function digest(bytes: Buffer) {
@@ -73,7 +80,6 @@ function planWebsite(root: string, site: Website, index: number, issues: Issue[]
   const path = ['websites', index];
   const assetIds = new Set<string>();
   const filenames = new Set<string>();
-  const assetRoot = join(root, site.websiteId);
   for (const [i, asset] of site.assets.entries()) {
     const assetPath = [...path, 'assets', i];
     if (assetIds.has(asset.id)) issues.push({ code: 'duplicate_asset_id', path: assetPath, message: 'Asset ID occurs more than once on this website' });
@@ -82,8 +88,7 @@ function planWebsite(root: string, site: Website, index: number, issues: Issue[]
     filenames.add(asset.filename);
     let actual: string;
     try {
-      if (!lstatSync(assetRoot).isDirectory()) throw new Error('Expected a regular website media directory');
-      actual = digest(fileBytes(join(assetRoot, asset.filename), 10 * 1024 * 1024));
+      actual = digest(readLegacyAsset(root, site.websiteId, asset.filename));
     } catch {
       issues.push({ code: 'unreadable_asset', path: assetPath, message: 'Missing or unreadable fixture media file' });
       continue;
@@ -101,15 +106,13 @@ function planWebsite(root: string, site: Website, index: number, issues: Issue[]
     const pagePath = [...path, 'pages', i];
     if (pageIds.has(page.id)) issues.push({ code: 'duplicate_page_id', path: pagePath, message: 'Page ID occurs more than once on this website' });
     pageIds.add(page.id);
-    const locales: WebsitePlan['pages'][number]['locales'] = {};
-    for (const locale of ['nl', 'en'] as const) {
-      const input = page[locale];
-      if (!input) continue;
+    function planLocale(locale: 'nl' | 'en', input: LocalizedPage): LocalePlan {
       const route = `/sites/${plan.targetWebsiteId}/${locale === 'en' ? 'en/' : ''}${input.slug}.html`;
       if (routes.has(route)) issues.push({ code: 'duplicate_route', path: [...pagePath, locale, 'slug'], message: 'Normalized route occurs more than once on this website' });
       routes.add(route);
-      locales[locale] = { route, contentValues: input.contentValues };
+      return { route, contentValues: input.contentValues };
     }
+    const locales = { nl: planLocale('nl', page.nl), ...(page.en ? { en: planLocale('en', page.en) } : {}) };
     const proposedPage: WebsitePlan['pages'][number] = { sourcePageId: page.id, pageId: pageId(site.websiteId, page.id), locales };
     const cover = page.cover;
     if (cover) {
