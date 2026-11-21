@@ -12,7 +12,7 @@ type FetchResult = { status: number; body: unknown } | Error | Promise<{ status:
 
 // Exercise the actual compiled component's event handlers and fetch flow. The hook adapter
 // replaces only React scheduling/DOM rendering; no copy of the publication logic lives here.
-function editorHarness() {
+function editorHarness(viteEnv: { VITE_DRACONIS_HOME_URL?: string } = {}) {
   const slots: unknown[] = [];
   let cursor = 0;
   let component!: () => Element;
@@ -56,11 +56,32 @@ function editorHarness() {
   const contactSource=readFileSync(new URL('../../../apps/cms/src/contact-template.tsx',import.meta.url),'utf8');
   runInNewContext(ts.transpileModule(contactSource,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText,
     {exports:contactExports,require:(name:string)=>{if(name==='react/jsx-runtime')return {jsx,jsxs:jsx};if(name==='./i18n')return i18nExports;throw Error(name);}});
+  const launcherExports: Record<string, unknown> = {};
+  const launcherSource = readFileSync(new URL('../../../packages/ui/src/AppLauncherLink.tsx', import.meta.url), 'utf8');
+  runInNewContext(ts.transpileModule(launcherSource, { compilerOptions: {
+    module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
+  } }).outputText, { exports: launcherExports, URL,
+    require: (name: string) => {
+      if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx };
+      throw new Error(`Unexpected app launcher import ${name}`);
+    },
+  });
   const source = readFileSync(new URL('../../../apps/cms/src/main.tsx', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
-  } }).outputText;
+  }, transformers: { before: [(context) => {
+    // Vite supplies import.meta.env before execution; the VM executes CommonJS.
+    const visit: ts.Visitor = (node) => {
+      if (ts.isPropertyAccessExpression(node) && node.name.text === 'env'
+        && ts.isMetaProperty(node.expression) && node.expression.keywordToken === ts.SyntaxKind.ImportKeyword) {
+        return context.factory.createIdentifier('__viteEnv');
+      }
+      return ts.visitEachChild(node, visit, context);
+    };
+    return (file) => ts.visitNode(file, visit) as ts.SourceFile;
+  }] } }).outputText;
   runInNewContext(compiled, {
+    __viteEnv: viteEnv,
     exports: {}, document: { getElementById: () => ({}), documentElement: {lang: 'nl'}, title: '' }, window: { confirm: () => true },
     crypto: { randomUUID: () => `fixture-key-${++key}` },
     fetch: async (path: string, init: typeof requests[number]['init']) => {
@@ -75,7 +96,8 @@ function editorHarness() {
       if (name === 'react') return { useState, useRef, useEffect: (effect: () => void) => effect() };
       if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx };
       if (name === 'react-dom/client') return { createRoot: () => ({ render: (element: Element) => { component = element.type as () => Element; } }) };
-      if (name === './style.css') return {};
+      if (name === './style.css' || name === '@draconis/ui/app-launcher.css') return {};
+      if (name === '@draconis/ui') return launcherExports;
       if (name === './shared-navigation') return sharedExports;
       if(name==='./contact-template')return contactExports;
       if (name === './i18n') return i18nExports;
@@ -157,6 +179,21 @@ async function openImageEnglish(needsUpdate=true, unsaved=false) {
 }
 
 describe('CMS editor recovery and selected revision', () => {
+  it('omits the optional Apps link when no home URL is configured', () => {
+    expect(editorHarness().text()).not.toContain('Apps');
+  });
+
+  it('renders the configured Apps link and updates its accessible label with the interface language', async () => {
+    const ui = editorHarness({ VITE_DRACONIS_HOME_URL: 'https://home.example/apps' });
+    expect(ui.link('Apps ↗').props).toMatchObject({
+      href: 'https://home.example/apps', target: '_blank', rel: 'noopener noreferrer',
+      'aria-label': 'Apps (nieuw tabblad)',
+    });
+    await ui.action(ui.field('Bedieningstaal'), 'onChange', { target: { value: 'en' } });
+    expect(ui.link('Apps ↗').props['aria-label']).toBe('Apps (new tab)');
+    expect(ui.requests).toHaveLength(0);
+  });
+
   it('keeps the active URL after saving a renamed draft and updates it after site publication', async () => {
     const ui = editorHarness();
     const content = { schemaVersion: 1, locale: 'nl', title: 'Pagina', slug: 'oud', seoTitle: 'Pagina', seoDescription: '',
