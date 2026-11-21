@@ -60,7 +60,9 @@ Azure DevOps koppelt commits en pull requests automatisch aan het work item.
 
 Pipeline [#2](https://dev.azure.com/vadvocaat/Draconis-labs/_build?definitionId=2)
 leest `azure-pipelines.yml` uit GitHub. De YAML configureert CI bij pushes naar
-`main` en PR-validatie voor pull requests naar `main`. De pipeline installeert
+`main` en PR-validatie voor pull requests naar `main` die klaar zijn voor
+review. Bij een nieuwe commit op dezelfde PR annuleert Azure een eerdere run
+die nog loopt. De pipeline installeert
 Node 22, cachet de pnpm-store en draait `scripts/verify-local-integration.ps1`
 voor frozen install, build, lint, typecheck, tests en startupsmokes.
 
@@ -84,8 +86,12 @@ gebruikt een installatietoken, maar Azure Pipelines ontbrak onder
 Voor head `841d9e2b26a2e4617885fc2c92fe58a48a45706f` en merge-SHA
 `eb58b7fb00886d1d8b468f3ef80c1d71d1d48df5` was er geen Azure-run voor de PR of
 GitHub-check. Op 21 november 2026 is `draconis-labs` aan de bestaande
-repositoryselectie van Azure Pipelines toegevoegd. GitHub toont de app nu op
-de repository. Een nieuwe commit op PR #66 toetst de koppeling.
+repositoryselectie van Azure Pipelines toegevoegd. Een nieuwe commit op PR #66
+startte [run #165](https://dev.azure.com/vadvocaat/Draconis-labs/_build/results?buildId=165)
+met reason `pullRequest`. De run slaagde op merge-SHA
+`6e7fb43b865679e6793011d0960c58fc5e5391c6`. GitHub toonde een geslaagde
+[Check Run](https://github.com/VincentAdvocaat/draconis-labs/runs/136885709202)
+met naam `VincentAdvocaat.draconis-labs` en Azure Pipelines-app-id `9426`.
 [Microsoft-documentatie over GitHub-triggers](https://learn.microsoft.com/en-us/azure/devops/pipelines/repos/github?view=azure-devops#failing-triggers)
 
 Maak de check pas verplicht nadat een automatisch gestarte run de exacte naam en
