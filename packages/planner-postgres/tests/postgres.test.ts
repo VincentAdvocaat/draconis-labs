@@ -31,7 +31,7 @@ let ownsSchema = false;
 beforeAll(async () => {
   await admin.query(`CREATE SCHEMA ${schema}`);
   ownsSchema = true;
-  await expect(Promise.all(pools.map(migratePlannerPostgres))).resolves.toEqual([[1, 2], [1, 2]]);
+  await expect(Promise.all(pools.map(migratePlannerPostgres))).resolves.toEqual([[1, 2, 3], [1, 2, 3]]);
 });
 afterAll(async () => {
   try {
@@ -81,14 +81,14 @@ it('upgrades a version-one schema without changing its existing tasks', async ()
   await createPlannerPostgresWorkspace(pools[0], workspace);
   const planner = service(pools[0], workspace);
   const task = await planner.create(recurring, actor);
-  await pools[0].query('DROP TABLE planner_snapshot_imports; DELETE FROM planner_schema_migrations WHERE version = 2');
+  await pools[0].query('DROP TABLE planner_snapshot_imports, local_planner_activity; DELETE FROM planner_schema_migrations WHERE version >= 2');
   // A conflicting table causes migration 2 to fail without registering it.
   await pools[0].query('CREATE TABLE planner_snapshot_imports (id integer)');
   await expect(migratePlannerPostgres(pools[0])).rejects.toMatchObject({ code: '42P07' });
   await expect(pools[0].query('SELECT version FROM planner_schema_migrations ORDER BY version'))
     .resolves.toMatchObject({ rows: [{ version: 1 }] });
   await pools[0].query('DROP TABLE planner_snapshot_imports');
-  await expect(migratePlannerPostgres(pools[0])).resolves.toEqual([1, 2]);
+  await expect(migratePlannerPostgres(pools[0])).resolves.toEqual([1, 2, 3]);
   expect(await planner.list({})).toEqual([task]);
 });
 

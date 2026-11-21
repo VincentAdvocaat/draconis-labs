@@ -2,9 +2,8 @@
 
 De PostgreSQL-adapter gebruikt een pool en een genummerd schema voor taken,
 voorkeuren en idempotente taakcreatie per werkruimte. De proef gebruikt de
-asynchrone Planner-service uit `packages/planner-core`. De bestaande Fastify-,
-boekings- en Electron-ingangen gebruiken SQLite. De PostgreSQL-adapter is via
-de import-CLI en de integratiesuite te gebruiken.
+asynchrone Planner-service uit `packages/planner-core`. Fastify heeft een expliciete lokale HTTP-proef voor deze adapter.
+De standaardstart, boekingsingangen en Electron gebruiken SQLite.
 
 ## Starten en testen
 
@@ -58,6 +57,62 @@ en API-sleutels blijven in de SQLite-bron. Bewaar die bron en de afzonderlijke
 SQLite-back-up zolang hun overgang openstaat. Stop alleen je eigen container
 na de proef met `docker stop draconis-planner-pg-probe`.
 
+## Opt-in HTTP-ingang
+
+De gecompileerde API gebruikt PostgreSQL voor de beveiligde
+`/api/v1/workspaces/local`-routes als `DRACONIS_PLANNER_POSTGRES_URL` is gezet.
+Gebruik de [lokale testidentiteit](../api/local-identity.md) met een expliciet
+`DATABASE_PATH` in een wegwerpprofiel. De API en de PostgreSQL-verbinding
+gebruiken loopback. Geef in de PostgreSQL-URL een database, gebruikersnaam en
+wachtwoord op. Gebruik een eigen testdatabase. De API voert de genummerde
+migraties uit en maakt zo nodig werkruimte `local` aan vóór het luisteren.
+
+```powershell
+corepack pnpm --filter @draconis/api build
+$env:DRACONIS_PLANNER_POSTGRES_URL = $env:PLANNER_POSTGRES_TEST_URL
+$env:DRACONIS_LOCAL_IDENTITY_FILE = 'C:/pad/naar/fictieve-identity.json'
+$env:DATABASE_PATH = 'C:/pad/naar/eigen-profiel/identity.sqlite'
+$env:HOST = '127.0.0.1'
+$env:PORT = '39081'
+corepack pnpm --filter @draconis/api start
+```
+
+Stuur het token van de testidentiteit voor taak-, historie- en
+voorkeurenverzoeken naar dezelfde workspace-routes als bij het beveiligde
+SQLite-profiel. De standaardstart gebruikt SQLite. Voor afspraken, publieke
+reserveringen en de compatibiliteitsroutes gebruik je de bestaande
+standaardingangen. Een fout tijdens PostgreSQL-start stopt vóór de API
+verkeer ontvangt.
+
+```powershell
+corepack pnpm --filter @draconis/api smoke:planner-postgres
+```
+
+Deze uitvoerbare proef gebruikt `PLANNER_POSTGRES_TEST_URL` uit de
+containerinstructie hierboven. Het fixtureaccount maakt één eigen
+wegwerpdatabase aan. De proef start de gecompileerde API op een vrije
+loopbackpoort en controleert autorisatie, cursorpaginering, idempotentie en
+een gelijktijdige afronding met één HTTP 409 en één opvolgtaak. Zij controleert
+ook PostgreSQL-opslag en behoud van taken, voorkeuren en idempotentie na
+procesherstart. Aan het eind sluit zij de processen en verwijdert zij de
+eigen wegwerpdatabase.
+
+## Audit en MCP
+
+REST en MCP gebruiken in deze opt-in dezelfde werkruimteroutes, dezelfde
+scoped agentcredentials en dezelfde PostgreSQL-opslag. De
+identiteitsconfiguratie en credentialstore blijven in de bestaande lokale
+testopstelling. Taakmutaties, idempotentiereceipts en geslaagde auditregels
+worden op dezelfde PostgreSQL-verbinding vastgelegd. Faalt het wegschrijven
+van de auditregel, dan vervalt ook de taakmutatie. Bij een geweigerde
+mutatie blijven alleen de auditmetadata en de foutstatus staan.
+
+Gebruik in beide processen dezelfde `DRACONIS_PLANNER_POSTGRES_URL` en
+`DATABASE_PATH`. Voor MCP is ook `DRACONIS_MCP_AGENT_TOKEN` nodig. Het bestaande
+commando `planner:audit` leest met de PostgreSQL-variabele de PostgreSQL-audit
+en gebruikt bij de standaardstart de SQLite-audit. Audit bevat alleen
+metadata volgens het lokale auditcontract.
+
 ## Transacties
 
 Elke wijziging vergrendelt de bestaande werkruimterij met `FOR UPDATE` vóór de
@@ -71,9 +126,9 @@ transactieniveau. [PostgreSQL-locks](https://www.postgresql.org/docs/17/explicit
 
 AB#127 vraagt om Fastify met managed PostgreSQL. Dat vereist een toegewezen
 testserver, pool- en TLS-configuratie, Key Vault en goedgekeurde toegang.
-Test daarna werkruimte-autorisatie via HTTP, bestaand foutgedrag met 409 en
-dezelfde capaciteitsraces bij reserveren, blokkeren en verplaatsen. De
-PostgreSQL-proef dekt vooralsnog alleen de taken- en voorkeurenopslag.
+De lokale HTTP-proef dekt werkruimte-autorisatie en het foutcontract voor
+taken. Valideer deze op de toegewezen testserver en voeg de PostgreSQL-
+boekingsopslag en capaciteitsraces toe voor reserveren, blokkeren en verplaatsen.
 
 AB#129 vraagt om een herstelproef op een aparte omgeving. Leg eerst RPO,
 RTO en de behandeltijd van writes sinds het gekozen herstelpunt vast. Meet en

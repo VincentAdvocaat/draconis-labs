@@ -54,6 +54,21 @@ const migrations = [
       PRIMARY KEY (workspace_id, source_id, source_sha256, import_version)
     );
   ` },
+  { version: 3, sql: `
+    CREATE TABLE local_planner_activity (
+      id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      occurred_at text NOT NULL,
+      actor_kind text NOT NULL,
+      actor_name text NOT NULL,
+      client text NOT NULL,
+      request_id text NOT NULL UNIQUE,
+      workspace_id text,
+      operation text NOT NULL,
+      target_id text,
+      status integer NOT NULL
+    );
+    CREATE INDEX local_planner_activity_date ON local_planner_activity (occurred_at, id);
+  ` },
 ];
 
 export async function migratePlannerPostgres(pool: Pool) {

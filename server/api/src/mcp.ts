@@ -14,7 +14,7 @@ if (!token || !isAgentCredential(token)) throw new Error('DRACONIS_MCP_AGENT_TOK
 
 const { sqlite } = await import('./core/db.js');
 const { buildApp } = await import('./core/index.js');
-const app = await buildApp(authorizeScopedAgent(createAgentCredentials(sqlite)), 'mcp');
+const app = await buildApp(authorizeScopedAgent(createAgentCredentials(sqlite)), 'mcp', process.env.DRACONIS_PLANNER_POSTGRES_URL);
 process.once('beforeExit', async () => {
   await app.close();
   sqlite.close();

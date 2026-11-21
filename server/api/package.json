@@ -18,10 +18,12 @@
     "planner:audit": "tsx scripts/planner-audit.ts",
     "start:public": "node --import tsx dist/public.js",
     "smoke:public": "node scripts/smoke-public.mjs",
+    "smoke:planner-postgres": "node scripts/smoke-planner-postgres.mjs",
     "demo:local": "node scripts/demo-local.mjs"
   },
   "dependencies": {
     "@draconis/planner-core": "workspace:*",
+    "@draconis/planner-postgres": "workspace:*",
     "@draconis/planner-sqlite": "workspace:*",
     "@draconis/shared": "workspace:*",
     "@fastify/cors": "^11.3.0",
@@ -31,6 +33,7 @@
     "better-sqlite3": "^12.11.1",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.10.0",
+    "pg": "^8.16.3",
     "sharp": "0.35.5",
     "tsx": "^4.23.0",
     "zod": "^4.4.3"
@@ -39,6 +42,7 @@
     "@modelcontextprotocol/client": "2.4.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.13.3",
+    "@types/pg": "^8.15.6",
     "oxlint": "^1.73.0",
     "tsx": "^4.23.0",
     "typescript": "~6.0.3",

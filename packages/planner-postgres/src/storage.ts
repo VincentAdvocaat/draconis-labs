@@ -65,13 +65,16 @@ function taskWrites(client: PoolClient, workspaceId: string): AsyncPlannerTransa
   };
 }
 
-export function createPostgresPlannerStorage(pool: Pool, workspaceId: string): AsyncPlannerStorage {
+export function createPostgresPlannerStorage(pool: Pool, workspaceId: string, connection?: PoolClient): AsyncPlannerStorage {
   const scoped = eq(tasks.workspaceId, workspaceId);
   const boardOrder = [asc(tasks.lane), asc(tasks.position), asc(tasks.id)];
-  const read = <T>(operation: (client: PoolClient) => Promise<T>) => transaction(pool, async client => {
-    await requireWorkspace(client, workspaceId);
-    return operation(client);
-  }, true);
+  const read = <T>(operation: (client: PoolClient) => Promise<T>) => {
+    const run = async (client: PoolClient) => {
+      await requireWorkspace(client, workspaceId);
+      return operation(client);
+    };
+    return connection ? run(connection) : transaction(pool, run, true);
+  };
 
   function page(filter: SQL | undefined, order: SQL[], page?: number, pageSize = 50) {
     const where = and(scoped, filter);
@@ -87,11 +90,12 @@ export function createPostgresPlannerStorage(pool: Pool, workspaceId: string): A
 
   return {
     transaction(operation) {
-      return transaction(pool, async client => {
+      const run = async (client: PoolClient) => {
         // Serialize every write for this workspace before the first task/receipt read.
         await requireWorkspace(client, workspaceId, true);
         return operation(taskWrites(client, workspaceId));
-      });
+      };
+      return connection ? run(connection) : transaction(pool, run);
     },
     list: query => page(taskFilters(query), boardOrder, query.page, query.pageSize),
     listByCursor({ filters, after, limit, now }) {

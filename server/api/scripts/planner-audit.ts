@@ -1,6 +1,8 @@
 import { parseArgs } from 'node:util';
 import Database from 'better-sqlite3';
-import { listPlannerActivity } from '../src/core/planner-audit.js';
+import { listPostgresPlannerActivity } from '@draconis/planner-postgres';
+import { openLocalPostgresPool } from '../src/modules/planner/postgres.js';
+import { listPlannerActivity, parsePlannerActivityFilters } from '../src/core/planner-audit.js';
 
 try {
   const file = process.env.DATABASE_PATH;
@@ -16,14 +18,22 @@ try {
       limit: { type: 'string' },
     },
   });
-  const db = new Database(file, { readonly: true, fileMustExist: true });
-  try {
-    console.log(JSON.stringify(listPlannerActivity(db, {
-      ...values,
-      limit: values.limit === undefined ? undefined : Number(values.limit),
-    }), null, 2));
-  } finally {
-    db.close();
+  const filter = { ...values, limit: values.limit === undefined ? undefined : Number(values.limit) };
+  const postgresUrl = process.env.DRACONIS_PLANNER_POSTGRES_URL;
+  if (postgresUrl !== undefined) {
+    const pool = openLocalPostgresPool(postgresUrl);
+    try {
+      console.log(JSON.stringify(await listPostgresPlannerActivity(pool, parsePlannerActivityFilters(filter)), null, 2));
+    } finally {
+      await pool.end();
+    }
+  } else {
+    const db = new Database(file, { readonly: true, fileMustExist: true });
+    try {
+      console.log(JSON.stringify(listPlannerActivity(db, filter), null, 2));
+    } finally {
+      db.close();
+    }
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : 'Auditlog uitlezen mislukt.');
