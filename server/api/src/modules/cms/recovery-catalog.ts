@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { contentLocaleContextSchema } from '@draconis/shared';
 import { catalogConsumerRequestSchema } from '../../catalogus/consumer.js';
-import type { CatalogSnapshot } from '../../catalogus/contracts.js';
+import { galleryPhotoSchema, type CatalogSnapshot } from '../../catalogus/contracts.js';
 import type { SiteSnapshot } from './documents.js';
 
 export const recoveryCatalogSchema = z.union([z.literal(3), z.literal(4), z.literal(5)]);
@@ -70,7 +70,7 @@ export function checkRecoveryCatalog(db: Database.Database): Version {
   }
   const snapshots = new Map<string, CatalogSnapshot>();
   function snapshot(value: CatalogSnapshot, website: string, id: string) {
-    if (![1, 2, 3].includes(value.schemaVersion) || value.websiteId !== website || value.snapshotId !== id || value.collectionId !== 'portfolio' || !Array.isArray(value.items)) throw new Error('Catalog snapshot identity mismatch');
+    if (![1, 2, 3, 4].includes(value.schemaVersion) || value.websiteId !== website || value.snapshotId !== id || value.collectionId !== 'portfolio' || !Array.isArray(value.items)) throw new Error('Catalog snapshot identity mismatch');
     const { checksum, ...payload } = value;
     if (checksum !== hash(payload)) throw new Error('Catalog snapshot checksum mismatch');
     contentLocaleContextSchema.parse(value.localeContext ?? { defaultLocale: 'nl', locale: 'nl' });
@@ -79,7 +79,19 @@ export function checkRecoveryCatalog(db: Database.Database): Version {
       category(website, item.categoryId);
       if (!revisions.has(website + '/' + item.itemId + '/' + item.revisionId)) throw new Error('Snapshot revision is missing');
     }
-    if (value.schemaVersion === 3) {
+    if (value.schemaVersion === 4) {
+      if (version !== 5 || !value.items.some(item => item.resolvedGallery?.length)) throw new Error('Catalog snapshot gallery schema mismatch');
+      for (const item of value.items) {
+        const photos = z.array(galleryPhotoSchema).max(4).parse(item.gallery ?? []);
+        const resolved = item.resolvedGallery ?? [];
+        if (photos.length !== resolved.length || photos.some((photo, index) => {
+          const { publicPhotoCredit: _credit, ...reference } = photo;
+          const { variants: _variants, ...pinned } = resolved[index];
+          return hash(reference) !== hash(pinned);
+        })) throw new Error('Catalog snapshot gallery reference mismatch');
+      }
+    }
+    if (value.schemaVersion >= 3) {
       if (version < 4 || !Array.isArray(value.categories)) throw new Error('Catalog snapshot category schema mismatch');
       const ids = value.categories.map(item => item.categoryId);
       if (new Set(ids).size !== ids.length || new Set(value.items.map(item => item.categoryId)).size !== ids.length) throw new Error('Catalog snapshot category coverage mismatch');

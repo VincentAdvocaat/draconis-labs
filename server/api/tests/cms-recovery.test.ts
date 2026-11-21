@@ -27,6 +27,48 @@ const base = '/api/v1/cms/websites/demo-cms';
 const auth = (root: string) => ({ authorization: `Bearer ${read(join(root, 'local-access.json')).publisher}` });
 
 describe('offline synthetic CMS recovery', () => {
+
+  it('restores schema 8 without changing the backup and keeps the new archive state in schema 9', async () => {
+    const source = await fixture();
+    const running = await opened(source.root);
+    const create = await running.app.inject({ method: 'POST', url: base + '/documents', headers: auth(source.root),
+      payload: { title: 'Archiefproef', slug: 'archiefproef' } });
+    expect(create.statusCode).toBe(201);
+    const { pageId, revisionId } = create.json();
+    await running.app.close();
+    const legacy = new Database(join(source.root, 'cms.db'));
+    legacy.exec('ALTER TABLE cms_documents DROP COLUMN archived; DELETE FROM cms_migrations WHERE version=9');
+    legacy.close();
+
+    const backup8 = target('backup');
+    await backupRecoveryFixture(source.root, backup8);
+    expect(read(join(backup8, 'backup.json')).cmsSchema).toBe(8);
+    const legacyHash = hash(join(backup8, 'cms', 'cms.db'));
+    const upgraded = await restoreRecoveryFixture(backup8, target());
+    ownMedia(upgraded.mediaRoot);
+    const upgradedApp = await opened(upgraded.root);
+    const path = base + '/documents/' + pageId;
+    const draft = (await upgradedApp.app.inject({ url: path, headers: auth(upgraded.root) })).json();
+    expect(draft).toMatchObject({ pageId, revisionId, version: 1, archived: false });
+    const archive = await upgradedApp.app.inject({ method: 'PUT', url: path + '/archive', headers: auth(upgraded.root),
+      payload: { expectedVersion: 1, archived: true } });
+    expect(archive.statusCode).toBe(200);
+    await upgradedApp.app.close();
+    expect(hash(join(backup8, 'cms', 'cms.db'))).toBe(legacyHash);
+
+    const backup9 = target('backup');
+    await backupRecoveryFixture(upgraded.root, backup9);
+    expect(read(join(backup9, 'backup.json')).cmsSchema).toBe(9);
+    const restored = await restoreRecoveryFixture(backup9, target());
+    ownMedia(restored.mediaRoot);
+    const restoredApp = await opened(restored.root);
+    const archived = (await restoredApp.app.inject({ url: path, headers: auth(restored.root) })).json();
+    expect(archived).toMatchObject({ pageId, revisionId, version: 2, archived: true });
+    const plan = (await restoredApp.app.inject({ url: base + '/site-plan', headers: auth(restored.root) })).json();
+    expect(plan.archivedPages).toMatchObject([{ pageId, revisionId }]);
+    expect(plan.pages.map((page: {pageId: string}) => page.pageId)).toEqual(['home']);
+  }, 30_000);
+
   it('restores immutable releases, newer drafts, templates and media/catalog pins with new credentials across restart', async () => {
     const source = await fixture(); const running = await opened(source.root); const headers = auth(source.root);
     const cms = running.app;

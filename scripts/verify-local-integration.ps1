@@ -1,5 +1,7 @@
 [CmdletBinding()]
-param()
+param(
+  [switch] $HomeBrowser = ($env:DRACONIS_HOME_BROWSER_TESTS -eq '1')
+)
 $ErrorActionPreference = 'Stop'
 $integrationRepo = Split-Path -Parent $PSScriptRoot
 Push-Location -LiteralPath $integrationRepo
@@ -12,6 +14,12 @@ try {
     @('--filter', '!@draconis/api', '-r', '--if-present', 'test'),
     @('--filter', '@draconis/api', 'smoke:start'), @('--filter', '@draconis/api', 'smoke:public')
   )
+  if ($HomeBrowser) {
+    $installChromium = @('--filter', '@draconis/home', 'exec', 'playwright', 'install', '--only-shell')
+    if ($IsLinux -and $env:TF_BUILD -eq 'True') { $installChromium += '--with-deps' }
+    $integrationCommands += ,($installChromium + 'chromium')
+    $integrationCommands += ,@('--filter', '@draconis/home', 'exec', 'playwright', 'test')
+  }
   foreach ($integrationCommand in $integrationCommands) {
     & corepack pnpm @integrationCommand
     if ($LASTEXITCODE -ne 0) { throw "Integratiecontrole mislukt: pnpm $($integrationCommand -join ' ')" }

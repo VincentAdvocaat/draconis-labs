@@ -206,6 +206,30 @@ describe('synthetic CMS import', () => {
     expect(reopened.runtime.documents!.get(site.targetWebsiteId, page)).toMatchObject({ revisionId: saved.revisionId, content });
   });
 
+  it.each([false, true])('rejects replay after archiving an imported page, restored=%s', async restore => {
+    const input = await fixture();
+    const [site] = await apply(input);
+    const page = site.pages[0];
+    const opened = await open(input.target);
+    const url = cms(site.targetWebsiteId) + '/documents/' + page.pageId + '/archive';
+    const archive = await opened.runtime.app.inject({ method: 'PUT', url, headers: opened.headers(site.targetWebsiteId),
+      payload: { expectedVersion: 1, archived: true } });
+    expect(archive.statusCode, archive.body).toBe(200);
+    expect(archive.json()).toMatchObject({ revisionId: page.nlRevisionId, version: 2, archived: true });
+    if (restore) {
+      const restored = await opened.runtime.app.inject({ method: 'PUT', url, headers: opened.headers(site.targetWebsiteId),
+        payload: { expectedVersion: 2, archived: false } });
+      expect(restored.statusCode, restored.body).toBe(200);
+      expect(restored.json()).toMatchObject({ revisionId: page.nlRevisionId, version: 3, archived: false });
+    }
+    expect(opened.runtime.documents!.locales.get(site.targetWebsiteId, page.pageId))
+      .toMatchObject({ revisionId: page.enRevisionId, version: restore ? 3 : 2 });
+    await opened.close();
+    expect(await applyLegacyImport(input.source, input.target)).toMatchObject({ ok: false, status: 'rejected', issues: [
+      { code: 'target_page_changed', path: [site.targetWebsiteId, 'pages', 'shared-page'] },
+    ] });
+  });
+
   it('rolls back both sites when a valid-hash second image fails to decode and can retry the same target', async () => {
     const input = await fixture();
     const file = join(input.source, 'legacy-beta', 'cover.png');

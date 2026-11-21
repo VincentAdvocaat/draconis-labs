@@ -79,6 +79,7 @@ export class CmsPageLocales {
   }
   save(site: string, page: string, input: z.infer<typeof localeSaveSchema>, actor: string) {
     return this.repository.db.transaction(() => {
+      if (this.source(site, page).archived) throw new CmsError(409, 'Herstel de pagina voordat je het taalconcept wijzigt');
       const current = this.get(site, page);
       if (current.version !== input.expectedVersion || current.structure !== input.expectedStructure)
         throw new CmsError(409, 'Taalversie of NL-blokstructuur gewijzigd. Jouw invoer blijft bewaard; laad de actuele structuur.');
@@ -165,9 +166,9 @@ export class CmsPageLocales {
         return {blockId:block.blockId,type:'image' as const,reference,caption:block.caption??''};
       }) };
   }
-  plan(site: string) {
+  plan(site: string, selectedIds: ReadonlySet<string>) {
     return (this.repository.db.prepare(`SELECT page_id FROM (SELECT website_id,page_id,locale FROM cms_locale_heads UNION ALL SELECT website_id,page_id,locale FROM cms_home_locale_heads) WHERE website_id=? AND locale='en'`).all(site) as Array<{ page_id: string }>).
-      map(({ page_id }) => { const draft = this.get(site, page_id); return { pageId: page_id, locale: 'en' as const,
+      filter(({ page_id }) => selectedIds.has(page_id)).map(({ page_id }) => { const draft = this.get(site, page_id); return { pageId: page_id, locale: 'en' as const,
         revisionId: draft.revisionId!, version: draft.version, structure: draft.structure, title: draft.content.title,
         slug: draft.content.slug, needsUpdate: draft.needsUpdate, supported: draft.supported }; });
   }
