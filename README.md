@@ -6,6 +6,7 @@ kanban-board dat mensen en AI-agents via dezelfde HTTP-API kunnen gebruiken.
 ## Projectindeling
 
 ```text
+apps/home         Lokale appcatalogus
 apps/planner      React + Vite planner
 server/api        Fastify API (modular /api/v1) en SQLite-database
 packages/shared   Gedeelde contracten en Zod-schema's
@@ -15,6 +16,8 @@ templates/app     Scaffold voor nieuwe Draconis-apps
 
 De onderdelen zijn onafhankelijk bouwbaar en deploybaar, maar delen één
 workspace voor consistente contracten en eenvoudige lokale ontwikkeling.
+
+Zie [Draconis-apps](docs/apps/README.md) voor de appcatalogus, appregistratie en kwaliteitscontroles.
 
 ## Lokaal starten
 
