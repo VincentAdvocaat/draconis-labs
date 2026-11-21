@@ -114,15 +114,16 @@ export class CmsDocuments {
     ] };
   }
   create(websiteId: string, input: z.infer<typeof createDocumentSchema>, actor: string): DocumentDto {
+    return this.createDraft(websiteId, randomUUID(), { schemaVersion: 1, locale: 'nl', ...input, seoTitle: input.title,
+      seoDescription: '', blocks: [{ blockId: randomUUID(), type: 'text', heading: '', body: '' }] }, actor);
+  }
+  createDraft(websiteId: string, pageId: string, content: DocumentContent, actor: string): DocumentDto {
     return this.repository.db.transaction(() => {
       this.repository.page(websiteId);
       if (this.rows(websiteId).length >= 32) throw new CmsError(400, 'Maximaal 32 extra pagina’s in deze proef');
-      this.assertSlug(websiteId, input.slug);
-      const pageId = randomUUID();
-      const content: DocumentContent = { schemaVersion: 1, locale: 'nl', ...input, seoTitle: input.title,
-        seoDescription: '', blocks: [{ blockId: randomUUID(), type: 'text', heading: '', body: '' }] };
+      this.assertSlug(websiteId, content.slug);
       const revision = this.insert(websiteId, pageId, null, content, null, [], actor);
-      this.repository.db.prepare('INSERT INTO cms_documents VALUES(?,?,?,?,1)').run(pageId, websiteId, input.slug, revision);
+      this.repository.db.prepare('INSERT INTO cms_documents VALUES(?,?,?,?,1)').run(pageId, websiteId, content.slug, revision);
       return this.get(websiteId, pageId);
     }).immediate();
   }

@@ -42,7 +42,7 @@ export interface CmsAppOptions {
   contactTemplateLoader?:()=>ContactBundle;
 }
 
-function lockRuntime(root: string): () => void {
+export function lockRuntime(root: string): () => void {
   mkdirSync(root, { recursive: true });
   const recoveryLock = join(root, '.recovery.lock');
   if (existsSync(recoveryLock)) throw new Error('Offline recovery owns this fixture');
