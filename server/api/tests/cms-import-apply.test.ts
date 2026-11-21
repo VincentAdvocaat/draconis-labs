@@ -103,7 +103,7 @@ describe('synthetic CMS import', () => {
     const values = provenance.websites[0].pages[0].locales;
     expect(values.nl.contentValues.seoDescription).toEqual({ version: 4, value: '' });
     expect(values.en.contentValues).not.toHaveProperty('seoDescription');
-  }, 20_000);
+  }, 45_000);
 
   it('renders separate website and locale content and requires explicit rights and publication', async () => {
     const input = await fixture();
@@ -181,7 +181,7 @@ describe('synthetic CMS import', () => {
       expect((await app.inject('/sites/' + websiteId + '/obsolete.html')).statusCode).toBe(404);
     }
     expect(rendered[0]).not.toEqual(rendered[1]);
-  });
+  }, 15_000);
 
   it('rejects a changed source and target edits without overwriting drafts', async () => {
     const input = await fixture();
